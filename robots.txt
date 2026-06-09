@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /uploads/
+Disallow: /login.html
+Disallow: /forgot-password.html
+Disallow: /reset-password.html
+
+Sitemap: https://fajasmaydel.com/sitemap.xml

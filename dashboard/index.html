@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Fajas Colombianas Maydel</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .section-panel{background:white;border-radius:var(--radius);box-shadow:var(--shadow-sm);border:1px solid var(--gray-200);padding:24px;margin-bottom:20px}
+    .img-url-row{display:flex;gap:8px}
+    .color-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  </style>
+</head>
+<body>
+
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="dash-sidebar">
+    <div class="dash-logo">
+      <img src="../assets/logo.jpeg" alt="Maydel">
+      <div class="dash-logo-text">
+        <strong>Maydel</strong>
+        <small>Panel admin</small>
+      </div>
+    </div>
+    <nav class="dash-nav">
+      <div class="dash-nav-section">Principal</div>
+      <button class="dash-nav-item active" onclick="showPanel('overview', this)">
+        <i class="fa-solid fa-gauge"></i> Resumen
+      </button>
+
+      <div class="dash-nav-section">Tienda</div>
+      <button class="dash-nav-item" onclick="showPanel('products', this)">
+        <i class="fa-solid fa-boxes-stacked"></i> Productos
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('categories', this)">
+        <i class="fa-solid fa-folder-tree"></i> Categorías
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('brands', this)">
+        <i class="fa-solid fa-certificate"></i> Marcas
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('orders', this)">
+        <i class="fa-solid fa-clipboard-list"></i> Pedidos
+      </button>
+
+      <div class="dash-nav-section">Finanzas</div>
+      <button class="dash-nav-item" onclick="showPanel('finance', this)">
+        <i class="fa-solid fa-chart-line"></i> Resumen
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('income', this)">
+        <i class="fa-solid fa-arrow-trend-up"></i> Ingresos
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('expenses', this)">
+        <i class="fa-solid fa-arrow-trend-down"></i> Gastos
+      </button>
+
+      <div class="dash-nav-section">Configuración</div>
+      <button class="dash-nav-item" onclick="showPanel('users', this)">
+        <i class="fa-solid fa-users"></i> Usuarios
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('reviews', this)">
+        <i class="fa-solid fa-star"></i> Reseñas
+      </button>
+      <button class="dash-nav-item" onclick="showPanel('coupons', this)">
+        <i class="fa-solid fa-ticket"></i> Cupones
+      </button>
+
+      <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px">
+        <button class="dash-nav-item" onclick="window.open('../index.html','_blank')">
+          <i class="fa-solid fa-store"></i> Ver tienda
+        </button>
+        <button class="dash-nav-item" onclick="AUTH.logout()" style="color:rgba(255,100,100,.8)">
+          <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+        </button>
+      </div>
+    </nav>
+    <div class="dash-user">
+      <strong id="dashUserName">Administrador</strong>
+      <span id="dashUserEmail">admin@fajasmaydel.com</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="dash-main">
+
+    <!-- ── OVERVIEW ── -->
+    <div id="panel-overview">
+      <div class="dash-header">
+        <div><h1>Resumen General</h1><div class="dash-header-sub" id="overviewDate"></div></div>
+        <button class="btn btn-primary btn-sm" onclick="showPanel('products', document.querySelector('[onclick*=products]'))">
+          <i class="fa-solid fa-plus"></i> Nuevo Producto
+        </button>
+      </div>
+      <div class="stats-grid" id="overviewStats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px" id="overviewCharts">
+        <div class="section-panel">
+          <h3 style="font-size:14px;font-weight:700;color:var(--dark);margin-bottom:16px"><i class="fa-solid fa-chart-bar" style="color:var(--primary)"></i> Ingresos vs Gastos (2025)</h3>
+          <div style="height:220px"><canvas id="overviewBarChart"></canvas></div>
+        </div>
+        <div class="section-panel">
+          <h3 style="font-size:14px;font-weight:700;color:var(--dark);margin-bottom:16px"><i class="fa-solid fa-chart-pie" style="color:var(--primary)"></i> Estado de Pedidos</h3>
+          <div style="height:220px"><canvas id="overviewDoughnut"></canvas></div>
+        </div>
+      </div>
+      <div class="section-panel">
+        <h3 style="font-size:15px;font-weight:700;color:var(--dark);margin-bottom:16px"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary)"></i> Pedidos recientes</h3>
+        <div id="recentOrdersList"></div>
+      </div>
+    </div>
+
+    <!-- ── PRODUCTS ── -->
+    <div id="panel-products" style="display:none">
+      <div class="dash-header">
+        <div><h1>Gestión de Productos</h1></div>
+        <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+          <i class="fa-solid fa-plus"></i> Nuevo Producto
+        </button>
+      </div>
+      <div class="stats-grid" id="productStats"></div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" class="table-search" id="tableSearch" placeholder="Buscar productos..." oninput="loadProductTable()">
+          <select class="sort-select" id="tableCat" onchange="loadProductTable()">
+            <option value="">Todas las categorías</option>
+          </select>
+          <select class="sort-select" id="tableStatus" onchange="loadProductTable()">
+            <option value="">Todos los estados</option>
+            <option value="active">Publicados</option>
+            <option value="inactive">Ocultos</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>Imagen</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="productsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="tableEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-box-open" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>Sin productos. <a href="#" onclick="openProductModal();return false" style="color:var(--primary);font-weight:600">Crea el primero</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CATEGORIES ── -->
+    <div id="panel-categories" style="display:none">
+      <div class="dash-header">
+        <div><h1>Categorías</h1></div>
+        <button class="btn btn-primary btn-sm" onclick="openCategoryModal()">
+          <i class="fa-solid fa-plus"></i> Nueva Categoría
+        </button>
+      </div>
+      <div class="table-card">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Icono</th><th>Nombre</th><th>Clave</th><th>Productos</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="catTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BRANDS / MARCAS ── -->
+    <div id="panel-brands" style="display:none">
+      <div class="dash-header">
+        <div><h1>Marcas</h1></div>
+        <button class="btn btn-primary btn-sm" onclick="openBrandModal()">
+          <i class="fa-solid fa-plus"></i> Nueva Marca
+        </button>
+      </div>
+      <div class="table-card">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Logo</th><th>Nombre</th><th>Clave</th><th>Productos</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="brandTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ORDERS ── -->
+    <div id="panel-orders" style="display:none">
+      <div class="dash-header">
+        <div><h1>Pedidos</h1></div>
+        <a href="/api/orders/export.csv" class="btn btn-primary btn-sm" download style="text-decoration:none">
+          <i class="fa-solid fa-file-csv"></i> Exportar a CSV
+        </a>
+      </div>
+      <div class="stats-grid" id="orderStats"></div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" class="table-search" id="orderSearch" placeholder="Buscar pedidos..." oninput="loadOrderTable()">
+          <select class="sort-select" id="orderStatusFilter" onchange="loadOrderTable()">
+            <option value="">Todos los estados</option>
+            <option value="pending">Pendiente</option>
+            <option value="confirmed">Confirmado</option>
+            <option value="processing">En proceso</option>
+            <option value="shipped">Enviado</option>
+            <option value="delivered">Entregado</option>
+            <option value="cancelled">Cancelado</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Cliente</th><th>Items</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+        </div>
+        <div id="ordersEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-clipboard-list" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>No hay pedidos registrados aún.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FINANCE ── -->
+    <div id="panel-finance" style="display:none">
+      <div class="dash-header">
+        <div><h1>Finanzas</h1></div>
+        <select class="sort-select" id="financeYear" onchange="loadFinance()">
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+      </div>
+      <div class="stats-grid" id="financeStats"></div>
+      <div class="finance-card">
+        <h3><i class="fa-solid fa-chart-area"></i> Ingresos vs Gastos por mes</h3>
+        <div class="chart-wrap"><canvas id="financeBarChart"></canvas></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="finance-card">
+          <h3><i class="fa-solid fa-arrow-trend-up" style="color:var(--success)"></i> Ingresos por mes</h3>
+          <div class="chart-wrap" style="height:200px"><canvas id="revenueLineChart"></canvas></div>
+        </div>
+        <div class="finance-card">
+          <h3><i class="fa-solid fa-chart-pie"></i> Gastos por categoría</h3>
+          <div class="chart-wrap" style="height:200px"><canvas id="expensePieChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPENSES ── -->
+    <div id="panel-expenses" style="display:none">
+      <div class="dash-header"><div><h1>Registro de Gastos</h1></div></div>
+
+      <div class="section-panel">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+          <i class="fa-solid fa-plus-circle" style="color:var(--primary)"></i> Registrar nuevo gasto
+        </h3>
+        <div class="expense-form">
+          <div class="form-group">
+            <label class="form-label">Concepto *</label>
+            <input type="text" class="form-input" id="expConcept" placeholder="Ej: Compra de mercancía">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monto (MXN) *</label>
+            <input type="number" class="form-input" id="expAmount" placeholder="0.00" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" id="expCategory">
+              <option value="inventario">Inventario</option>
+              <option value="marketing">Marketing</option>
+              <option value="operacion">Operación</option>
+              <option value="envio">Envíos</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha</label>
+            <input type="date" class="form-input" id="expDate">
+          </div>
+          <button class="btn-save" onclick="addExpense()" style="border-radius:8px;padding:10px 20px;align-self:flex-end">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar
+          </button>
+        </div>
+        <div class="form-group" style="margin-top:4px">
+          <label class="form-label">Notas (opcional)</label>
+          <input type="text" class="form-input" id="expNotes" placeholder="Descripción adicional">
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" class="table-search" id="expSearch" placeholder="Buscar gastos..." oninput="loadExpenseTable()">
+          <select class="sort-select" id="expCatFilter" onchange="loadExpenseTable()">
+            <option value="">Todas las categorías</option>
+            <option value="inventario">Inventario</option>
+            <option value="marketing">Marketing</option>
+            <option value="operacion">Operación</option>
+            <option value="envio">Envíos</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Monto</th><th>Notas</th><th>Acciones</th></tr></thead>
+            <tbody id="expensesTableBody"></tbody>
+          </table>
+        </div>
+        <div id="expensesEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-receipt" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>No hay gastos registrados aún.</p>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;font-weight:700;font-size:15px">
+          Total gastos: <span id="expTotalVal" style="color:var(--danger);margin-left:12px">$ 0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USUARIOS ── -->
+    <div id="panel-users" style="display:none">
+      <div class="dash-header">
+        <div><h1>Gestión de Usuarios</h1><div class="dash-header-sub">Administra las cuentas registradas en la tienda</div></div>
+      </div>
+      <div class="stats-grid" id="userStats"></div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" class="table-search" id="userSearch" placeholder="Buscar por nombre o correo..." oninput="loadUserTable()">
+          <select class="sort-select" id="userRoleFilter" onchange="loadUserTable()">
+            <option value="">Todos los roles</option>
+            <option value="admin">Administrador</option>
+            <option value="user">Usuario</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>Usuario</th><th>Correo</th><th>Rol</th><th>Fecha de nacimiento</th><th>Dirección</th><th>Registro</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+        <div id="usersEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-users" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>No hay usuarios registrados.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INGRESOS ── -->
+    <div id="panel-income" style="display:none">
+      <div class="dash-header">
+        <div><h1>Ingresos <span style="font-size:13px;font-weight:400;color:var(--gray-400)">(Entradas)</span></h1>
+          <div class="dash-header-sub">Ventas y cobros registrados en la tienda</div>
+        </div>
+        <select class="sort-select" id="incomeYear" onchange="loadIncomePanel()">
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+      </div>
+      <div class="stats-grid" id="incomeStats"></div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <input type="text" class="table-search" id="incomeSearch" placeholder="Buscar pedido o cliente..." oninput="filterIncomeTable()">
+          <select class="sort-select" id="incomeStatusFilter" onchange="filterIncomeTable()">
+            <option value="">Todos los estados</option>
+            <option value="delivered">Entregado</option>
+            <option value="shipped">Enviado</option>
+            <option value="confirmed">Confirmado</option>
+            <option value="pending">Pendiente</option>
+            <option value="cancelled">Cancelado</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>Fecha</th><th>Pedido</th><th>Cliente</th><th>Items</th><th>Estado</th><th>Monto</th>
+            </tr></thead>
+            <tbody id="incomeTableBody"></tbody>
+          </table>
+        </div>
+        <div id="incomeEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-arrow-trend-up" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>No hay ingresos registrados aún.</p>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;font-weight:700;font-size:15px">
+          Total visible: <span id="incomeTotalVal" style="color:var(--success);margin-left:12px">$ 0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REVIEWS ── -->
+    <div id="panel-reviews" style="display:none">
+      <div class="dash-header">
+        <div><h1>Reseñas de Clientas</h1><div class="dash-header-sub">Modera las reseñas que las clientas escriben desde la página de producto</div></div>
+      </div>
+
+      <div style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:14px 18px;margin-bottom:20px;border-radius:6px;font-size:14px;color:#0d3d1a">
+        <i class="fa-solid fa-circle-info" style="margin-right:6px"></i>
+        Las reseñas las escriben las clientas registradas desde la página de un producto. Aquí solo las apruebas o destacas para que aparezcan en el carrusel de inicio.
+      </div>
+
+      <div class="table-card">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th></th><th>Clienta</th><th>Calificación</th><th>Reseña</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="reviewsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="reviewsEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-star" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>No hay reseñas aún. ¡Agrega la primera!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CUPONES ── -->
+    <div id="panel-coupons" style="display:none">
+      <div class="dash-header">
+        <div><h1>Cupones de descuento</h1><div class="dash-header-sub">Crea códigos promocionales para tus clientas</div></div>
+      </div>
+
+      <div class="section-panel" style="margin-bottom:20px">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+          <i class="fa-solid fa-plus-circle" style="color:var(--primary)"></i> Nuevo cupón
+        </h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Código *</label>
+            <input type="text" class="form-input" id="coupCode" placeholder="VERANO20" style="text-transform:uppercase">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo de descuento</label>
+            <select class="form-select" id="coupType">
+              <option value="percent">Porcentaje (%)</option>
+              <option value="fixed">Monto fijo ($)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor del descuento *</label>
+            <input type="number" class="form-input" id="coupValue" placeholder="10" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Compra mínima (MXN)</label>
+            <input type="number" class="form-input" id="coupMin" placeholder="500" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Usos máximos (opcional)</label>
+            <input type="number" class="form-input" id="coupMaxUses" placeholder="100" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expira el (opcional)</label>
+            <input type="datetime-local" class="form-input" id="coupExpires">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Descripción</label>
+            <input type="text" class="form-input" id="coupDesc" placeholder="10% en tu primera compra">
+          </div>
+          <div class="form-group" style="align-self:flex-end">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px">
+              <input type="checkbox" id="coupActive" checked> Activo
+            </label>
+            <button class="btn-save" onclick="createCoupon()" style="border-radius:8px;padding:11px 24px">
+              <i class="fa-solid fa-plus"></i> Crear cupón
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Código</th><th>Descripción</th><th>Descuento</th><th>Min. compra</th><th>Usos</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="couponsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="couponsEmpty" style="display:none;text-align:center;padding:48px;color:var(--gray-400)">
+          <i class="fa-solid fa-ticket" style="font-size:40px;margin-bottom:12px;display:block"></i>
+          <p>No hay cupones creados aún.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── MODAL: PRODUCTO ── -->
+<div class="modal-overlay hidden" id="productModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="productModalTitle">Nuevo Producto</h2>
+      <button class="modal-close" onclick="closeProductModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('info',this)">Información</button>
+      <button class="tab-btn" onclick="switchTab('images',this)">Imágenes</button>
+      <button class="tab-btn" onclick="switchTab('variants',this)">Tallas y Colores</button>
+    </div>
+
+    <!-- TAB INFO -->
+    <div id="tab-info">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Nombre del producto *</label>
+          <input type="text" class="form-input" id="f-name" placeholder="Ej: Faja Reductora Premium Body Shaper">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría *</label>
+          <select class="form-select" id="f-category"><option value="">Seleccionar...</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Marca</label>
+          <select class="form-select" id="f-brand"><option value="">Sin marca</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Referencia</label>
+          <input type="text" class="form-input" id="f-reference" placeholder="FM-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio MXN *</label>
+          <input type="number" class="form-input" id="f-price" placeholder="1299" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio original (antes de descuento)</label>
+          <input type="number" class="form-input" id="f-original-price" placeholder="Dejar vacío si no hay descuento" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock</label>
+          <input type="number" class="form-input" id="f-stock" placeholder="10" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Material</label>
+          <input type="text" class="form-input" id="f-material" placeholder="Lycra, Nylon, Poliéster...">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-textarea" id="f-desc" placeholder="Describe el producto: beneficios, uso, características..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Etiquetas</label>
+          <div class="tags-wrap" id="tagsInput" onclick="document.getElementById('tagField').focus()">
+            <input type="text" class="tag-input-field" id="tagField" placeholder="Escribe y presiona Enter...">
+          </div>
+        </div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:12px">
+          <label class="form-label" style="margin-bottom:0">Publicado</label>
+          <label class="toggle"><input type="checkbox" id="f-active" checked><span class="toggle-track"></span></label>
+        </div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:12px">
+          <label class="form-label" style="margin-bottom:0">Destacado</label>
+          <label class="toggle"><input type="checkbox" id="f-featured"><span class="toggle-track"></span></label>
+        </div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:12px">
+          <label class="form-label" style="margin-bottom:0">Nuevo ingreso</label>
+          <label class="toggle"><input type="checkbox" id="f-isnew"><span class="toggle-track"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB IMAGES -->
+    <div id="tab-images" style="display:none">
+      <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px">Agrega hasta <strong>6 imágenes</strong> por URL o subiendo archivos. La primera imagen es la principal del producto.</p>
+      <label class="form-label">URL de imagen <span id="imgCount" style="color:var(--gray-400);font-weight:400">(0/6)</span></label>
+      <div class="img-url-row" style="margin-top:6px;margin-bottom:14px">
+        <input type="text" class="form-input" id="imgUrlInput" placeholder="https://ejemplo.com/imagen.jpg" style="flex:1">
+        <button class="btn-save" onclick="addImageUrl()" style="border-radius:8px;padding:10px 16px">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+      <div class="drag-area" onclick="document.getElementById('imgFileInput').click()">
+        <input type="file" id="imgFileInput" accept="image/*" multiple onchange="handleFileUpload(this)" style="display:none">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        Haz clic para subir imágenes desde tu equipo
+        <div style="font-size:12px;margin-top:4px;opacity:.7">JPG, PNG, WEBP · máx. 5 MB por imagen · hasta 6</div>
+      </div>
+      <div class="img-preview" id="imgPreview" style="margin-top:16px"></div>
+
+      <!-- VIDEO -->
+      <hr style="margin:24px 0;border:none;border-top:1px solid var(--gray-200)">
+      <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px"><i class="fa-solid fa-video" style="color:var(--primary);margin-right:6px"></i> Agrega <strong>1 video</strong> del producto (opcional), por URL o subiéndolo.</p>
+      <label class="form-label">URL del video</label>
+      <div class="img-url-row" style="margin-top:6px;margin-bottom:14px">
+        <input type="text" class="form-input" id="videoUrlInput" placeholder="https://ejemplo.com/video.mp4" style="flex:1">
+        <button class="btn-save" onclick="addVideoUrl()" style="border-radius:8px;padding:10px 16px">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+      <div class="drag-area" onclick="document.getElementById('videoFileInput').click()">
+        <input type="file" id="videoFileInput" accept="video/*" onchange="handleVideoUpload(this)" style="display:none">
+        <i class="fa-solid fa-film"></i>
+        Haz clic para subir un video desde tu equipo
+        <div style="font-size:12px;margin-top:4px;opacity:.7">MP4, WEBM, MOV · máx. 50 MB</div>
+      </div>
+      <div id="videoPreview" style="margin-top:16px"></div>
+    </div>
+
+    <!-- TAB VARIANTS -->
+    <div id="tab-variants" style="display:none">
+      <div class="form-group" style="margin-bottom:22px">
+        <label class="form-label"><i class="fa-solid fa-ruler" style="color:var(--primary);margin-right:6px"></i> Tallas disponibles</label>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin:10px 0" id="sizeCheckboxes"></div>
+        <input type="text" class="form-input" id="customSizeInput" placeholder="Talla personalizada + Enter" style="margin-top:8px;max-width:280px">
+      </div>
+      <div class="form-group">
+        <label class="form-label"><i class="fa-solid fa-palette" style="color:var(--primary);margin-right:6px"></i> Colores disponibles</label>
+        <div class="color-swatches" id="colorSwatches"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" class="form-input" id="customColorInput" placeholder="Nombre del color personalizado" style="flex:1">
+          <button class="btn-save" onclick="addCustomColor()" style="border-radius:8px;padding:10px 14px"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div class="color-chips" id="selectedColorsChips"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeProductModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveProduct()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: USUARIO ── -->
+<div class="modal-overlay hidden" id="userModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="userModalTitle">Editar Usuario</h2>
+      <button class="modal-close" onclick="closeUserModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Nombre completo *</label>
+      <input type="text" class="form-input" id="uName" placeholder="Nombre completo">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Correo electrónico *</label>
+      <input type="email" class="form-input" id="uEmail" placeholder="correo@ejemplo.com">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Rol</label>
+      <select class="form-select" id="uRole">
+        <option value="user">Usuario</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label class="form-label">Nueva contraseña <span style="font-weight:400;color:var(--gray-400)">(dejar vacío para no cambiar)</span></label>
+      <input type="password" class="form-input" id="uPassword" placeholder="Mín. 6 caracteres" autocomplete="new-password">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveUser()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: CATEGORÍA ── -->
+<div class="modal-overlay hidden" id="categoryModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="catModalTitle">Nueva Categoría</h2>
+      <button class="modal-close" onclick="closeCategoryModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Nombre de la categoría *</label>
+      <input type="text" class="form-input" id="catName" placeholder="Ej: Fajas Deportivas">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Icono (clase Font Awesome)</label>
+      <input type="text" class="form-input" id="catIcon" placeholder="fa-solid fa-vest">
+      <span class="form-hint" style="margin-top:4px">Busca en <a href="https://fontawesome.com/icons" target="_blank" style="color:var(--primary)">fontawesome.com/icons</a> y copia la clase.</span>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;flex-direction:row;align-items:center;gap:12px">
+      <label class="form-label" style="margin-bottom:0">Activa</label>
+      <label class="toggle"><input type="checkbox" id="catActive" checked><span class="toggle-track"></span></label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCategoryModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveCategory()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: MARCA ── -->
+<div class="modal-overlay hidden" id="brandModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="brandModalTitle">Nueva Marca</h2>
+      <button class="modal-close" onclick="closeBrandModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Nombre de la marca *</label>
+      <input type="text" class="form-input" id="brandName" placeholder="Ej: Ann Chery">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Logo de la marca (opcional)</label>
+      <div class="img-url-row" style="margin-bottom:8px">
+        <input type="text" class="form-input" id="brandLogo" placeholder="https://ejemplo.com/logo.png" style="flex:1" oninput="renderBrandLogoPreview()">
+        <button class="btn-save" onclick="document.getElementById('brandLogoFile').click()" style="border-radius:8px;padding:10px 14px" title="Subir logo">
+          <i class="fa-solid fa-upload"></i>
+        </button>
+        <input type="file" id="brandLogoFile" accept="image/*" onchange="handleBrandLogoUpload(this)" style="display:none">
+      </div>
+      <div id="brandLogoPreview" style="margin-top:6px"></div>
+      <span class="form-hint">Si no pones logo, se mostrará un icono.</span>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Icono (si no hay logo)</label>
+      <input type="text" class="form-input" id="brandIcon" placeholder="fa-solid fa-certificate">
+    </div>
+    <div class="form-group" style="margin-bottom:20px;flex-direction:row;align-items:center;gap:12px">
+      <label class="form-label" style="margin-bottom:0">Activa</label>
+      <label class="toggle"><input type="checkbox" id="brandActive" checked><span class="toggle-track"></span></label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeBrandModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveBrand()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: ORDER DETAIL ── -->
+<div class="modal-overlay hidden" id="orderDetailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Detalle del Pedido</h2>
+      <button class="modal-close" onclick="closeOrderDetail()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="orderDetailContent"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeOrderDetail()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM DELETE ── -->
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="confirm-dialog">
+    <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation" style="color:var(--warning)"></i></div>
+    <h3>¿Confirmar eliminación?</h3>
+    <p id="confirmMsg">Esta acción no se puede deshacer.</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn-del" id="confirmDeleteBtn" style="padding:10px 22px;border-radius:8px;font-weight:700">
+        <i class="fa-solid fa-trash"></i> Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script src="dashboard.js"></script>
+<script src="finance.js"></script>
+</body>
+</html>

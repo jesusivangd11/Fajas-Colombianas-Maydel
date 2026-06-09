@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis pedidos – Fajas Maydel</title>
+  <meta name="description" content="Consulta el estado de tus pedidos en Fajas Maydel.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1a5c2e">
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
+  <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <script src="/config.js"></script>
+  <script src="/js/analytics.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .orders-page{background:#f5f0e8;min-height:80vh;padding:40px 0}
+    .orders-wrap{max-width:900px;margin:0 auto;padding:0 16px}
+    .orders-title{font-family:'Playfair Display',serif;font-size:32px;color:#071a0c;margin-bottom:6px;font-weight:800}
+    .orders-sub{color:#6b7280;margin-bottom:30px}
+    .order-card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb;margin-bottom:18px;overflow:hidden}
+    .order-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #f3f4f6;gap:12px;flex-wrap:wrap}
+    .order-id{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#071a0c}
+    .order-date{font-size:13px;color:#9ca3af;margin-top:2px}
+    .order-total{font-size:20px;font-weight:800;color:#1a5c2e}
+    .order-body{padding:22px}
+    .timeline{display:flex;justify-content:space-between;position:relative;margin:18px 0 26px;gap:6px}
+    .timeline::before{content:'';position:absolute;top:18px;left:18px;right:18px;height:2px;background:#e5e7eb;z-index:0}
+    .timeline-step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;text-align:center}
+    .timeline-dot{width:36px;height:36px;border-radius:50%;background:#fff;border:2px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:14px;transition:all .3s}
+    .timeline-step.done .timeline-dot{background:#1a5c2e;border-color:#1a5c2e;color:#fff}
+    .timeline-step.current .timeline-dot{background:#c9a96e;border-color:#c9a96e;color:#fff;box-shadow:0 0 0 4px rgba(201,169,110,.25)}
+    .timeline-step.cancelled .timeline-dot{background:#dc2626;border-color:#dc2626;color:#fff}
+    .timeline-label{font-size:11px;font-weight:600;color:#6b7280;margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+    .timeline-step.done .timeline-label,.timeline-step.current .timeline-label{color:#1a5c2e}
+    .order-items{margin-top:14px;border-top:1px solid #f3f4f6;padding-top:14px;font-size:14px;color:#4b5563}
+    .order-item-row{display:flex;justify-content:space-between;padding:6px 0}
+    .order-totals{margin-top:12px;border-top:1px dashed #e5e7eb;padding-top:12px;font-size:13px}
+    .order-totals-row{display:flex;justify-content:space-between;padding:3px 0;color:#6b7280}
+    .order-totals-row.total{font-weight:700;color:#071a0c;font-size:15px;border-top:2px solid #111;padding-top:8px;margin-top:6px}
+    .empty-orders{text-align:center;padding:60px 20px;background:#fff;border-radius:12px}
+    .empty-orders i{font-size:54px;color:#d1d5db;margin-bottom:18px}
+    .badge-status{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+    .badge-status.pending{background:#fef3c7;color:#92400e}
+    .badge-status.confirmed{background:#dbeafe;color:#1e40af}
+    .badge-status.processing{background:#e0e7ff;color:#3730a3}
+    .badge-status.shipped{background:#cffafe;color:#155e75}
+    .badge-status.delivered{background:#d1fae5;color:#065f46}
+    .badge-status.cancelled{background:#fee2e2;color:#991b1b}
+    @media(max-width:520px){
+      .timeline-label{font-size:9px}
+      .timeline-dot{width:30px;height:30px;font-size:12px}
+      .timeline::before{top:15px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <a href="index.html" class="logo-link">
+      <img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel">
+    </a>
+    <form class="search-bar">
+      <input type="text" placeholder="Buscar fajas, tallas, categorías...">
+      <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </form>
+    <div class="header-right">
+      <a href="carrito.html" class="header-icon-btn">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="cart-badge-count">0</span>
+        <span>Carrito</span>
+      </a>
+      <div id="authArea"></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <ul>
+      <li><a href="index.html"><i class="fa-solid fa-house"></i> Inicio</a></li>
+      <li><a href="tienda.html"><i class="fa-solid fa-store"></i> Productos</a></li>
+      <li><a href="nosotros.html"><i class="fa-solid fa-circle-info"></i> Sobre nosotros</a></li>
+      <li><a href="faq.html"><i class="fa-solid fa-circle-question"></i> Preguntas frecuentes</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="orders-page">
+  <div class="orders-wrap">
+    <h1 class="orders-title">Mis pedidos</h1>
+    <p class="orders-sub">Aquí puedes ver el historial y estado actual de tus pedidos.</p>
+    <div id="ordersList"><div class="empty-orders"><i class="fa-solid fa-spinner fa-spin"></i><h3>Cargando...</h3></div></div>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+const STEPS = [
+  { key:'pending',    label:'Recibido',   icon:'fa-clipboard-check' },
+  { key:'confirmed',  label:'Confirmado', icon:'fa-circle-check' },
+  { key:'processing', label:'Preparando', icon:'fa-box' },
+  { key:'shipped',    label:'En camino',  icon:'fa-truck' },
+  { key:'delivered',  label:'Entregado',  icon:'fa-flag-checkered' },
+];
+const STATUS_LABEL = { pending:'Pendiente', confirmed:'Confirmado', processing:'En preparación', shipped:'Enviado', delivered:'Entregado', cancelled:'Cancelado' };
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await AUTH.init();
+  const session = AUTH.getSession();
+  if (!session) { location.href = 'login.html?redirect=mis-pedidos'; return; }
+  try {
+    const r = await fetch('/api/orders', { credentials: 'include' });
+    const orders = await r.json();
+    renderOrders(orders);
+  } catch (e) {
+    document.getElementById('ordersList').innerHTML = '<div class="empty-orders"><i class="fa-solid fa-circle-exclamation"></i><h3>No pudimos cargar tus pedidos</h3></div>';
+  }
+});
+
+function renderOrders(orders) {
+  const list = document.getElementById('ordersList');
+  if (!orders.length) {
+    list.innerHTML = `<div class="empty-orders">
+      <i class="fa-solid fa-clipboard-list"></i>
+      <h3>Aún no tienes pedidos</h3>
+      <p style="color:#9ca3af;margin:10px 0 22px">Cuando hagas una compra, podrás darle seguimiento aquí.</p>
+      <a href="tienda.html" class="btn btn-primary"><i class="fa-solid fa-store"></i> Ver productos</a>
+    </div>`;
+    return;
+  }
+  list.innerHTML = orders.map(o => {
+    const idx = STEPS.findIndex(s => s.key === o.status);
+    const cancelled = o.status === 'cancelled';
+    const timeline = cancelled
+      ? `<div class="timeline" style="justify-content:center"><div class="timeline-step cancelled"><div class="timeline-dot"><i class="fa-solid fa-circle-xmark"></i></div><div class="timeline-label">Pedido cancelado</div></div></div>`
+      : `<div class="timeline">${STEPS.map((s,i) => {
+          const cls = i < idx ? 'done' : i === idx ? 'current' : '';
+          return `<div class="timeline-step ${cls}">
+            <div class="timeline-dot"><i class="fa-solid ${s.icon}"></i></div>
+            <div class="timeline-label">${s.label}</div>
+          </div>`;
+        }).join('')}</div>`;
+    const items = (o.items || []).map(it => `<div class="order-item-row"><span>${it.productName}${it.size?` (${it.size})`:''} x${it.qty}</span><span>${formatPrice(it.price*it.qty)}</span></div>`).join('');
+    return `<div class="order-card">
+      <div class="order-head">
+        <div>
+          <div class="order-id">Pedido #${o.id}</div>
+          <div class="order-date">${new Date(o.createdAt).toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="badge-status ${o.status}">${STATUS_LABEL[o.status]||o.status}</span>
+          <div class="order-total" style="margin-top:6px">${formatPrice(o.total)}</div>
+        </div>
+      </div>
+      <div class="order-body">
+        ${timeline}
+        <div class="order-items">${items}</div>
+        <div class="order-totals">
+          <div class="order-totals-row"><span>Subtotal</span><span>${formatPrice(o.subtotal||0)}</span></div>
+          <div class="order-totals-row"><span>Envío ${o.shippingState ? '('+o.shippingState+')' : ''}</span><span>${formatPrice(o.shippingCost||0)}</span></div>
+          <div class="order-totals-row total"><span>Total</span><span>${formatPrice(o.total)}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

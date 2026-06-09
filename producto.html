@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalle de producto – Fajas Maydel</title>
+  <meta name="description" content="Detalle de producto, tallas disponibles, colores y reseñas verificadas. Compra segura en Fajas Colombianas Maydel.">
+  <meta name="theme-color" content="#1a5c2e">
+  <meta property="og:type" content="product">
+  <meta property="og:image" content="/assets/logo.jpeg">
+  <meta property="og:locale" content="es_MX">
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
+  <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <script src="/config.js"></script>
+  <script src="/js/analytics.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <a href="index.html" class="logo-link"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></a>
+    <form class="search-bar">
+      <input type="text" placeholder="Buscar fajas, tallas, categorías...">
+      <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </form>
+    <div class="header-right">
+      <a href="tienda.html" class="header-icon-btn"><i class="fa-solid fa-store"></i><span>Tienda</span></a>
+      <a href="carrito.html" class="header-icon-btn">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="cart-badge-count">0</span>
+        <span>Carrito</span>
+      </a>
+      <div id="authArea"></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <ul>
+      <li><a href="index.html"><i class="fa-solid fa-house"></i> Inicio</a></li>
+      <li><a href="tienda.html" class="active"><i class="fa-solid fa-store"></i> Productos</a></li>
+      <li><a href="nosotros.html"><i class="fa-solid fa-circle-info"></i> Sobre nosotros</a></li>
+      <li><a href="faq.html"><i class="fa-solid fa-circle-question"></i> Preguntas frecuentes</a></li>
+    </ul>
+  </nav>
+</header>
+
+<div class="container product-detail">
+  <div class="breadcrumb" id="breadcrumb">
+    <a href="index.html">Inicio</a>
+    <i class="fa-solid fa-chevron-right"></i>
+    <a href="tienda.html">Tienda</a>
+    <i class="fa-solid fa-chevron-right"></i>
+    <span id="breadcrumbName">Cargando...</span>
+  </div>
+
+  <div id="notFound" style="display:none" class="empty-state">
+    <i class="fa-solid fa-face-sad-tear"></i>
+    <h3>Producto no encontrado</h3>
+    <p>El producto que buscas no existe o fue eliminado.</p>
+    <a href="tienda.html" class="btn btn-primary" style="margin-top:16px">
+      <i class="fa-solid fa-arrow-left"></i> Ver todos los productos
+    </a>
+  </div>
+
+  <div id="productDetail" class="product-detail-grid">
+    <!-- Galería -->
+    <div class="product-gallery">
+      <div class="gallery-main" id="galleryMain">
+        <div class="no-img"><i class="fa-solid fa-shirt"></i></div>
+      </div>
+      <div class="gallery-thumbs" id="galleryThumbs"></div>
+    </div>
+
+    <!-- Info -->
+    <div class="product-info-panel">
+      <div class="product-category" id="productCategory"></div>
+      <h1 id="productName">Cargando...</h1>
+
+      <div class="price-block">
+        <span class="price-main" id="productPrice"></span>
+        <span class="price-original" id="productOriginalPrice"></span>
+        <span class="discount-tag" id="discountLabel" style="display:none"></span>
+      </div>
+
+      <p class="product-desc" id="productDesc"></p>
+
+      <!-- Tallas -->
+      <div id="sizeSection" class="option-group" style="display:none">
+        <div class="option-label" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>
+            <i class="fa-solid fa-ruler" style="color:var(--primary);margin-right:6px"></i>
+            Talla: <span id="selectedSize"></span>
+          </span>
+          <button type="button" onclick="openSizeGuide()" style="background:none;border:none;color:var(--primary);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;display:inline-flex;align-items:center;gap:4px">
+            <i class="fa-solid fa-ruler-combined"></i> Guía de tallas
+          </button>
+        </div>
+        <div class="size-options" id="sizeOptions"></div>
+      </div>
+
+      <!-- Colores -->
+      <div id="colorSection" class="option-group" style="display:none">
+        <div class="option-label">
+          <i class="fa-solid fa-palette" style="color:var(--primary);margin-right:6px"></i>
+          Color: <span id="selectedColor"></span>
+        </div>
+        <div class="color-options" id="colorOptions"></div>
+      </div>
+
+      <!-- Cantidad -->
+      <div class="qty-row">
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty(-1)"><i class="fa-solid fa-minus"></i></button>
+          <input class="qty-input" type="number" id="qtyInput" value="1" min="1">
+          <button class="qty-btn" onclick="changeQty(1)"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <button class="add-cart-btn" onclick="addToCartDetail()">
+          <i class="fa-solid fa-cart-plus"></i> Agregar al carrito
+        </button>
+      </div>
+
+      <a id="whatsappBtn" href="#" target="_blank" class="whatsapp-order-btn">
+        <i class="fa-brands fa-whatsapp"></i> Pedir por WhatsApp
+      </a>
+
+      <button type="button" id="wishlistBtn" onclick="toggleWishlist()" style="width:100%;padding:11px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:8px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;cursor:pointer;transition:all .2s">
+        <i class="fa-regular fa-heart" id="wishlistIcon"></i> <span id="wishlistText">Guardar en favoritos</span>
+      </button>
+
+      <div class="product-meta" id="productMeta"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RESEÑAS DEL PRODUCTO -->
+<section class="section" id="productReviewsSection" style="background:#fff;padding:64px 0">
+  <div class="container">
+    <div class="section-header" style="margin-bottom:28px">
+      <div>
+        <div class="section-label">Opinión de nuestras clientas</div>
+        <h2 class="section-title">Reseñas</h2>
+      </div>
+      <div id="reviewsSummary" style="text-align:right">
+        <div style="color:#f59e0b;font-size:22px;letter-spacing:2px" id="reviewsAvgStars"></div>
+        <div style="font-size:13px;color:var(--gray-500)" id="reviewsCount"></div>
+      </div>
+    </div>
+
+    <div id="reviewsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:32px"></div>
+    <div id="reviewsEmpty" style="display:none;text-align:center;padding:24px 0 32px;color:var(--gray-400);font-size:14px">
+      <i class="fa-regular fa-comment-dots" style="font-size:32px;margin-bottom:10px;display:block"></i>
+      Aún no hay reseñas de este producto. ¡Sé la primera!
+    </div>
+
+    <div style="background:#f5f0e8;border-radius:12px;padding:24px;max-width:640px;margin:0 auto">
+      <h3 style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;color:#071a0c">Deja tu reseña</h3>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:18px">Ayuda a otras clientas con tu experiencia. Las reseñas son moderadas antes de publicarse.</p>
+
+      <div id="reviewLoggedOut" style="display:none;background:#fff;border:1px dashed #d1d5db;padding:16px;border-radius:8px;text-align:center;font-size:14px;color:#6b7280">
+        <i class="fa-solid fa-lock" style="margin-right:6px"></i>
+        Necesitas <a href="login.html?redirect=product" style="color:var(--primary);font-weight:700">iniciar sesión</a> para dejar una reseña.
+      </div>
+
+      <form id="reviewForm" style="display:none" onsubmit="submitReview(event)">
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:8px">Tu calificación</label>
+          <div id="ratingStars" style="display:flex;gap:4px;font-size:28px;color:#d1d5db;cursor:pointer">
+            <i class="fa-solid fa-star" data-rate="1"></i>
+            <i class="fa-solid fa-star" data-rate="2"></i>
+            <i class="fa-solid fa-star" data-rate="3"></i>
+            <i class="fa-solid fa-star" data-rate="4"></i>
+            <i class="fa-solid fa-star" data-rate="5"></i>
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:6px">Tu opinión</label>
+          <textarea id="reviewText" rows="4" maxlength="500" required minlength="10"
+            placeholder="Cuéntanos qué te pareció: comodidad, talla, calidad..."
+            style="width:100%;padding:12px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical"></textarea>
+          <div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:4px"><span id="reviewCharCount">0</span> / 500</div>
+        </div>
+        <div id="reviewFormMsg" style="display:none;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px"></div>
+        <button type="submit" id="reviewSubmitBtn" class="login-btn" style="margin-top:0">
+          <i class="fa-solid fa-paper-plane"></i> Enviar reseña
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- RELACIONADOS -->
+<section class="section" style="background:var(--gray-50)">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <div class="section-label">También te puede gustar</div>
+        <h2 class="section-title">Productos Relacionados</h2>
+      </div>
+    </div>
+    <div class="products-grid" id="relatedGrid"></div>
+    <div id="noRelated" style="display:none;text-align:center;padding:32px 0;color:var(--gray-400);font-size:14px">
+      <i class="fa-solid fa-box-open" style="font-size:32px;margin-bottom:10px;display:block"></i>
+      No hay productos relacionados aún.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-logo"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></div>
+        <p>La mejor selección de fajas colombianas en México.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegación</h4>
+        <a href="index.html">Inicio</a>
+        <a href="tienda.html">Productos</a>
+        <a href="nosotros.html">Sobre nosotros</a>
+        <a href="faq.html">Preguntas frecuentes</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contacto</h4>
+        <div class="footer-contact"><i class="fa-brands fa-whatsapp"></i> 614 371 6816</div>
+        <div class="footer-contact"><i class="fa-solid fa-location-dot"></i> Chihuahua, Chih., México</div>
+        <div class="footer-contact"><i class="fa-solid fa-clock"></i> Lun–Vie 11am – 6:30pm</div>
+        <div class="footer-contact"><i class="fa-solid fa-clock"></i> Sáb 11am – 3:30pm</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 Fajas Colombianas Maydel. Todos los derechos reservados.</span>
+      <span style="font-size:12px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL GUIA DE TALLAS -->
+<div class="modal-overlay hidden" id="sizeGuideModal" onclick="if(event.target===this)closeSizeGuide()">
+  <div class="modal" style="max-width:680px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:#071a0c;font-weight:800">Guía de tallas</h2>
+      <button onclick="closeSizeGuide()" aria-label="Cerrar" style="background:none;border:none;cursor:pointer;font-size:24px;color:#9ca3af">&times;</button>
+    </div>
+    <p style="color:#6b7280;margin-bottom:18px;font-size:14px">Mide en cm sin apretar la cinta sobre tu ropa. Si quedas entre dos tallas, te recomendamos la mayor.</p>
+    <div style="overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px">
+        <thead>
+          <tr style="background:#1a5c2e;color:#fff">
+            <th style="padding:11px 14px;text-align:left;letter-spacing:1px;font-size:11px;text-transform:uppercase">Talla</th>
+            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:11px;text-transform:uppercase">Cintura (cm)</th>
+            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:11px;text-transform:uppercase">Cadera (cm)</th>
+            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:11px;text-transform:uppercase">Abdomen (cm)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#fafafa"><td style="padding:11px 14px;font-weight:700">XS</td><td style="text-align:center">60-65</td><td style="text-align:center">85-90</td><td style="text-align:center">66-71</td></tr>
+          <tr><td style="padding:11px 14px;font-weight:700">S</td><td style="text-align:center">66-72</td><td style="text-align:center">91-96</td><td style="text-align:center">72-77</td></tr>
+          <tr style="background:#fafafa"><td style="padding:11px 14px;font-weight:700">M</td><td style="text-align:center">73-79</td><td style="text-align:center">97-102</td><td style="text-align:center">78-84</td></tr>
+          <tr><td style="padding:11px 14px;font-weight:700">L</td><td style="text-align:center">80-86</td><td style="text-align:center">103-108</td><td style="text-align:center">85-91</td></tr>
+          <tr style="background:#fafafa"><td style="padding:11px 14px;font-weight:700">XL</td><td style="text-align:center">87-94</td><td style="text-align:center">109-115</td><td style="text-align:center">92-99</td></tr>
+          <tr><td style="padding:11px 14px;font-weight:700">2XL</td><td style="text-align:center">95-102</td><td style="text-align:center">116-122</td><td style="text-align:center">100-107</td></tr>
+          <tr style="background:#fafafa"><td style="padding:11px 14px;font-weight:700">3XL</td><td style="text-align:center">103-110</td><td style="text-align:center">123-130</td><td style="text-align:center">108-115</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:14px 16px;margin-top:16px;border-radius:6px;font-size:13px;color:#0d3d1a">
+      <i class="fa-solid fa-circle-info" style="margin-right:6px"></i>
+      <strong>¿Necesitas ayuda?</strong> Escríbenos por WhatsApp con tus medidas y te asesoramos sin costo.
+    </div>
+    <div style="text-align:center;margin-top:14px">
+      <a href="https://wa.me/526143716816?text=Hola!%20Vengo%20desde%20la%20p%C3%A1gina%20web%20%E2%80%94%20quiero%20ASESOR%C3%8DA%20de%20talla.%20Mis%20medidas%20son:" target="_blank" rel="noopener" style="background:#25d366;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
+        <i class="fa-brands fa-whatsapp"></i> Pedir asesoría
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- WhatsApp flotante -->
+<a href="https://wa.me/526143716816?text=Hola!%20Estoy%20viendo%20un%20PRODUCTO%20en%20la%20p%C3%A1gina%20web%20y%20tengo%20una%20pregunta." class="wa-float" target="_blank" rel="noopener">
+  <i class="fa-brands fa-whatsapp"></i>
+  <span>Escríbenos</span>
+</a>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+// Escapa contenido de usuario antes de insertarlo con innerHTML (anti-XSS).
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+let currentProduct = null;
+let selectedSize = '';
+let selectedColor = '';
+let isInWishlist = false;
+
+function openSizeGuide() { document.getElementById('sizeGuideModal').classList.remove('hidden'); }
+function closeSizeGuide() { document.getElementById('sizeGuideModal').classList.add('hidden'); }
+
+async function toggleWishlist() {
+  const session = AUTH.getSession();
+  if (!session) { showToast('Inicia sesión para guardar favoritos', 'error'); setTimeout(() => location.href = 'login.html', 1500); return; }
+  if (!currentProduct) return;
+  try {
+    if (isInWishlist) {
+      await fetch('/api/wishlist/' + currentProduct.id, { method: 'DELETE', credentials: 'include' });
+      isInWishlist = false; setWishlistUI(); showToast('Eliminado de favoritos');
+    } else {
+      await fetch('/api/wishlist', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ productId: currentProduct.id }) });
+      isInWishlist = true; setWishlistUI(); showToast('Añadido a favoritos');
+    }
+  } catch (e) { showToast('Error', 'error'); }
+}
+function setWishlistUI() {
+  document.getElementById('wishlistIcon').className = isInWishlist ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+  document.getElementById('wishlistText').textContent = isInWishlist ? 'Quitar de favoritos' : 'Guardar en favoritos';
+  const btn = document.getElementById('wishlistBtn');
+  btn.style.background = isInWishlist ? '#dc2626' : '#fff';
+  btn.style.color = isInWishlist ? '#fff' : '#dc2626';
+}
+async function checkWishlist() {
+  if (!AUTH.getSession() || !currentProduct) return;
+  try {
+    const r = await fetch('/api/wishlist', { credentials: 'include' });
+    const items = await r.json();
+    isInWishlist = items.some(p => p.id === currentProduct.id);
+    setWishlistUI();
+  } catch {}
+}
+
+// ── RESEÑAS ──
+let _selectedRating = 5;
+
+async function loadProductReviews(productId) {
+  try {
+    const r = await fetch('/api/reviews?product=' + productId);
+    const reviews = await r.json();
+    const list = document.getElementById('reviewsList');
+    const empty = document.getElementById('reviewsEmpty');
+    const summary = document.getElementById('reviewsSummary');
+    if (!reviews.length) {
+      list.innerHTML = ''; empty.style.display = 'block'; summary.style.display = 'none'; return;
+    }
+    empty.style.display = 'none'; summary.style.display = 'block';
+    const avg = reviews.reduce((s,r)=>s+r.rating,0) / reviews.length;
+    const filled = Math.round(avg);
+    document.getElementById('reviewsAvgStars').textContent = '★'.repeat(filled) + '☆'.repeat(5-filled);
+    document.getElementById('reviewsCount').textContent = `${avg.toFixed(1)} de 5 · ${reviews.length} reseña${reviews.length>1?'s':''}`;
+    list.innerHTML = reviews.map(r => `
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px">
+        <div style="color:#f59e0b;font-size:14px;letter-spacing:1.5px;margin-bottom:6px">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+        <div style="font-weight:700;font-size:14px;color:#071a0c;margin-bottom:4px">${esc(r.author)}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-bottom:10px">${new Date(r.createdAt).toLocaleDateString('es-MX',{year:'numeric',month:'short',day:'numeric'})}</div>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;font-style:italic">"${esc(r.text)}"</p>
+      </div>`).join('');
+  } catch (e) { console.error('reviews', e); }
+}
+
+function setupReviewForm(productId) {
+  const session = AUTH.getSession();
+  const out = document.getElementById('reviewLoggedOut');
+  const form = document.getElementById('reviewForm');
+  if (!session) { out.style.display = 'block'; form.style.display = 'none'; return; }
+  out.style.display = 'none'; form.style.display = 'block';
+
+  // Selector de estrellas
+  const stars = document.querySelectorAll('#ratingStars i');
+  function paintStars(r) {
+    stars.forEach(s => { s.style.color = Number(s.dataset.rate) <= r ? '#f59e0b' : '#d1d5db'; });
+  }
+  paintStars(_selectedRating);
+  stars.forEach(s => {
+    s.addEventListener('click', () => { _selectedRating = Number(s.dataset.rate); paintStars(_selectedRating); });
+    s.addEventListener('mouseenter', () => paintStars(Number(s.dataset.rate)));
+    s.addEventListener('mouseleave', () => paintStars(_selectedRating));
+  });
+
+  // Contador de chars
+  const txt = document.getElementById('reviewText');
+  txt.addEventListener('input', () => {
+    document.getElementById('reviewCharCount').textContent = txt.value.length;
+  });
+
+  form.dataset.productId = productId;
+}
+
+async function submitReview(e) {
+  e.preventDefault();
+  const productId = Number(document.getElementById('reviewForm').dataset.productId);
+  const text = document.getElementById('reviewText').value.trim();
+  const msgBox = document.getElementById('reviewFormMsg');
+  const btn = document.getElementById('reviewSubmitBtn');
+  msgBox.style.display = 'none';
+  if (text.length < 10) {
+    msgBox.style.display = 'block';
+    msgBox.style.background = '#fef2f2'; msgBox.style.color = '#991b1b';
+    msgBox.textContent = 'Tu reseña debe tener al menos 10 caracteres';
+    return;
+  }
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+  try {
+    const r = await fetch('/api/reviews', {
+      method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ productId, rating: _selectedRating, text })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error');
+    msgBox.style.display = 'block';
+    msgBox.style.background = '#eaf5ee'; msgBox.style.color = '#0d3d1a';
+    msgBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Reseña enviada. Será publicada después de moderación.');
+    document.getElementById('reviewText').value = '';
+    document.getElementById('reviewCharCount').textContent = '0';
+    _selectedRating = 5;
+  } catch (err) {
+    msgBox.style.display = 'block';
+    msgBox.style.background = '#fef2f2'; msgBox.style.color = '#991b1b';
+    msgBox.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar reseña';
+  }
+}
+
+function changeQty(delta) {
+  const input = document.getElementById('qtyInput');
+  input.value = Math.max(1, Number(input.value) + delta);
+}
+
+function selectSize(btn, size) {
+  document.querySelectorAll('#sizeOptions .size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSize = size;
+  document.getElementById('selectedSize').textContent = size;
+}
+
+function selectColor(btn, color) {
+  document.querySelectorAll('#colorOptions .color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedColor = color;
+  document.getElementById('selectedColor').textContent = color;
+}
+
+function addToCartDetail() {
+  if (!currentProduct) return;
+  if ((currentProduct.sizes || []).length > 0 && !selectedSize) {
+    showToast('Por favor selecciona una talla', 'error'); return;
+  }
+  if ((currentProduct.colors || []).length > 0 && !selectedColor) {
+    showToast('Por favor selecciona un color', 'error'); return;
+  }
+  const qty = Number(document.getElementById('qtyInput').value) || 1;
+  DB.addToCart(currentProduct.id, qty, selectedSize, selectedColor);
+  showToast(`"${currentProduct.name}" agregado al carrito`);
+}
+
+function setGalleryMain(src, type) {
+  const main = document.getElementById('galleryMain');
+  if (!src) { main.innerHTML = `<div class="no-img"><i class="fa-solid fa-shirt"></i></div>`; return; }
+  if (type === 'video') {
+    main.innerHTML = `<video src="${src}" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000"></video>`;
+  } else {
+    main.innerHTML = `<img src="${src}" alt="Producto" onerror="this.parentNode.innerHTML='<div class=\\'no-img\\'><i class=\\'fa-solid fa-shirt\\'></i></div>'">`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await AUTH.init();
+  await DB.getCategories();
+
+  const id = getProductId();
+  let product;
+  try { product = await DB.getProduct(id); } catch { product = null; }
+
+  if (!product) {
+    document.getElementById('notFound').style.display = 'block';
+    document.getElementById('productDetail').style.display = 'none';
+    return;
+  }
+
+  currentProduct = product;
+  const cats = DB.getCats();
+  const catInfo = cats[product.category] || {};
+  document.title = `${product.name} – Fajas Colombianas Maydel`;
+  document.getElementById('breadcrumbName').textContent = product.name;
+
+  // Category
+  document.getElementById('productCategory').innerHTML =
+    `<a href="tienda.html?cat=${product.category}" style="color:var(--primary);display:flex;align-items:center;gap:5px">
+       <i class="${catInfo.icon || 'fa-solid fa-tag'}"></i> ${catInfo.label || product.category}
+     </a>`;
+
+  document.getElementById('productName').textContent = product.name;
+
+  // Price
+  document.getElementById('productPrice').textContent = formatPrice(product.price);
+  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  if (hasDiscount) {
+    document.getElementById('productOriginalPrice').textContent = formatPrice(product.originalPrice);
+    const pct = Math.round((1 - product.price / product.originalPrice) * 100);
+    const dlabel = document.getElementById('discountLabel');
+    dlabel.textContent = `-${pct}% OFF`;
+    dlabel.style.display = 'inline-flex';
+  }
+
+  document.getElementById('productDesc').textContent = product.description || 'Sin descripción disponible.';
+
+  // Gallery (imágenes + video)
+  const images = product.images || [];
+  const media = images.map(src => ({ type: 'image', src }));
+  if (product.video) media.push({ type: 'video', src: product.video });
+
+  if (media.length > 0) {
+    setGalleryMain(media[0].src, media[0].type);
+    if (media.length > 1) {
+      const thumbs = document.getElementById('galleryThumbs');
+      media.forEach((m, i) => {
+        const div = document.createElement('div');
+        div.className = `gallery-thumb${i === 0 ? ' active' : ''}`;
+        if (m.type === 'video') {
+          div.style.position = 'relative';
+          div.innerHTML = `<video src="${m.src}#t=0.1" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover"></video>
+            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none"><i class="fa-solid fa-circle-play"></i></span>`;
+        } else {
+          div.innerHTML = `<img src="${m.src}" alt="">`;
+        }
+        div.onclick = () => {
+          setGalleryMain(m.src, m.type);
+          document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
+          div.classList.add('active');
+        };
+        thumbs.appendChild(div);
+      });
+    }
+  }
+
+  // Tallas
+  const sizes = product.sizes || [];
+  if (sizes.length > 0) {
+    document.getElementById('sizeSection').style.display = 'block';
+    const sc = document.getElementById('sizeOptions');
+    sizes.forEach((s, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'size-btn' + (i === 0 ? ' active' : '');
+      btn.textContent = s;
+      btn.onclick = () => selectSize(btn, s);
+      sc.appendChild(btn);
+    });
+    selectedSize = sizes[0];
+    document.getElementById('selectedSize').textContent = sizes[0];
+  }
+
+  // Colores
+  const colors = product.colors || [];
+  if (colors.length > 0) {
+    document.getElementById('colorSection').style.display = 'block';
+    const cc = document.getElementById('colorOptions');
+    colors.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'color-btn' + (i === 0 ? ' active' : '');
+      btn.title = c;
+      btn.style.cssText = `width:34px;height:34px;border-radius:50%;background:${COLOR_MAP[c] || '#999'};cursor:pointer;outline:2.5px solid ${i===0?'var(--primary)':'var(--gray-300)'};outline-offset:2px;border:3px solid white;transition:all .2s`;
+      btn.onclick = () => { selectColor(btn, c); document.querySelectorAll('#colorOptions .color-btn').forEach(b => b.style.outlineColor = 'var(--gray-300)'); btn.style.outlineColor = 'var(--primary)'; };
+      cc.appendChild(btn);
+    });
+    selectedColor = colors[0];
+    document.getElementById('selectedColor').textContent = colors[0];
+  }
+
+  // Meta info
+  let metaHTML = '';
+  if (product.reference) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-hashtag"></i> Referencia</span><span class="meta-val">${product.reference}</span></div>`;
+  if (product.material) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-layer-group"></i> Material</span><span class="meta-val">${product.material}</span></div>`;
+  if (product.stock !== undefined) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-warehouse"></i> Disponibilidad</span><span class="meta-val" style="color:${product.stock > 0 ? 'var(--primary)' : 'var(--danger)'}"><i class="fa-solid ${product.stock > 0 ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${product.stock > 0 ? `En stock (${product.stock} uds.)` : 'Agotado'}</span></div>`;
+  if (product.tags?.length) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-tags"></i> Etiquetas</span><span class="meta-val">${product.tags.join(', ')}</span></div>`;
+  document.getElementById('productMeta').innerHTML = metaHTML;
+
+  // WhatsApp
+  const msg = encodeURIComponent(`Hola! Vengo desde la página web — me interesa el PRODUCTO: *${product.name}* (${formatPrice(product.price)}). ¿Está disponible?`);
+  document.getElementById('whatsappBtn').href = `https://wa.me/526143716816?text=${msg}`;
+
+  checkWishlist();
+  loadProductReviews(product.id);
+  setupReviewForm(product.id);
+
+  // Relacionados
+  const related = await DB.getRelated(product);
+  const relatedGrid = document.getElementById('relatedGrid');
+  if (related.length > 0) {
+    related.forEach(p => { relatedGrid.innerHTML += renderProductCard(p); });
+    setTimeout(initScrollAnimations, 50);
+  } else {
+    document.getElementById('noRelated').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>

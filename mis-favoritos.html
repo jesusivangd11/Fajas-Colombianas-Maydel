@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis favoritos – Fajas Maydel</title>
+  <meta name="description" content="Tus productos favoritos guardados en Fajas Maydel.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1a5c2e">
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
+  <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <script src="/config.js"></script>
+  <script src="/js/analytics.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .fav-page{background:#f5f0e8;min-height:80vh;padding:40px 0}
+    .fav-wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+    .fav-title{font-family:'Playfair Display',serif;font-size:32px;color:#071a0c;margin-bottom:6px;font-weight:800}
+    .fav-sub{color:#6b7280;margin-bottom:30px}
+    .empty-fav{text-align:center;padding:60px 20px;background:#fff;border-radius:12px}
+    .empty-fav i{font-size:54px;color:#d1d5db;margin-bottom:18px}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <a href="index.html" class="logo-link"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></a>
+    <form class="search-bar">
+      <input type="text" placeholder="Buscar fajas, tallas, categorías...">
+      <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </form>
+    <div class="header-right">
+      <a href="carrito.html" class="header-icon-btn">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="cart-badge-count">0</span>
+        <span>Carrito</span>
+      </a>
+      <div id="authArea"></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <ul>
+      <li><a href="index.html"><i class="fa-solid fa-house"></i> Inicio</a></li>
+      <li><a href="tienda.html"><i class="fa-solid fa-store"></i> Productos</a></li>
+      <li><a href="nosotros.html"><i class="fa-solid fa-circle-info"></i> Sobre nosotros</a></li>
+      <li><a href="faq.html"><i class="fa-solid fa-circle-question"></i> Preguntas frecuentes</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="fav-page">
+  <div class="fav-wrap">
+    <h1 class="fav-title">Mis favoritos</h1>
+    <p class="fav-sub">Productos que guardaste para más tarde.</p>
+    <div id="favGrid" class="products-grid"><div class="empty-fav"><i class="fa-solid fa-spinner fa-spin"></i><h3>Cargando...</h3></div></div>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await AUTH.init();
+  if (!AUTH.getSession()) { location.href = 'login.html?redirect=favoritos'; return; }
+  await DB.getCategories();
+  try {
+    const r = await fetch('/api/wishlist', { credentials: 'include' });
+    const items = await r.json();
+    render(items);
+  } catch {
+    document.getElementById('favGrid').innerHTML = '<div class="empty-fav"><i class="fa-solid fa-heart-broken"></i><h3>No pudimos cargar tus favoritos</h3></div>';
+  }
+});
+
+function render(items) {
+  const grid = document.getElementById('favGrid');
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-fav">
+      <i class="fa-solid fa-heart"></i>
+      <h3>Aún no tienes favoritos</h3>
+      <p style="color:#9ca3af;margin:10px 0 22px">Toca el corazón en cualquier producto para guardarlo aquí.</p>
+      <a href="tienda.html" class="btn btn-primary"><i class="fa-solid fa-store"></i> Explorar productos</a>
+    </div>`;
+    grid.classList.remove('products-grid');
+    return;
+  }
+  grid.classList.add('products-grid');
+  grid.innerHTML = items.map(p => renderProductCard(p)).join('');
+}
+</script>
+</body>
+</html>

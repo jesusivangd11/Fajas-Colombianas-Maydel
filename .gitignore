@@ -1,0 +1,32 @@
+# ── Secretos / configuración local ──────────────────────────────
+# NUNCA subir el .env real (contiene contraseña de BD, JWT_SECRET, claves de API)
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+
+# ── Dependencias ────────────────────────────────────────────────
+node_modules/
+
+# ── Contenido subido por usuarios (no pertenece al repo) ─────────
+uploads/*
+!uploads/.gitkeep
+
+# ── Salida generada por herramientas de análisis ────────────────
+graphify-out/
+grpahify-out/
+
+# ── Logs ────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# ── Sistema operativo / editores ────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión – Fajas Maydel</title>
+  <meta name="description" content="Accede a tu cuenta de Fajas Maydel para ver tus pedidos y realizar nuevas compras.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1a5c2e">
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
+  <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <script src="/config.js"></script>
+  <script src="/js/analytics.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .login-bg-circle{position:absolute;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none}
+    .login-box{max-height:94vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+    .login-box::-webkit-scrollbar{width:5px}
+    .login-box::-webkit-scrollbar-thumb{background:rgba(26,92,46,.25);border-radius:4px}
+    .form-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--primary);margin:20px 0 12px;display:flex;align-items:center;gap:8px}
+    .form-section-title::after{content:'';flex:1;height:1px;background:var(--gray-200)}
+    .form-row{display:grid;gap:12px}
+    .form-row.cols-2{grid-template-columns:1fr 1fr}
+    .form-row.cols-3-1{grid-template-columns:3fr 1fr}
+  </style>
+</head>
+<body>
+
+<div class="login-page">
+  <!-- Decorative circles -->
+  <div class="login-bg-circle" style="width:400px;height:400px;top:-100px;right:-100px"></div>
+  <div class="login-bg-circle" style="width:300px;height:300px;bottom:-80px;left:-80px"></div>
+  <div class="login-bg-circle" style="width:200px;height:200px;bottom:100px;right:200px"></div>
+
+  <div class="login-box" style="animation:fadeUp .6s ease both">
+    <div class="login-header">
+      <img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel">
+      <h1>Bienvenida</h1>
+      <p>Accede a tu cuenta para hacer pedidos</p>
+    </div>
+
+    <div class="login-body">
+      <div class="login-tabs">
+        <div class="login-tab active" onclick="switchLoginTab('login', this)">
+          <i class="fa-solid fa-right-to-bracket"></i> Iniciar sesión
+        </div>
+        <div class="login-tab" onclick="switchLoginTab('register', this)">
+          <i class="fa-solid fa-user-plus"></i> Registrarse
+        </div>
+      </div>
+
+      <!-- ── LOGIN SOCIAL (arriba, compartido para iniciar sesión y registro) ── -->
+      <div id="socialAuth" style="display:none;margin-top:20px">
+        <div id="googleBtnArea" style="display:none;margin-bottom:10px"></div>
+        <button type="button" id="fbBtn" class="social-btn fb" style="display:none" onclick="loginWithFacebook()">
+          <i class="fa-brands fa-facebook-f"></i> Continuar con Facebook
+        </button>
+        <div class="form-error" id="socialError" style="margin-top:10px">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="socialErrorMsg"></span>
+        </div>
+        <div class="social-divider"><span>o usa tu correo</span></div>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form class="login-form active" id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-field">
+          <label>Correo electrónico</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="loginEmail" placeholder="tu@correo.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Contraseña</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="loginPassword" class="has-toggle" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="pw-toggle" aria-label="Mostrar contraseña" onclick="togglePw(this,'loginPassword')"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <div class="form-error" id="loginError">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="loginErrorMsg"></span>
+        </div>
+        <button type="submit" class="login-btn">
+          <i class="fa-solid fa-right-to-bracket"></i> Ingresar
+        </button>
+
+        <div style="text-align:center;margin-top:14px">
+          <a href="forgot-password.html" style="color:var(--primary);font-size:13px;font-weight:600">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <div class="login-divider">¿Eres nuevo? <a href="#" onclick="switchLoginTabByName('register');return false" style="color:var(--primary);font-weight:600">Regístrate aquí</a></div>
+        <div style="text-align:center">
+          <a href="index.html" style="color:var(--gray-400);font-size:13px">
+            <i class="fa-solid fa-arrow-left"></i> Volver a la tienda
+          </a>
+        </div>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form class="login-form" id="registerForm" onsubmit="handleRegister(event)">
+
+        <div class="form-section-title"><i class="fa-solid fa-user"></i> Datos personales</div>
+
+        <div class="form-field">
+          <label>Nombre completo *</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-user"></i>
+            <input type="text" id="regName" placeholder="Tu nombre completo" required autocomplete="name">
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Fecha de nacimiento *</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-cake-candles"></i>
+            <input type="date" id="regBirthdate" required>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Teléfono (celular) *</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-mobile-screen"></i>
+            <input type="tel" id="regPhone" placeholder="614 123 4567" required autocomplete="tel" inputmode="tel">
+          </div>
+          <small style="color:var(--gray-400);font-size:11px;display:block;margin-top:4px">Lo usaremos para recuperar tu cuenta por SMS o WhatsApp.</small>
+        </div>
+
+        <div class="form-section-title"><i class="fa-solid fa-lock"></i> Acceso a la cuenta</div>
+
+        <div class="form-field">
+          <label>Correo electrónico *</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="regEmail" placeholder="tu@correo.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="form-field" style="margin-bottom:0">
+            <label>Contraseña *</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="regPassword" class="has-toggle" placeholder="Mín. 6 caracteres" required minlength="6" autocomplete="new-password">
+              <button type="button" class="pw-toggle" aria-label="Mostrar contraseña" onclick="togglePw(this,'regPassword')"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:0">
+            <label>Confirmar contraseña *</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="regPassword2" class="has-toggle" placeholder="Repite tu contraseña" required autocomplete="new-password">
+              <button type="button" class="pw-toggle" aria-label="Mostrar contraseña" onclick="togglePw(this,'regPassword2')"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:22px"><i class="fa-solid fa-location-dot"></i> Dirección de envío</div>
+
+        <div class="form-row cols-3-1">
+          <div class="form-field" style="margin-bottom:0">
+            <label>Calle *</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-road"></i>
+              <input type="text" id="regCalle" placeholder="Av. Juárez" required autocomplete="address-line1">
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:0">
+            <label>Número *</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-hashtag"></i>
+              <input type="text" id="regNumero" placeholder="123" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-top:12px">
+          <label>Colonia *</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-map-pin"></i>
+            <input type="text" id="regColonia" placeholder="Centro" required>
+          </div>
+        </div>
+
+        <div class="form-row cols-2" style="margin-top:0">
+          <div class="form-field" style="margin-bottom:0">
+            <label>C.P. *</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-mailbox"></i>
+              <input type="text" id="regCP" placeholder="31000" required maxlength="10" autocomplete="postal-code">
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:0">
+            <label>Ciudad *</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-city"></i>
+              <input type="text" id="regCiudad" placeholder="Chihuahua" required autocomplete="address-level2">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-top:12px">
+          <label>Estado *</label>
+          <div class="input-icon">
+            <i class="fa-solid fa-map"></i>
+            <input type="text" id="regEstado" placeholder="Chihuahua" required autocomplete="address-level1">
+          </div>
+        </div>
+
+        <div class="form-error" id="regError" style="margin-top:8px">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="regErrorMsg"></span>
+        </div>
+        <button type="submit" class="login-btn">
+          <i class="fa-solid fa-user-plus"></i> Crear cuenta
+        </button>
+
+        <div class="login-divider">¿Ya tienes cuenta? <a href="#" onclick="switchLoginTabByName('login');return false" style="color:var(--primary);font-weight:600">Inicia sesión</a></div>
+        <div style="text-align:center">
+          <a href="index.html" style="color:var(--gray-400);font-size:13px">
+            <i class="fa-solid fa-arrow-left"></i> Volver a la tienda
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script>
+// Redirect if already logged in
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await AUTH.init();
+  if (session) {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    window.location.href = redirect === 'dashboard' ? 'dashboard/index.html' : 'index.html';
+    return;
+  }
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab === 'register') switchLoginTabByName('register');
+});
+
+function switchLoginTab(name, btn) {
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(name + 'Form').classList.add('active');
+  clearErrors();
+}
+
+function switchLoginTabByName(name) {
+  const tabs = document.querySelectorAll('.login-tab');
+  tabs.forEach((t, i) => {
+    if (i === (name === 'register' ? 1 : 0)) t.classList.add('active');
+    else t.classList.remove('active');
+  });
+  document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+  document.getElementById(name + 'Form').classList.add('active');
+  clearErrors();
+}
+
+function clearErrors() {
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('regError').classList.remove('show');
+}
+
+function togglePw(btn, inputId) {
+  const input = document.getElementById(inputId);
+  const icon  = btn.querySelector('i');
+  const show  = input.type === 'password';
+  input.type  = show ? 'text' : 'password';
+  icon.className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+  btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  document.getElementById(id + 'Msg').textContent = msg;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const email    = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const result   = await AUTH.login(email, password);
+  if (result.success) {
+    const params   = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    window.location.href = redirect === 'dashboard' ? 'dashboard/index.html' : 'index.html';
+  } else {
+    showError('loginError', result.error);
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const name      = document.getElementById('regName').value.trim();
+  const birthdate = document.getElementById('regBirthdate').value;
+  const phone     = document.getElementById('regPhone').value.trim();
+  const email     = document.getElementById('regEmail').value.trim();
+  const password  = document.getElementById('regPassword').value;
+  const password2 = document.getElementById('regPassword2').value;
+  const calle     = document.getElementById('regCalle').value.trim();
+  const numero    = document.getElementById('regNumero').value.trim();
+  const colonia   = document.getElementById('regColonia').value.trim();
+  const cp        = document.getElementById('regCP').value.trim();
+  const ciudad    = document.getElementById('regCiudad').value.trim();
+  const estado    = document.getElementById('regEstado').value.trim();
+
+  if (password !== password2) { showError('regError', 'Las contraseñas no coinciden'); return; }
+  if (password.length < 6)    { showError('regError', 'La contraseña debe tener al menos 6 caracteres'); return; }
+
+  const result = await AUTH.register(name, email, password, { birthdate, phone, calle, numero, colonia, cp, ciudad, estado });
+  if (result.success) {
+    window.location.href = 'index.html';
+  } else {
+    showError('regError', result.error);
+  }
+}
+
+// ── LOGIN SOCIAL (Google / Facebook) ──
+function showSocialError(msg) {
+  const e = document.getElementById('socialError');
+  e.classList.add('show');
+  document.getElementById('socialErrorMsg').textContent = msg;
+}
+
+function finishSocialLogin(user) {
+  if (window.AUTH) AUTH._session = user;
+  const params   = new URLSearchParams(window.location.search);
+  const redirect = params.get('redirect');
+  window.location.href = redirect === 'dashboard' ? 'dashboard/index.html' : 'index.html';
+}
+
+async function postSocial(url, body) {
+  try {
+    const r = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'No se pudo iniciar sesión');
+    finishSocialLogin(data);
+  } catch (err) {
+    showSocialError(err.message);
+  }
+}
+
+function onGoogleCredential(resp) {
+  document.getElementById('socialError').classList.remove('show');
+  postSocial('/api/auth/google', { credential: resp.credential });
+}
+
+function loginWithFacebook() {
+  document.getElementById('socialError').classList.remove('show');
+  if (!window.FB) { showSocialError('Facebook aún está cargando, intenta de nuevo en un momento.'); return; }
+  FB.login(function (response) {
+    if (response.authResponse) {
+      postSocial('/api/auth/facebook', { accessToken: response.authResponse.accessToken });
+    }
+  }, { scope: 'public_profile,email' });
+}
+
+(function initSocialAuth() {
+  const cfg = window.MAYDEL_CFG || {};
+  const hasGoogle = !!cfg.googleClientId;
+  const hasFb     = !!cfg.facebookAppId;
+  if (!hasGoogle && !hasFb) return; // sin proveedores configurados: no se muestra nada
+
+  document.getElementById('socialAuth').style.display = 'block';
+
+  if (hasGoogle) {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.defer = true;
+    s.onload = () => {
+      try {
+        google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onGoogleCredential });
+        const area = document.getElementById('googleBtnArea');
+        area.style.display = 'flex';
+        google.accounts.id.renderButton(area, {
+          theme: 'outline', size: 'large', text: 'continue_with',
+          shape: 'rectangular', width: Math.min(area.offsetWidth || 320, 400), locale: 'es',
+        });
+      } catch (e) { console.error('GIS', e); }
+    };
+    document.head.appendChild(s);
+  }
+
+  if (hasFb) {
+    window.fbAsyncInit = function () {
+      FB.init({ appId: cfg.facebookAppId, cookie: true, xfbml: false, version: 'v21.0' });
+    };
+    const s = document.createElement('script');
+    s.src = 'https://connect.facebook.net/es_LA/sdk.js'; s.async = true; s.defer = true; s.crossOrigin = 'anonymous';
+    document.head.appendChild(s);
+    document.getElementById('fbBtn').style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>
