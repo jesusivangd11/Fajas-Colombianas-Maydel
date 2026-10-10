@@ -7,4 +7,4 @@ Disallow: /login.html
 Disallow: /forgot-password.html
 Disallow: /reset-password.html
 
-Sitemap: https://fajasmaydel.com/sitemap.xml
+Sitemap: https://fajascolombianasmaydel.com/sitemap.xml
