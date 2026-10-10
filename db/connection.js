@@ -10,6 +10,11 @@ const pool = mysql.createPool({
   connectionLimit:    10,
   charset:            'utf8mb4',
   timezone:           '+00:00',
+  // Los MySQL en la nube (Aiven, TiDB, etc.) exigen conexion cifrada: DB_SSL=true.
+  // Si el proveedor usa su propio certificado (Aiven), pegar su CA en DB_SSL_CA.
+  ssl:                process.env.DB_SSL === 'true'
+    ? { rejectUnauthorized: true, ...(process.env.DB_SSL_CA ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n') } : {}) }
+    : undefined,
 });
 
 module.exports = pool;

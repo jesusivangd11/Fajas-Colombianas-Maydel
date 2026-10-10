@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node", "config": { "excludeFiles": "uploads/**" } },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "css/**", "use": "@vercel/static" },
+    { "src": "js/**", "use": "@vercel/static" },
+    { "src": "assets/**", "use": "@vercel/static" },
+    { "src": "dashboard/**", "use": "@vercel/static" },
+    { "src": "uploads/**", "use": "@vercel/static" },
+    { "src": "robots.txt", "use": "@vercel/static" },
+    { "src": "sitemap.xml", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/server.js" },
+    { "src": "/config.js", "dest": "/server.js" },
+    { "src": "/(.*\\.(?:html|css|js))", "headers": { "Cache-Control": "no-cache" }, "continue": true },
+    { "src": "/uploads/(.*)", "headers": { "Cache-Control": "public, max-age=604800" }, "continue": true },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/server.js" }
+  ]
+}

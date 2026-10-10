@@ -5,7 +5,8 @@ const fs     = require('fs');
 const { adminOnly } = require('../middleware/auth');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+// En Vercel el disco es de solo lectura: crear la carpeta fallaria y tumbaria la API entera.
+try { if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true }); } catch (_) {}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
