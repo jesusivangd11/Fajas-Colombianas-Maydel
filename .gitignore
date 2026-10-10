@@ -8,9 +8,7 @@
 # ── Dependencias ────────────────────────────────────────────────
 node_modules/
 
-# ── Contenido subido por usuarios (no pertenece al repo) ─────────
-uploads/*
-!uploads/.gitkeep
+# ── Fotos y videos del catálogo (uploads/) SÍ se versionan para desplegar ──
 
 # ── Salida generada por herramientas de análisis ────────────────
 graphify-out/
