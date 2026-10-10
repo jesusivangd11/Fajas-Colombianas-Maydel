@@ -14,7 +14,7 @@ uploads/*
 
 # ── Salida generada por herramientas de análisis ────────────────
 graphify-out/
-grpahify-out/
+.graphify_python
 
 # ── Logs ────────────────────────────────────────────────────────
 *.log

@@ -66,8 +66,17 @@
   <div id="productDetail" class="product-detail-grid">
     <!-- Galería -->
     <div class="product-gallery">
-      <div class="gallery-main" id="galleryMain">
-        <div class="no-img"><i class="fa-solid fa-shirt"></i></div>
+      <div class="gallery-stage" id="galleryStage">
+        <div class="gallery-main" id="galleryMain">
+          <div class="no-img"><i class="fa-solid fa-shirt"></i></div>
+        </div>
+        <button type="button" class="gallery-nav prev" id="galleryPrev" aria-label="Imagen anterior" onclick="galleryPrev()">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button type="button" class="gallery-nav next" id="galleryNext" aria-label="Imagen siguiente" onclick="galleryNext()">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <div class="gallery-counter" id="galleryCounter"></div>
       </div>
       <div class="gallery-thumbs" id="galleryThumbs"></div>
     </div>
@@ -85,46 +94,66 @@
 
       <p class="product-desc" id="productDesc"></p>
 
-      <!-- Tallas -->
-      <div id="sizeSection" class="option-group" style="display:none">
-        <div class="option-label" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <span>
-            <i class="fa-solid fa-ruler" style="color:var(--primary);margin-right:6px"></i>
-            Talla: <span id="selectedSize"></span>
-          </span>
-          <button type="button" onclick="openSizeGuide()" style="background:none;border:none;color:var(--primary);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline;display:inline-flex;align-items:center;gap:4px">
-            <i class="fa-solid fa-ruler-combined"></i> Guía de tallas
-          </button>
+      <!-- Arma tu pedido FAJA POR FAJA: eliges talla + color y añades UNA faja;
+           el mini-menú se reinicia para configurar la siguiente desde cero. -->
+      <div id="fajaConfig" class="faja-config">
+        <div class="faja-config-head" id="fajaConfigHead" style="display:none">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span id="fajaConfigTitle">Configura tu faja</span>
         </div>
-        <div class="size-options" id="sizeOptions"></div>
-      </div>
 
-      <!-- Colores -->
-      <div id="colorSection" class="option-group" style="display:none">
-        <div class="option-label">
-          <i class="fa-solid fa-palette" style="color:var(--primary);margin-right:6px"></i>
-          Color: <span id="selectedColor"></span>
+        <!-- Opción de variante (p.ej. Con / Sin tirantes) — solo en modo variantes -->
+        <div id="optionSection" class="option-group" style="display:none">
+          <div class="option-label">
+            <i class="fa-solid fa-sliders" style="color:var(--primary);margin-right:6px"></i>
+            <span id="optionLabelText">Opción</span>: <span id="selectedOptionLbl" class="opt-current"></span>
+          </div>
+          <div class="size-options" id="optionOptions"></div>
         </div>
-        <div class="color-options" id="colorOptions"></div>
-      </div>
 
-      <!-- Cantidad -->
-      <div class="qty-row">
-        <div class="qty-control">
-          <button class="qty-btn" onclick="changeQty(-1)"><i class="fa-solid fa-minus"></i></button>
-          <input class="qty-input" type="number" id="qtyInput" value="1" min="1">
-          <button class="qty-btn" onclick="changeQty(1)"><i class="fa-solid fa-plus"></i></button>
+        <!-- Talla -->
+        <div id="sizeSection" class="option-group" style="display:none">
+          <div class="option-label" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <span>
+              <i class="fa-solid fa-ruler" style="color:var(--primary);margin-right:6px"></i>
+              Talla: <span id="selectedSize" class="opt-current"></span>
+            </span>
+            <button type="button" onclick="openSizeGuide()" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;display:inline-flex;align-items:center;gap:4px">
+              <i class="fa-solid fa-ruler-combined"></i> Guía de tallas
+            </button>
+          </div>
+          <div class="size-options" id="sizeOptions"></div>
         </div>
-        <button class="add-cart-btn" onclick="addToCartDetail()">
-          <i class="fa-solid fa-cart-plus"></i> Agregar al carrito
+
+        <!-- Colores -->
+        <div id="colorSection" class="option-group" style="display:none">
+          <div class="option-label">
+            <i class="fa-solid fa-palette" style="color:var(--primary);margin-right:6px"></i>
+            Color: <span id="selectedColor" class="opt-current"></span>
+          </div>
+          <div class="color-options" id="colorOptions"></div>
+        </div>
+
+        <!-- Añadir UNA faja con la configuración actual -->
+        <button class="add-cart-btn" onclick="addToCartDetail()" style="width:100%">
+          <i class="fa-solid fa-cart-plus"></i> Añadir faja al carrito
         </button>
+      </div>
+
+      <!-- Lo que ya lleva de este producto (todas sus fajas configuradas) -->
+      <div id="productCartBox" class="pcart-box" style="display:none">
+        <div class="pcart-head">
+          <span><i class="fa-solid fa-basket-shopping"></i> En tu carrito · <span id="productCartTotal"></span></span>
+          <a href="carrito.html" class="pcart-link">Ver carrito <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div id="productCartLines"></div>
       </div>
 
       <a id="whatsappBtn" href="#" target="_blank" class="whatsapp-order-btn">
         <i class="fa-brands fa-whatsapp"></i> Pedir por WhatsApp
       </a>
 
-      <button type="button" id="wishlistBtn" onclick="toggleWishlist()" style="width:100%;padding:11px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:8px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;cursor:pointer;transition:all .2s">
+      <button type="button" id="wishlistBtn" onclick="toggleWishlist()" style="width:100%;padding:11px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:8px;font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;cursor:pointer;transition:all .2s">
         <i class="fa-regular fa-heart" id="wishlistIcon"></i> <span id="wishlistText">Guardar en favoritos</span>
       </button>
 
@@ -143,28 +172,28 @@
       </div>
       <div id="reviewsSummary" style="text-align:right">
         <div style="color:#f59e0b;font-size:22px;letter-spacing:2px" id="reviewsAvgStars"></div>
-        <div style="font-size:13px;color:var(--gray-500)" id="reviewsCount"></div>
+        <div style="font-size:14.5px;color:var(--gray-500)" id="reviewsCount"></div>
       </div>
     </div>
 
     <div id="reviewsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:32px"></div>
-    <div id="reviewsEmpty" style="display:none;text-align:center;padding:24px 0 32px;color:var(--gray-400);font-size:14px">
+    <div id="reviewsEmpty" style="display:none;text-align:center;padding:24px 0 32px;color:var(--gray-400);font-size:15.5px">
       <i class="fa-regular fa-comment-dots" style="font-size:32px;margin-bottom:10px;display:block"></i>
       Aún no hay reseñas de este producto. ¡Sé la primera!
     </div>
 
     <div style="background:#f5f0e8;border-radius:12px;padding:24px;max-width:640px;margin:0 auto">
       <h3 style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;color:#071a0c">Deja tu reseña</h3>
-      <p style="font-size:13px;color:#6b7280;margin-bottom:18px">Ayuda a otras clientas con tu experiencia. Las reseñas son moderadas antes de publicarse.</p>
+      <p style="font-size:14.5px;color:#6b7280;margin-bottom:18px">Ayuda a otras clientas con tu experiencia. Las reseñas son moderadas antes de publicarse.</p>
 
-      <div id="reviewLoggedOut" style="display:none;background:#fff;border:1px dashed #d1d5db;padding:16px;border-radius:8px;text-align:center;font-size:14px;color:#6b7280">
+      <div id="reviewLoggedOut" style="display:none;background:#fff;border:1px dashed #d1d5db;padding:16px;border-radius:8px;text-align:center;font-size:15.5px;color:#6b7280">
         <i class="fa-solid fa-lock" style="margin-right:6px"></i>
         Necesitas <a href="login.html?redirect=product" style="color:var(--primary);font-weight:700">iniciar sesión</a> para dejar una reseña.
       </div>
 
       <form id="reviewForm" style="display:none" onsubmit="submitReview(event)">
         <div style="margin-bottom:14px">
-          <label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:8px">Tu calificación</label>
+          <label style="font-size:14.5px;font-weight:600;color:#111;display:block;margin-bottom:8px">Tu calificación</label>
           <div id="ratingStars" style="display:flex;gap:4px;font-size:28px;color:#d1d5db;cursor:pointer">
             <i class="fa-solid fa-star" data-rate="1"></i>
             <i class="fa-solid fa-star" data-rate="2"></i>
@@ -174,13 +203,13 @@
           </div>
         </div>
         <div style="margin-bottom:14px">
-          <label style="font-size:13px;font-weight:600;color:#111;display:block;margin-bottom:6px">Tu opinión</label>
+          <label style="font-size:14.5px;font-weight:600;color:#111;display:block;margin-bottom:6px">Tu opinión</label>
           <textarea id="reviewText" rows="4" maxlength="500" required minlength="10"
             placeholder="Cuéntanos qué te pareció: comodidad, talla, calidad..."
-            style="width:100%;padding:12px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical"></textarea>
-          <div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:4px"><span id="reviewCharCount">0</span> / 500</div>
+            style="width:100%;padding:12px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:inherit;font-size:15.5px;resize:vertical"></textarea>
+          <div style="font-size:12.5px;color:#9ca3af;text-align:right;margin-top:4px"><span id="reviewCharCount">0</span> / 500</div>
         </div>
-        <div id="reviewFormMsg" style="display:none;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px"></div>
+        <div id="reviewFormMsg" style="display:none;padding:10px 14px;border-radius:6px;font-size:14.5px;margin-bottom:12px"></div>
         <button type="submit" id="reviewSubmitBtn" class="login-btn" style="margin-top:0">
           <i class="fa-solid fa-paper-plane"></i> Enviar reseña
         </button>
@@ -199,7 +228,7 @@
       </div>
     </div>
     <div class="products-grid" id="relatedGrid"></div>
-    <div id="noRelated" style="display:none;text-align:center;padding:32px 0;color:var(--gray-400);font-size:14px">
+    <div id="noRelated" style="display:none;text-align:center;padding:32px 0;color:var(--gray-400);font-size:15.5px">
       <i class="fa-solid fa-box-open" style="font-size:32px;margin-bottom:10px;display:block"></i>
       No hay productos relacionados aún.
     </div>
@@ -229,8 +258,8 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2025 Fajas Colombianas Maydel. Todos los derechos reservados.</span>
-      <span style="font-size:12px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
+      <span>© <span id="footerYear">2026</span> Fajas Colombianas Maydel. Todos los derechos reservados.</span>
+      <span style="font-size:13px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
     </div>
   </div>
 </footer>
@@ -242,15 +271,15 @@
       <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:#071a0c;font-weight:800">Guía de tallas</h2>
       <button onclick="closeSizeGuide()" aria-label="Cerrar" style="background:none;border:none;cursor:pointer;font-size:24px;color:#9ca3af">&times;</button>
     </div>
-    <p style="color:#6b7280;margin-bottom:18px;font-size:14px">Mide en cm sin apretar la cinta sobre tu ropa. Si quedas entre dos tallas, te recomendamos la mayor.</p>
+    <p style="color:#6b7280;margin-bottom:18px;font-size:15.5px">Mide en cm sin apretar la cinta sobre tu ropa. Si quedas entre dos tallas, te recomendamos la mayor.</p>
     <div style="overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px">
+      <table style="width:100%;border-collapse:collapse;font-size:14.5px;min-width:520px">
         <thead>
           <tr style="background:#1a5c2e;color:#fff">
-            <th style="padding:11px 14px;text-align:left;letter-spacing:1px;font-size:11px;text-transform:uppercase">Talla</th>
-            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:11px;text-transform:uppercase">Cintura (cm)</th>
-            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:11px;text-transform:uppercase">Cadera (cm)</th>
-            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:11px;text-transform:uppercase">Abdomen (cm)</th>
+            <th style="padding:11px 14px;text-align:left;letter-spacing:1px;font-size:12.5px;text-transform:uppercase">Talla</th>
+            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:12.5px;text-transform:uppercase">Cintura (cm)</th>
+            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:12.5px;text-transform:uppercase">Cadera (cm)</th>
+            <th style="padding:11px 14px;text-align:center;letter-spacing:1px;font-size:12.5px;text-transform:uppercase">Abdomen (cm)</th>
           </tr>
         </thead>
         <tbody>
@@ -264,12 +293,12 @@
         </tbody>
       </table>
     </div>
-    <div style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:14px 16px;margin-top:16px;border-radius:6px;font-size:13px;color:#0d3d1a">
+    <div style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:14px 16px;margin-top:16px;border-radius:6px;font-size:14.5px;color:#0d3d1a">
       <i class="fa-solid fa-circle-info" style="margin-right:6px"></i>
       <strong>¿Necesitas ayuda?</strong> Escríbenos por WhatsApp con tus medidas y te asesoramos sin costo.
     </div>
     <div style="text-align:center;margin-top:14px">
-      <a href="https://wa.me/526143716816?text=Hola!%20Vengo%20desde%20la%20p%C3%A1gina%20web%20%E2%80%94%20quiero%20ASESOR%C3%8DA%20de%20talla.%20Mis%20medidas%20son:" target="_blank" rel="noopener" style="background:#25d366;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
+      <a href="https://wa.me/526143716816?text=Hola!%20Vengo%20desde%20la%20p%C3%A1gina%20web%20%E2%80%94%20quiero%20ASESOR%C3%8DA%20de%20talla.%20Mis%20medidas%20son:" target="_blank" rel="noopener" style="background:#25d366;color:#fff;padding:11px 22px;border-radius:24px;font-size:14.5px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
         <i class="fa-brands fa-whatsapp"></i> Pedir asesoría
       </a>
     </div>
@@ -294,6 +323,8 @@ function esc(s) {
 let currentProduct = null;
 let selectedSize = '';
 let selectedColor = '';
+let selectedOption = '';        // opción de variante elegida (p.ej. "Con tirantes")
+let variantMode = false;        // true si el producto usa variantes estructuradas
 let isInWishlist = false;
 
 function openSizeGuide() { document.getElementById('sizeGuideModal').classList.remove('hidden'); }
@@ -350,10 +381,10 @@ async function loadProductReviews(productId) {
     document.getElementById('reviewsCount').textContent = `${avg.toFixed(1)} de 5 · ${reviews.length} reseña${reviews.length>1?'s':''}`;
     list.innerHTML = reviews.map(r => `
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px">
-        <div style="color:#f59e0b;font-size:14px;letter-spacing:1.5px;margin-bottom:6px">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
-        <div style="font-weight:700;font-size:14px;color:#071a0c;margin-bottom:4px">${esc(r.author)}</div>
-        <div style="font-size:11px;color:#9ca3af;margin-bottom:10px">${new Date(r.createdAt).toLocaleDateString('es-MX',{year:'numeric',month:'short',day:'numeric'})}</div>
-        <p style="font-size:13px;color:#4b5563;line-height:1.6;font-style:italic">"${esc(r.text)}"</p>
+        <div style="color:#f59e0b;font-size:15.5px;letter-spacing:1.5px;margin-bottom:6px">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+        <div style="font-weight:700;font-size:15.5px;color:#071a0c;margin-bottom:4px">${esc(r.author)}</div>
+        <div style="font-size:12.5px;color:#9ca3af;margin-bottom:10px">${new Date(r.createdAt).toLocaleDateString('es-MX',{year:'numeric',month:'short',day:'numeric'})}</div>
+        <p style="font-size:14.5px;color:#4b5563;line-height:1.6;font-style:italic">"${esc(r.text)}"</p>
       </div>`).join('');
   } catch (e) { console.error('reviews', e); }
 }
@@ -422,51 +453,431 @@ async function submitReview(e) {
   }
 }
 
-function changeQty(delta) {
-  const input = document.getElementById('qtyInput');
-  input.value = Math.max(1, Number(input.value) + delta);
-}
-
+// ── SELECCIÓN DE TALLA Y COLOR (una faja a la vez) ──
 function selectSize(btn, size) {
   document.querySelectorAll('#sizeOptions .size-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   selectedSize = size;
-  document.getElementById('selectedSize').textContent = size;
+  const el = document.getElementById('selectedSize');
+  el.textContent = size;
+  el.classList.remove('opt-hint');
+  if (variantMode) updateVariantPrice();
 }
 
 function selectColor(btn, color) {
-  document.querySelectorAll('#colorOptions .color-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#colorOptions .color-btn').forEach(b => { b.classList.remove('active'); b.style.outlineColor = 'var(--gray-300)'; });
   btn.classList.add('active');
+  btn.style.outlineColor = 'var(--primary)';
   selectedColor = color;
-  document.getElementById('selectedColor').textContent = color;
+  const el = document.getElementById('selectedColor');
+  el.textContent = color;
+  el.classList.remove('opt-hint');
+  // En modo variantes, elegir color re-filtra las tallas disponibles de ese color.
+  if (variantMode) { renderVariantSizes(); updateVariantPrice(); }
 }
 
+// ── MODO VARIANTES (color → tallas + opción + precio propio) ─────────────────
+let _variantAxes = null; // { options:[], colors:[], variants:[] }
+
+// Devuelve las variantes que calzan con la opción elegida (o todas si no hay eje
+// de opción / no se ha elegido). Base para saber qué colores y tallas ofrecer.
+function _variantsForOption() {
+  const vs = (_variantAxes?.variants) || [];
+  if (!_variantAxes?.options.length || !selectedOption) return vs;
+  return vs.filter(v => (v.option || '') === selectedOption);
+}
+
+// Construye todo el configurador cuando el producto tiene variantes.
+function buildVariantConfigurator(product) {
+  const variants = product.variants || [];
+  const options = [...new Set(variants.map(v => v.option).filter(Boolean))];
+  const colors  = [...new Set(variants.map(v => v.color).filter(Boolean))];
+  _variantAxes = { options, colors, variants };
+
+  const cfgHead = document.getElementById('fajaConfigHead');
+  cfgHead.style.display = 'flex';
+
+  // Orden visual: Opción → Color → Talla. Movemos color antes de talla.
+  const sizeSec = document.getElementById('sizeSection');
+  const colorSec = document.getElementById('colorSection');
+  if (sizeSec && colorSec && colorSec.parentElement) {
+    colorSec.parentElement.insertBefore(colorSec, sizeSec);
+  }
+
+  // Eje OPCIÓN (solo si alguna variante trae opción)
+  if (options.length) {
+    document.getElementById('optionSection').style.display = 'block';
+    const box = document.getElementById('optionOptions');
+    box.innerHTML = '';
+    options.forEach(op => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'size-btn'; b.textContent = op;
+      b.onclick = () => selectOption(b, op);
+      box.appendChild(b);
+    });
+    const ol = document.getElementById('selectedOptionLbl');
+    if (ol && !selectedOption) { ol.textContent = 'elige una opción'; ol.classList.add('opt-hint'); }
+  }
+
+  // Eje COLOR (solo si alguna variante trae color)
+  if (colors.length) {
+    document.getElementById('colorSection').style.display = 'block';
+    renderVariantColors();
+  }
+
+  // Tallas: dependen del color/opción; se pintan cuando ya se puede.
+  document.getElementById('sizeSection').style.display = 'block';
+  renderVariantSizes();
+  setOptHints();
+}
+
+function selectOption(btn, option) {
+  document.querySelectorAll('#optionOptions .size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedOption = option;
+  const el = document.getElementById('selectedOptionLbl');
+  el.textContent = option; el.classList.remove('opt-hint');
+  // Cambiar de opción puede cambiar los colores/tallas válidos: reiniciamos abajo.
+  selectedColor = ''; selectedSize = '';
+  renderVariantColors(); renderVariantSizes(); setOptHints(); updateVariantPrice();
+}
+
+// Pinta los colores disponibles (según la opción elegida). Deshabilita los que
+// no existan en esa opción.
+function renderVariantColors() {
+  const cc = document.getElementById('colorOptions');
+  if (!cc || !_variantAxes?.colors.length) return;
+  const avail = new Set(_variantsForOption().map(v => v.color).filter(Boolean));
+  cc.innerHTML = '';
+  _variantAxes.colors.forEach(c => {
+    const on = avail.has(c);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'color-btn' + (selectedColor === c ? ' active' : '');
+    btn.title = on ? c : `${c} (no disponible)`;
+    btn.disabled = !on;
+    btn.style.cssText = `width:34px;height:34px;border-radius:50%;background:${COLOR_MAP[c] || '#999'};cursor:${on?'pointer':'not-allowed'};outline:2.5px solid ${selectedColor===c?'var(--primary)':'var(--gray-300)'};outline-offset:2px;border:3px solid white;transition:all .2s;opacity:${on?1:.3}`;
+    if (on) btn.onclick = () => selectColor(btn, c);
+    cc.appendChild(btn);
+  });
+  const lbl = document.getElementById('selectedColor');
+  if (!selectedColor) { lbl.textContent = 'elige un color'; lbl.classList.add('opt-hint'); }
+}
+
+// Pinta las tallas de la variante activa (color + opción). Si aún falta elegir
+// color (habiendo colores), muestra un aviso guía.
+function renderVariantSizes() {
+  const sc = document.getElementById('sizeOptions');
+  if (!sc) return;
+  sc.innerHTML = '';
+  const needColor = _variantAxes?.colors.length && !selectedColor;
+  const needOption = _variantAxes?.options.length && !selectedOption;
+  if (needOption || needColor) {
+    sc.innerHTML = `<span class="opt-hint" style="font-size:14.5px">Elige ${needOption ? 'una opción' : 'un color'} primero</span>`;
+    selectedSize = '';
+    const el = document.getElementById('selectedSize'); el.textContent = 'elige una talla'; el.classList.add('opt-hint');
+    return;
+  }
+  // Variante activa = la que calza color + opción (si esos ejes existen).
+  const match = activeVariant();
+  const sizes = match ? match.sizes : [];
+  if (!sizes.length) {
+    sc.innerHTML = `<span class="opt-hint" style="font-size:14.5px">Sin tallas para esta combinación</span>`;
+    return;
+  }
+  // Si la talla elegida quedó agotada o ya no existe en esta variante, se limpia.
+  if (selectedSize && !sizes.some(s => szName(s) === selectedSize && !szSoldOut(s))) selectedSize = '';
+  sizes.forEach(s => {
+    const name = szName(s), soldOut = szSoldOut(s), stock = szStock(s);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'size-btn' + (selectedSize === name ? ' active' : '') + (soldOut ? ' sold-out' : '');
+    btn.textContent = name;
+    btn.disabled = soldOut;
+    btn.title = soldOut ? 'Agotado' : (stock != null ? `${stock} disponible${stock === 1 ? '' : 's'}` : '');
+    if (!soldOut) btn.onclick = () => selectSize(btn, name);
+    sc.appendChild(btn);
+  });
+  if (!selectedSize) { const el = document.getElementById('selectedSize'); el.textContent = 'elige una talla'; el.classList.add('opt-hint'); }
+}
+
+// Helpers de tallas-con-inventario: aceptan {size,stock} (nuevo) o string (viejo).
+function szName(s)  { return (s && typeof s === 'object') ? s.size : s; }
+function szStock(s) { return (s && typeof s === 'object') ? s.stock : null; } // null = sin límite
+function szSoldOut(s){ const st = szStock(s); return st != null && st <= 0; }
+
+// Variante activa según color + opción elegidos (o la única, si no hay esos ejes).
+function activeVariant() {
+  return (_variantAxes?.variants || []).find(v =>
+    (!_variantAxes.colors.length  || (v.color  || '') === selectedColor) &&
+    (!_variantAxes.options.length || (v.option || '') === selectedOption)) || null;
+}
+
+// Inventario disponible de la talla+color+opción elegida (null = sin límite).
+function selectedComboStock() {
+  const v = activeVariant();
+  if (!v || !Array.isArray(v.sizes)) return null;
+  const se = v.sizes.find(s => szName(s) === selectedSize);
+  return se ? szStock(se) : null;
+}
+
+// Actualiza el precio mostrado según la variante activa (si tiene precio propio).
+function updateVariantPrice() {
+  if (!currentProduct) return;
+  const vs = currentProduct.variants || [];
+  const match = vs.find(v =>
+    (!_variantAxes?.colors.length  || (v.color  || '') === selectedColor) &&
+    (!_variantAxes?.options.length || (v.option || '') === selectedOption));
+  const price = (match && match.price != null && Number(match.price) > 0) ? Number(match.price) : currentProduct.price;
+  document.getElementById('productPrice').textContent = formatPrice(price);
+}
+
+// Pinta el texto guía ("elige una talla / un color") cuando no hay selección.
+function setOptHints() {
+  const s = document.getElementById('selectedSize');
+  const c = document.getElementById('selectedColor');
+  if (s && !selectedSize)  { s.textContent = 'elige una talla'; s.classList.add('opt-hint'); }
+  if (c && !selectedColor) { c.textContent = 'elige un color';  c.classList.add('opt-hint'); }
+}
+
+// Reinicia el mini-menú para configurar la SIGUIENTE faja desde cero (talla y
+// color en blanco) y lo resalta un instante para que se note que se "despliega".
+function resetFajaConfig() {
+  selectedSize = '';
+  selectedColor = '';
+  selectedOption = '';
+  if (variantMode) {
+    document.querySelectorAll('#optionOptions .size-btn').forEach(b => b.classList.remove('active'));
+    // Reiniciar el rótulo de la opción (setOptHints solo toca talla/color).
+    if (_variantAxes?.options.length) {
+      const ol = document.getElementById('selectedOptionLbl');
+      if (ol) { ol.textContent = 'elige una opción'; ol.classList.add('opt-hint'); }
+    }
+    renderVariantColors(); renderVariantSizes();
+    updateVariantPrice();
+    setOptHints();
+  } else {
+    document.querySelectorAll('#sizeOptions .size-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#colorOptions .color-btn').forEach(b => { b.classList.remove('active'); b.style.outlineColor = 'var(--gray-300)'; });
+    setOptHints();
+  }
+  const cfg = document.getElementById('fajaConfig');
+  if (cfg) { cfg.classList.remove('flash'); void cfg.offsetWidth; cfg.classList.add('flash'); }
+  updateFajaConfigTitle();
+}
+
+// El título del menú indica qué faja se está configurando (#1, #2, ...).
+function updateFajaConfigTitle() {
+  const t = document.getElementById('fajaConfigTitle');
+  if (!t || !currentProduct) return;
+  const yaLleva = DB.getCart().filter(i => i.productId == currentProduct.id).reduce((s, l) => s + l.qty, 0);
+  t.textContent = `Configura tu faja #${yaLleva + 1}`;
+}
+
+// Añade UNA faja con la talla + color elegidos y reinicia el menú para la
+// siguiente. Cada faja se configura por separado ("faja por faja").
 function addToCartDetail() {
   if (!currentProduct) return;
-  if ((currentProduct.sizes || []).length > 0 && !selectedSize) {
-    showToast('Por favor selecciona una talla', 'error'); return;
+  if (variantMode) {
+    if (_variantAxes?.options.length && !selectedOption) { showToast('Elige una opción', 'error'); return; }
+    if (_variantAxes?.colors.length  && !selectedColor)  { showToast('Elige un color', 'error'); return; }
+    // La variante activa debe existir y esa talla estar disponible en ella.
+    const match = (_variantAxes?.variants || []).find(v =>
+      (!_variantAxes.colors.length  || (v.color  || '') === selectedColor) &&
+      (!_variantAxes.options.length || (v.option || '') === selectedOption));
+    if (match && match.sizes.length && !selectedSize) { showToast('Elige una talla', 'error'); return; }
+    // No dejar pedir más de lo que hay en inventario de esa talla+color.
+    const stock = selectedComboStock();
+    if (stock != null) {
+      if (stock <= 0) { showToast('Esa talla está agotada', 'error'); return; }
+      const yaLleva = DB.getCart().filter(i => i.productId == currentProduct.id
+        && (i.size || '') === selectedSize && (i.color || '') === selectedColor && (i.option || '') === selectedOption)
+        .reduce((s, l) => s + l.qty, 0);
+      if (yaLleva + 1 > stock) { showToast(`Solo hay ${stock} pieza${stock === 1 ? '' : 's'} de esa talla`, 'error'); return; }
+    }
+  } else {
+    const hasSizes  = (currentProduct.sizes  || []).length > 0;
+    const hasColors = (currentProduct.colors || []).length > 0;
+    if (hasSizes  && !selectedSize)  { showToast('Elige una talla', 'error'); return; }
+    if (hasColors && !selectedColor) { showToast('Elige un color', 'error'); return; }
   }
-  if ((currentProduct.colors || []).length > 0 && !selectedColor) {
-    showToast('Por favor selecciona un color', 'error'); return;
-  }
-  const qty = Number(document.getElementById('qtyInput').value) || 1;
-  DB.addToCart(currentProduct.id, qty, selectedSize, selectedColor);
-  showToast(`"${currentProduct.name}" agregado al carrito`);
+
+  DB.addToCart(currentProduct.id, 1, selectedSize, selectedColor, selectedOption);
+
+  // Popup de confirmación con enlace directo al carrito.
+  showAddedToCartModal(currentProduct, { qty: 1, size: selectedSize, color: selectedColor, option: selectedOption });
+  renderProductCartLines();
+  resetFajaConfig();
 }
 
-function setGalleryMain(src, type) {
+// ── MINI-CARRITO DEL PRODUCTO ──
+// Muestra lo que la clienta ya lleva de ESTE producto (todas sus combinaciones)
+// y deja ajustar cantidad o quitar cada una sin salir de la ficha.
+let _pcartKeys = [];
+function renderProductCartLines() {
+  const box  = document.getElementById('productCartBox');
+  const list = document.getElementById('productCartLines');
+  const totalEl = document.getElementById('productCartTotal');
+  const lines = DB.getCart().filter(i => i.productId == currentProduct.id);
+  _pcartKeys = lines.map(l => l.key);
+  updateFajaConfigTitle();
+  if (!lines.length) { box.style.display = 'none'; list.innerHTML = ''; return; }
+  box.style.display = 'block';
+  const totalPzs = lines.reduce((s, l) => s + l.qty, 0);
+  totalEl.textContent = `${totalPzs} pza${totalPzs > 1 ? 's' : ''}`;
+  list.innerHTML = lines.map((l, idx) => {
+    const meta = [l.size ? `Talla ${esc(l.size)}` : null, l.color ? esc(l.color) : null, l.option ? esc(l.option) : null].filter(Boolean).join(' · ') || 'Estándar';
+    return `<div class="pcart-line">
+      <span class="pcart-meta">${meta}</span>
+      <div class="pcart-actions">
+        <div class="qty-control mini">
+          <button class="qty-btn" type="button" onclick="pcartQty(${idx},-1)"><i class="fa-solid fa-minus"></i></button>
+          <span class="qty-num">${l.qty}</span>
+          <button class="qty-btn" type="button" onclick="pcartQty(${idx},1)"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <button class="pcart-remove" type="button" onclick="pcartRemove(${idx})" title="Quitar"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function pcartQty(idx, delta) {
+  const key = _pcartKeys[idx]; if (!key) return;
+  const item = DB.getCart().find(i => i.key === key); if (!item) return;
+  const next = item.qty + delta;
+  if (next < 1) DB.removeFromCart(key); else DB.updateCartQty(key, next);
+  renderProductCartLines();
+}
+function pcartRemove(idx) {
+  const key = _pcartKeys[idx]; if (!key) return;
+  DB.removeFromCart(key);
+  renderProductCartLines();
+  showToast('Quitado del carrito');
+}
+
+/* ── GALERÍA ─────────────────────────────────────────────────────────────────
+   La galería es una sola lista: las imágenes con el video metido en el hueco
+   que el admin le haya dado (videoPosition). Se recorre con las flechas, con
+   el teclado o deslizando con el dedo, y da la vuelta al llegar al final.     */
+let media = [];
+let mediaIdx = 0;
+
+function buildMedia(product) {
+  const imgs = product.images || [];
+  // Fuente de verdad: el arreglo `videos`. Si el producto es viejo y solo tiene
+  // `video`, se envuelve para tratarlo igual.
+  let vids = Array.isArray(product.videos) && product.videos.length
+    ? product.videos
+    : (product.video ? [{ url: product.video, position: product.videoPosition }] : []);
+
+  const n = imgs.length;
+  const items = [];
+  // Recorre los huecos 0..n: antes de la imagen s van los videos con esa posición;
+  // los que no tengan posición válida (null) caen al final (hueco n).
+  for (let s = 0; s <= n; s++) {
+    vids.forEach(v => {
+      const pos = Number.isInteger(v.position) ? Math.max(0, Math.min(v.position, n)) : n;
+      if (pos === s && v.url) items.push({ type: 'video', src: v.url });
+    });
+    if (s < n) items.push({ type: 'image', src: imgs[s] });
+  }
+  return items;
+}
+
+function setGalleryMain(src, type, autoplay) {
   const main = document.getElementById('galleryMain');
   if (!src) { main.innerHTML = `<div class="no-img"><i class="fa-solid fa-shirt"></i></div>`; return; }
   if (type === 'video') {
-    main.innerHTML = `<video src="${src}" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000"></video>`;
+    // Sin el atributo "autoplay" a propósito. Ese atributo deja que el navegador
+    // decida, y su política puede acabar reproduciendo en silencio. Aquí el
+    // sonido se fuerza (muted=false, volumen al máximo) y se llama a play() a
+    // mano dentro del gesto de la clienta, que es lo que autoriza el audio.
+    // Si aun así el navegador lo rechaza, se queda EN PAUSA con sus controles
+    // y con sonido: nunca caemos en "se reproduce pero mudo".
+    main.innerHTML = `<video src="${esc(src)}" controls playsinline
+      style="width:100%;height:100%;object-fit:contain;background:#000"></video>`;
+    const v = main.querySelector('video');
+    v.muted = false;
+    v.volume = 1;
+    if (autoplay) v.play().catch(() => { /* el navegador lo bloqueó: que le den al play */ });
   } else {
-    main.innerHTML = `<img src="${src}" alt="Producto" onerror="this.parentNode.innerHTML='<div class=\\'no-img\\'><i class=\\'fa-solid fa-shirt\\'></i></div>'">`;
+    // draggable=false es imprescindible: si no, al deslizar sobre la foto el
+    // navegador arranca SU arrastre nativo de imagen, que cancela los eventos
+    // de puntero y el gesto de pasar de foto nunca llega a completarse.
+    main.innerHTML = `<img src="${esc(src)}" alt="Producto" draggable="false" onerror="this.parentNode.innerHTML='<div class=\\'no-img\\'><i class=\\'fa-solid fa-shirt\\'></i></div>'">`;
   }
 }
+
+function showMedia(i, autoplay) {
+  if (!media.length) return;
+  mediaIdx = (i + media.length) % media.length; // da la vuelta en los extremos
+  const m = media[mediaIdx];
+  setGalleryMain(m.src, m.type, autoplay);
+  document.querySelectorAll('.gallery-thumb').forEach((t, k) => t.classList.toggle('active', k === mediaIdx));
+  const counter = document.getElementById('galleryCounter');
+  if (counter) counter.textContent = `${mediaIdx + 1} / ${media.length}`;
+}
+
+function galleryNext() { showMedia(mediaIdx + 1, true); }
+function galleryPrev() { showMedia(mediaIdx - 1, true); }
+
+function renderGallery(product) {
+  media = buildMedia(product);
+  const stage  = document.getElementById('galleryStage');
+  const thumbs = document.getElementById('galleryThumbs');
+
+  if (!media.length) { stage.classList.add('is-empty'); return; }
+  // Con un solo elemento no hay nada que recorrer: fuera flechas, contador y tiras.
+  stage.classList.toggle('has-nav', media.length > 1);
+
+  thumbs.innerHTML = '';
+  if (media.length > 1) {
+    media.forEach((m, i) => {
+      const div = document.createElement('div');
+      div.className = 'gallery-thumb';
+      div.innerHTML = m.type === 'video'
+        ? `<video src="${esc(m.src)}#t=0.1" muted playsinline preload="metadata"></video>
+           <span class="thumb-play"><i class="fa-solid fa-circle-play"></i></span>`
+        : `<img src="${esc(m.src)}" alt=""${imgFocusStyle(product.imageFocus, m.src)}>`;
+      div.onclick = () => showMedia(i, true);
+      thumbs.appendChild(div);
+    });
+  }
+
+  showMedia(0, false);
+  initGallerySwipe();
+}
+
+function initGallerySwipe() {
+  const stage = document.getElementById('galleryStage');
+  let x0 = null, y0 = null;
+
+  stage.addEventListener('pointerdown', e => {
+    if (e.target.closest('video')) return; // que los controles del video sigan usables
+    x0 = e.clientX; y0 = e.clientY;
+  });
+  stage.addEventListener('pointerup', e => {
+    if (x0 === null || media.length < 2) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    x0 = null;
+    // Un toque o un scroll vertical no son un deslizamiento.
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)) return;
+    dx < 0 ? galleryNext() : galleryPrev();
+  });
+  stage.addEventListener('pointercancel', () => { x0 = null; });
+}
+
+document.addEventListener('keydown', e => {
+  if (media.length < 2) return;
+  if (e.target.closest('input, textarea')) return;                 // no robes las flechas de un campo
+  if (!document.getElementById('sizeGuideModal').classList.contains('hidden')) return; // ni con el modal abierto
+  if (e.key === 'ArrowRight') galleryNext();
+  if (e.key === 'ArrowLeft')  galleryPrev();
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
   await AUTH.init();
   await DB.getCategories();
+  await DB.getBrands();   // necesario para mostrar el nombre de la marca en la ficha
 
   const id = getProductId();
   let product;
@@ -480,15 +891,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   currentProduct = product;
   const cats = DB.getCats();
-  const catInfo = cats[product.category] || {};
   document.title = `${product.name} – Fajas Colombianas Maydel`;
   document.getElementById('breadcrumbName').textContent = product.name;
 
-  // Category
-  document.getElementById('productCategory').innerHTML =
-    `<a href="tienda.html?cat=${product.category}" style="color:var(--primary);display:flex;align-items:center;gap:5px">
-       <i class="${catInfo.icon || 'fa-solid fa-tag'}"></i> ${catInfo.label || product.category}
-     </a>`;
+  // Badge: todas las categorías del producto + la marca, cada una enlazada a su
+  // filtro en la tienda.
+  const prodCats = (product.categories && product.categories.length ? product.categories : [product.category]).filter(Boolean);
+  const catChips = prodCats.map(key => {
+    const ci = cats[key] || {};
+    return `<a href="tienda.html?cat=${encodeURIComponent(key)}" class="pcat-chip">
+       <i class="${ci.icon || 'fa-solid fa-tag'}"></i> ${esc(ci.label || key)}</a>`;
+  }).join('');
+  let brandChip = '';
+  if (product.brand) {
+    const b = DB.getBrandsCache()[product.brand] || {};
+    brandChip = `<a href="tienda.html?brand=${encodeURIComponent(product.brand)}" class="pcat-chip pcat-chip-brand">
+       <i class="fa-solid fa-certificate"></i> ${esc(b.label || product.brand)}</a>`;
+  }
+  document.getElementById('productCategory').innerHTML = catChips + brandChip;
 
   document.getElementById('productName').textContent = product.name;
 
@@ -505,70 +925,63 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('productDesc').textContent = product.description || 'Sin descripción disponible.';
 
-  // Gallery (imágenes + video)
-  const images = product.images || [];
-  const media = images.map(src => ({ type: 'image', src }));
-  if (product.video) media.push({ type: 'video', src: product.video });
+  // Galería: imágenes + video en la posición que le dio el admin
+  renderGallery(product);
 
-  if (media.length > 0) {
-    setGalleryMain(media[0].src, media[0].type);
-    if (media.length > 1) {
-      const thumbs = document.getElementById('galleryThumbs');
-      media.forEach((m, i) => {
-        const div = document.createElement('div');
-        div.className = `gallery-thumb${i === 0 ? ' active' : ''}`;
-        if (m.type === 'video') {
-          div.style.position = 'relative';
-          div.innerHTML = `<video src="${m.src}#t=0.1" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover"></video>
-            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none"><i class="fa-solid fa-circle-play"></i></span>`;
-        } else {
-          div.innerHTML = `<img src="${m.src}" alt="">`;
-        }
-        div.onclick = () => {
-          setGalleryMain(m.src, m.type);
-          document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
-          div.classList.add('active');
-        };
-        thumbs.appendChild(div);
+  // Configurador: modo VARIANTES (color → tallas + opción) o modo simple (tallas
+  // y colores planos). Se decide por si el producto trae variantes estructuradas.
+  variantMode = Array.isArray(product.variants) && product.variants.length > 0;
+  const sizes = product.sizes || [];
+  const colors = product.colors || [];
+
+  if (variantMode) {
+    buildVariantConfigurator(product);
+  } else {
+    // Tallas: chips de selección única. Sin preseleccionar.
+    if (sizes.length > 0) {
+      document.getElementById('sizeSection').style.display = 'block';
+      const sc = document.getElementById('sizeOptions');
+      sizes.forEach((s) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'size-btn';
+        btn.textContent = s;
+        btn.onclick = () => selectSize(btn, s);
+        sc.appendChild(btn);
       });
     }
+    // Colores: tampoco se preselecciona, se elige por faja.
+    if (colors.length > 0) {
+      document.getElementById('colorSection').style.display = 'block';
+      const cc = document.getElementById('colorOptions');
+      colors.forEach((c) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'color-btn';
+        btn.title = c;
+        btn.style.cssText = `width:34px;height:34px;border-radius:50%;background:${COLOR_MAP[c] || '#999'};cursor:pointer;outline:2.5px solid var(--gray-300);outline-offset:2px;border:3px solid white;transition:all .2s`;
+        btn.onclick = () => selectColor(btn, c);
+        cc.appendChild(btn);
+      });
+    }
+    // Encabezado del configurador solo si hay algo que elegir (talla o color).
+    if (sizes.length > 0 || colors.length > 0) {
+      document.getElementById('fajaConfigHead').style.display = 'flex';
+    }
   }
-
-  // Tallas
-  const sizes = product.sizes || [];
-  if (sizes.length > 0) {
-    document.getElementById('sizeSection').style.display = 'block';
-    const sc = document.getElementById('sizeOptions');
-    sizes.forEach((s, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'size-btn' + (i === 0 ? ' active' : '');
-      btn.textContent = s;
-      btn.onclick = () => selectSize(btn, s);
-      sc.appendChild(btn);
-    });
-    selectedSize = sizes[0];
-    document.getElementById('selectedSize').textContent = sizes[0];
-  }
-
-  // Colores
-  const colors = product.colors || [];
-  if (colors.length > 0) {
-    document.getElementById('colorSection').style.display = 'block';
-    const cc = document.getElementById('colorOptions');
-    colors.forEach((c, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'color-btn' + (i === 0 ? ' active' : '');
-      btn.title = c;
-      btn.style.cssText = `width:34px;height:34px;border-radius:50%;background:${COLOR_MAP[c] || '#999'};cursor:pointer;outline:2.5px solid ${i===0?'var(--primary)':'var(--gray-300)'};outline-offset:2px;border:3px solid white;transition:all .2s`;
-      btn.onclick = () => { selectColor(btn, c); document.querySelectorAll('#colorOptions .color-btn').forEach(b => b.style.outlineColor = 'var(--gray-300)'); btn.style.outlineColor = 'var(--primary)'; };
-      cc.appendChild(btn);
-    });
-    selectedColor = colors[0];
-    document.getElementById('selectedColor').textContent = colors[0];
-  }
+  setOptHints();
+  updateFajaConfigTitle();
+  renderProductCartLines(); // muestra lo que ya lleva de este producto
 
   // Meta info
   let metaHTML = '';
+  // La marca es un filtro más de la tienda: se muestra enlazada, igual que la categoría.
+  if (product.brand) {
+    const brands = DB.getBrandsCache();
+    const b = brands[product.brand] || {};
+    metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-certificate"></i> Marca</span>
+      <span class="meta-val"><a href="tienda.html?brand=${encodeURIComponent(product.brand)}" style="color:var(--primary);font-weight:600">${esc(b.label || product.brand)}</a></span></div>`;
+  }
   if (product.reference) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-hashtag"></i> Referencia</span><span class="meta-val">${product.reference}</span></div>`;
   if (product.material) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-layer-group"></i> Material</span><span class="meta-val">${product.material}</span></div>`;
   if (product.stock !== undefined) metaHTML += `<div class="meta-row"><span class="meta-key"><i class="fa-solid fa-warehouse"></i> Disponibilidad</span><span class="meta-val" style="color:${product.stock > 0 ? 'var(--primary)' : 'var(--danger)'}"><i class="fa-solid ${product.stock > 0 ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${product.stock > 0 ? `En stock (${product.stock} uds.)` : 'Agotado'}</span></div>`;

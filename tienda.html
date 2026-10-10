@@ -18,192 +18,7 @@
   <script src="/js/analytics.js" defer></script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    /* ── TIENDA: BANNER ────────────────────────────────── */
-    .tda-banner {
-      background: #071a0c;
-      padding: 56px 0 48px;
-      position: relative;
-      overflow: hidden;
-    }
-    .tda-banner::before {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,169,110,.05);
-      right: -120px; top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-    }
-    .tda-banner-inner {
-      position: relative; z-index: 1;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-    .tda-banner-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 3.5px;
-      text-transform: uppercase;
-      color: #c9a96e;
-      margin-bottom: 16px;
-    }
-    .tda-banner-tag::before { content: ''; display: block; width: 28px; height: 1px; background: #c9a96e; }
-    .tda-banner h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(36px, 5vw, 60px);
-      font-weight: 900;
-      line-height: 1.0;
-      color: white;
-    }
-    .tda-banner h1 em { font-style: italic; color: #c9a96e; }
-    .tda-banner-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-    .tda-search-inline {
-      display: flex;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .tda-search-inline input {
-      border: none;
-      padding: 12px 18px;
-      font-size: 13px;
-      background: transparent;
-      color: white;
-      font-family: 'DM Sans', sans-serif;
-      width: 220px;
-      outline: none;
-    }
-    .tda-search-inline input::placeholder { color: rgba(255,255,255,.3); }
-    .tda-search-inline button {
-      background: #c9a96e;
-      color: #071a0c;
-      border: none;
-      padding: 12px 18px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background .2s;
-    }
-    .tda-search-inline button:hover { background: #b8934e; }
-
-    /* ── TIENDA: LAYOUT ────────────────────────────────── */
-    .tda-layout {
-      background: #f5f0e8;
-      padding: 40px 0 80px;
-    }
-    .tienda-layout { gap: 32px !important; }
-
-    /* ── SIDEBAR ───────────────────────────────────────── */
-    .sidebar-card {
-      background: white !important;
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.07) !important;
-    }
-    .sidebar-card h3 {
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 2px !important;
-      color: #071a0c !important;
-    }
-    .sidebar-card h3 i { color: #c9a96e !important; }
-    .filter-option { font-family: 'DM Sans', sans-serif !important; }
-    .filter-option:hover { color: #1a5c2e !important; }
-    .filter-option input[type=checkbox] { accent-color: #1a5c2e !important; }
-    .price-range input { border-radius: 2px !important; font-family: 'DM Sans', sans-serif !important; }
-    .price-range input:focus { border-color: #1a5c2e !important; }
-    .size-btn {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-size: 12px !important;
-      font-weight: 600 !important;
-    }
-    .size-btn.active {
-      border-color: #1a5c2e !important;
-      color: #1a5c2e !important;
-      background: #f0faf4 !important;
-    }
-
-    /* Apply / Clear buttons */
-    .sidebar-card .btn {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 1px !important;
-      font-size: 12px !important;
-      text-transform: uppercase !important;
-    }
-
-    /* ── TOOLBAR ───────────────────────────────────────── */
-    .toolbar {
-      background: white;
-      border-radius: 2px;
-      padding: 14px 20px;
-      border: 1px solid rgba(7,26,12,.07);
-      margin-bottom: 20px !important;
-    }
-    .results-count {
-      font-family: 'DM Sans', sans-serif !important;
-      font-size: 13px !important;
-      color: #5a6472 !important;
-    }
-    .results-count strong { color: #071a0c !important; font-family: 'Playfair Display', serif !important; font-size: 16px !important; }
-    .sort-select {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-size: 13px !important;
-      border-color: rgba(7,26,12,.15) !important;
-    }
-    .sort-select:focus { border-color: #1a5c2e !important; }
-
-    /* ── PRODUCT CARDS ─────────────────────────────────── */
-    .product-card {
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.07) !important;
-    }
-    .product-card:hover {
-      transform: translateY(-4px) !important;
-      box-shadow: 0 16px 40px rgba(7,26,12,.1) !important;
-    }
-    .product-name { font-family: 'DM Sans', sans-serif !important; font-weight: 500 !important; }
-    .price-main { font-family: 'Playfair Display', serif !important; color: #1a5c2e !important; }
-    .btn-add-cart {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 1px !important;
-      font-size: 12px !important;
-      text-transform: uppercase !important;
-    }
-
-    /* ── PAGINATION ────────────────────────────────────── */
-    .page-btn {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-weight: 600 !important;
-    }
-    .page-btn.active { background: #1a5c2e !important; border-color: #1a5c2e !important; }
-
-    /* ── EMPTY STATE ───────────────────────────────────── */
-    .empty-state h3 { font-family: 'Playfair Display', serif !important; }
-
-    /* ── REVEAL ────────────────────────────────────────── */
-    .tda-reveal {
-      opacity: 0; transform: translateY(20px);
-      transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
-    }
-    .tda-reveal.visible { opacity: 1; transform: translateY(0); }
-  </style>
+  <link rel="stylesheet" href="css/tienda.css">
 </head>
 <body>
 
@@ -255,8 +70,21 @@
   <div class="container">
     <div class="tienda-layout">
 
+      <!-- Boton de filtros: SOLO en movil/tablet (<=1024px). En escritorio la
+           barra lateral se ve siempre y CSS oculta este boton. Sirve para que
+           los resultados queden justo debajo de la busqueda en vez de empujados
+           por las cuatro tarjetas de filtros. -->
+      <button type="button" class="filters-toggle" id="filtersToggle"
+              aria-expanded="false" aria-controls="shopSidebar">
+        <span class="ft-label"><i class="fa-solid fa-sliders"></i> Filtros</span>
+        <span class="ft-right">
+          <span class="ft-badge" id="filtersBadge" hidden>0</span>
+          <i class="fa-solid fa-chevron-down ft-caret"></i>
+        </span>
+      </button>
+
       <!-- SIDEBAR -->
-      <aside class="sidebar">
+      <aside class="sidebar" id="shopSidebar">
         <div class="sidebar-card">
           <h3><i class="fa-solid fa-folder-tree"></i> Categorías</h3>
           <div id="catFilters"></div>
@@ -275,7 +103,7 @@
           <button onclick="applyFilters()" class="btn btn-primary btn-sm" style="width:100%;margin-top:12px;border-radius:2px">
             <i class="fa-solid fa-filter"></i> Aplicar
           </button>
-          <button onclick="clearFilters()" style="width:100%;margin-top:6px;padding:8px;border-radius:2px;background:#f5f0e8;color:#071a0c;border:1px solid rgba(7,26,12,.1);cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
+          <button onclick="clearFilters()" style="width:100%;margin-top:6px;padding:8px;border-radius:2px;background:#f5f0e8;color:#071a0c;border:1px solid rgba(7,26,12,.1);cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
             <i class="fa-solid fa-xmark"></i> Limpiar
           </button>
         </div>
@@ -343,8 +171,8 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2025 Fajas Colombianas Maydel. Todos los derechos reservados.</span>
-      <span style="font-size:12px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
+      <span>© <span id="footerYear">2026</span> Fajas Colombianas Maydel. Todos los derechos reservados.</span>
+      <span style="font-size:13px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
     </div>
   </div>
 </footer>
@@ -372,7 +200,7 @@ function buildSidebar() {
   const catContainer = document.getElementById('catFilters');
   const allProducts = DB.getProds().filter(p => p.active !== false);
   Object.entries(cats).filter(([,c]) => c.active !== false).forEach(([key, cat]) => {
-    const count = allProducts.filter(p => p.category === key).length;
+    const count = allProducts.filter(p => (p.categories || [p.category]).includes(key)).length;
     if (count === 0) return;
     catContainer.innerHTML += `
     <label class="filter-option">
@@ -410,6 +238,36 @@ function buildSidebar() {
 
 function toggleSizeFilter(btn) { btn.classList.toggle('active'); applyFilters(); }
 
+// ── FILTROS PLEGABLES (movil / tablet) ────────────────────────────────────
+// Solo actua cuando el boton esta visible, es decir <=1024px. En escritorio
+// el boton esta oculto por CSS y la barra lateral se muestra siempre.
+function filtersPanelIsMobile() {
+  const btn = document.getElementById('filtersToggle');
+  return btn && getComputedStyle(btn).display !== 'none';
+}
+
+function toggleFiltersPanel(force) {
+  const btn = document.getElementById('filtersToggle');
+  const side = document.getElementById('shopSidebar');
+  if (!btn || !side) return;
+  const open = force !== undefined ? force : !side.classList.contains('is-open');
+  side.classList.toggle('is-open', open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+// Cuenta cuantos filtros hay puestos, para el globito del boton.
+function updateFiltersBadge() {
+  const badge = document.getElementById('filtersBadge');
+  if (!badge) return;
+  const n = document.querySelectorAll('.cat-cb:checked').length
+          + document.querySelectorAll('.brand-cb:checked').length
+          + document.querySelectorAll('[data-size].active').length
+          + (document.getElementById('minPrice')?.value ? 1 : 0)
+          + (document.getElementById('maxPrice')?.value ? 1 : 0);
+  badge.textContent = n;
+  badge.hidden = n === 0;
+}
+
 function applyFiltersFromBanner() {
   const val = document.getElementById('bannerSearch').value;
   const searchInput = document.querySelector('.search-bar input');
@@ -431,6 +289,12 @@ async function applyFilters() {
   currentProducts = products;
   currentPage = 1;
   renderPage();
+  updateFiltersBadge();
+  // En movil se cierra el panel: si no, los resultados quedan fuera de pantalla.
+  if (filtersPanelIsMobile()) {
+    toggleFiltersPanel(false);
+    document.getElementById('filtersToggle')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function clearFilters() {
@@ -485,6 +349,7 @@ function renderPage() {
 function goToPage(page) { currentPage = page; renderPage(); }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('filtersToggle')?.addEventListener('click', () => toggleFiltersPanel());
   await AUTH.init();
   await Promise.all([DB.getCategories(), DB.getBrands(), DB.getProducts()]);
   const params = getUrlParams();
@@ -492,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   buildSidebar();
   let products = await DB.searchProducts(params.q, { sort: params.sort });
   if (params.cat) {
-    products = products.filter(p => p.category === params.cat);
+    products = products.filter(p => (p.categories || [p.category]).includes(params.cat));
     setTimeout(() => {
       const cb = document.querySelector(`.cat-cb[value="${params.cat}"]`);
       if (cb) cb.checked = true;
@@ -511,6 +376,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   currentProducts = products;
   renderPage();
+  // Los filtros que vienen por URL (?cat= / ?brand=) se marcan con un
+  // setTimeout(20), asi que el contador se refresca despues de eso.
+  updateFiltersBadge();
+  setTimeout(updateFiltersBadge, 60);
 });
 </script>
 </body>

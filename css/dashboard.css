@@ -1,0 +1,207 @@
+/* Estilos de dashboard/index.html — extraidos desde el bloque <style> incrustado. */
+
+.section-panel{background:white;border-radius:var(--radius);box-shadow:var(--shadow-sm);border:1px solid var(--gray-200);padding:24px;margin-bottom:20px}
+.img-url-row{display:flex;gap:8px}
+.color-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+
+/* ── Panel de precios del producto ── */
+.price-panel{ border:1.5px solid var(--gray-200); border-radius:10px; padding:16px 18px; background:#fff; margin-bottom:18px; }
+.pp-title{ font-size:14px; font-weight:700; color:#071a0c; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.pp-title i{ color:#c9a96e; }
+.pp-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+@media (max-width:640px){ .pp-grid{ grid-template-columns:1fr; } }
+
+/* ── Opciones múltiples del constructor ── */
+.vb-opt-row{ display:flex; gap:8px; margin-bottom:8px; }
+.vb-opt-row .form-input{ flex:1; }
+.vb-opt-del{ width:40px; border:1px solid var(--gray-200); background:#fff; border-radius:8px; cursor:pointer; color:var(--gray-400); flex-shrink:0; }
+.vb-opt-del:hover{ background:#fdecec; color:#a83232; border-color:#f0c4c4; }
+.vb-add-opt{ background:none; border:1px dashed var(--gray-300); color:var(--primary); border-radius:8px; padding:8px 12px; font-size:12.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .15s; }
+.vb-add-opt:hover{ background:#f5f0e8; border-color:var(--primary); }
+
+/* ── Rejilla de tallas + inventario ── */
+.vsize-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:10px 0; }
+.vsize-cell{ display:flex; align-items:center; gap:8px; border:1.5px solid var(--gray-200); border-radius:8px; padding:7px 10px; background:#fff; transition:border-color .15s; }
+.vsize-cell.on{ border-color:var(--primary); background:#f6faf7; }
+.vsize-cell .vsz-toggle{ flex:1; text-align:left; background:none; border:none; cursor:pointer; font-weight:700; font-size:13px; color:var(--gray-500); }
+.vsize-cell.on .vsz-toggle{ color:#071a0c; }
+.vsize-cell .vsz-qty{ width:60px; padding:5px 7px; border:1px solid var(--gray-200); border-radius:6px; font-size:13px; text-align:center; }
+.vsize-cell .vsz-qty:disabled{ background:var(--gray-100); color:var(--gray-300); }
+.vsize-cell .vsz-unit{ font-size:10px; color:var(--gray-400); }
+
+/* ── Stock general (sin variantes) e info de stock total ── */
+.plain-stock{ border:1px solid var(--gray-200); border-radius:8px; padding:14px 16px; background:#fff; }
+.variant-stock-info{ border:1px solid #cfe6d7; border-radius:8px; padding:12px 16px; background:#eaf5ee; color:#0d3d1a; font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.variant-stock-info i{ color:#1a5c2e; }
+
+/* ── Variantes del producto (color → tallas + opción + precio) ── */
+.variant-intro{ display:flex; gap:12px; background:#eaf5ee; border-left:3px solid #1a5c2e; padding:14px 16px; border-radius:6px; margin-bottom:18px; }
+.variant-intro i{ color:#1a5c2e; font-size:20px; margin-top:2px; }
+.variant-intro strong{ color:#071a0c; font-size:14px; }
+.variant-intro p{ color:#38614a; font-size:12.5px; line-height:1.55; margin:4px 0 0; }
+.variant-builder{ border:1.5px solid var(--gray-200); border-radius:10px; padding:18px; background:#fbfcfb; margin-bottom:18px; }
+.vb-title{ font-size:14px; font-weight:700; color:#071a0c; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.vb-title i{ color:#c9a96e; }
+.vb-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media (max-width:640px){ .vb-grid{ grid-template-columns:1fr; } }
+.vb-chosen{ margin-top:10px; font-size:12px; color:var(--gray-500); min-height:18px; }
+.vb-chosen b{ color:#071a0c; }
+.vb-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
+.variant-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+.variant-card{ display:flex; align-items:center; gap:14px; border:1px solid var(--gray-200); border-radius:8px; padding:12px 14px; background:#fff; box-shadow:var(--shadow-sm); }
+.variant-card .vc-dot{ width:26px; height:26px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1.5px var(--gray-300); flex-shrink:0; }
+.variant-card .vc-body{ flex:1; min-width:0; }
+.variant-card .vc-name{ font-size:13.5px; font-weight:700; color:#071a0c; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.variant-card .vc-opt{ font-size:11px; font-weight:600; color:#1a5c2e; background:#eaf5ee; padding:2px 8px; border-radius:20px; }
+.variant-card .vc-price{ font-size:11px; font-weight:700; color:#8a6d3b; background:#f6efe2; padding:2px 8px; border-radius:20px; }
+.variant-card .vc-sizes{ font-size:12px; color:var(--gray-500); margin-top:4px; }
+.variant-card .vc-sizes span{ display:inline-block; background:var(--gray-100); border:1px solid var(--gray-200); border-radius:4px; padding:1px 7px; margin:2px 4px 0 0; font-weight:600; color:#374151; }
+.variant-card .vc-actions{ display:flex; gap:6px; flex-shrink:0; }
+.variant-card .vc-btn{ width:30px; height:30px; border-radius:6px; border:1px solid var(--gray-200); background:#fff; cursor:pointer; color:var(--gray-500); transition:all .15s; }
+.variant-card .vc-btn:hover{ background:#f5f0e8; color:#071a0c; }
+.variant-card .vc-btn.del:hover{ background:#fdecec; color:#a83232; border-color:#f0c4c4; }
+.variant-empty{ text-align:center; color:var(--gray-400); font-size:13px; padding:14px; border:1px dashed var(--gray-300); border-radius:8px; }
+.simple-mode{ border:1px solid var(--gray-200); border-radius:8px; padding:0 16px; background:#fff; }
+.simple-mode>summary{ cursor:pointer; padding:14px 0; font-size:13px; font-weight:600; color:var(--gray-500); list-style:none; display:flex; align-items:center; gap:8px; }
+.simple-mode>summary i{ color:#c9a96e; }
+.simple-mode[open]>summary{ border-bottom:1px solid var(--gray-200); margin-bottom:4px; }
+
+/* ── Botón de enfoque en cada miniatura de la tira ── */
+.img-focus{
+  position:absolute; bottom:26px; right:-7px;
+  width:22px; height:22px; border-radius:50%;
+  background:#071a0c; color:#c9a96e; border:2px solid #fff;
+  font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:3; transition:background .2s,color .2s;
+}
+.img-focus:hover{ background:#c9a96e; color:#071a0c; }
+.img-focus.is-set{ background:#c9a96e; color:#071a0c; }
+
+/* ── Editor de enfoque (overlay) ── */
+.focus-editor{
+  position:fixed; inset:0; z-index:100000;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  background:rgba(7,26,12,.6); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  opacity:0; transition:opacity .2s ease;
+}
+.focus-editor.open{ opacity:1; }
+.fe-card{
+  background:#fff; border-radius:10px; width:100%; max-width:720px;
+  max-height:92vh; overflow:auto; box-shadow:0 30px 80px -20px rgba(0,0,0,.55);
+  transform:translateY(12px) scale(.98); transition:transform .22s cubic-bezier(.22,.61,.36,1);
+}
+.focus-editor.open .fe-card{ transform:none; }
+.fe-head{ display:flex; align-items:center; justify-content:space-between; padding:18px 22px 0; }
+.fe-head h3{ margin:0; font-size:18px; color:#071a0c; display:flex; align-items:center; gap:9px; }
+.fe-head h3 i{ color:#c9a96e; }
+.fe-x{ background:none; border:none; font-size:18px; color:#9aa39c; cursor:pointer; }
+.fe-x:hover{ color:#071a0c; }
+.fe-hint{ margin:8px 22px 0; color:#6b7280; font-size:13px; line-height:1.5; }
+.fe-body{ display:flex; gap:20px; padding:16px 22px; flex-wrap:wrap; }
+.fe-pick{ flex:1 1 300px; display:flex; justify-content:center; align-items:flex-start; }
+.fe-imgwrap{ position:relative; display:inline-block; max-width:100%; cursor:crosshair; touch-action:none; line-height:0; }
+.fe-img{ display:block; max-width:100%; max-height:360px; border-radius:6px; user-select:none; -webkit-user-drag:none; }
+.fe-dot{
+  position:absolute; width:22px; height:22px; border-radius:50%;
+  background:rgba(201,169,110,.35); border:2px solid #fff;
+  box-shadow:0 0 0 2px #c9a96e, 0 2px 8px rgba(0,0,0,.4);
+  transform:translate(-50%,-50%); pointer-events:none;
+}
+.fe-dot::after{ content:''; position:absolute; inset:0; margin:auto; width:5px; height:5px; border-radius:50%; background:#fff; }
+.fe-previews{ flex:0 0 190px; display:flex; flex-direction:column; gap:14px; }
+.fe-prev-group{ display:flex; flex-direction:column; gap:5px; }
+.fe-prev-label{ font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#9aa39c; }
+.fe-prev{ border-radius:6px; overflow:hidden; background:#ece0cd; border:1px solid rgba(7,26,12,.1); }
+.fe-prev img{ width:100%; height:100%; object-fit:cover; display:block; }
+.fe-prev-tall{ aspect-ratio:3/4; }
+/* El destacado NO es apaisado: mide 616x644 en escritorio y 360x360 en celular
+   (relacion 0.96 y 1.00). La vista previa estaba en 16/11 = 1.45, un 45% mas
+   ancha que la real, asi que el admin apuntaba el enfoque con una forma que no
+   correspondia y en la tienda quedaba descuadrado. */
+.fe-prev-wide{ aspect-ratio:1/1; }
+.fe-coord{ font-size:12px; color:#6b7280; }
+.fe-coord b{ color:#071a0c; }
+.fe-foot{ display:flex; align-items:center; gap:10px; padding:14px 22px 20px; border-top:1px solid rgba(7,26,12,.07); }
+.fe-spacer{ flex:1; }
+.fe-btn{
+  padding:10px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;
+  border:1px solid rgba(7,26,12,.16); background:#fff; color:#071a0c;
+  display:inline-flex; align-items:center; gap:7px; transition:background .2s,transform .2s;
+}
+.fe-btn:hover{ background:#f5f0e8; }
+.fe-btn.primary{ background:#1a5c2e; border-color:#1a5c2e; color:#fff; }
+.fe-btn.primary:hover{ background:#124020; transform:translateY(-1px); }
+.fe-reset{ color:#a83232; border-color:rgba(168,50,50,.3); }
+.fe-reset:hover{ background:rgba(168,50,50,.08); }
+/* Celular / tablet: la foto donde se apunta ocupa el ancho completo y las
+   vistas previas se ponen en fila debajo, para que quepan sin scroll lateral. */
+@media (max-width:820px){
+  .fe-card{ max-width:100%; max-height:94vh; border-radius:12px; }
+  .fe-body{ flex-direction:column; gap:14px; padding:14px 16px; }
+  .fe-pick{ flex:1 1 auto; }
+  .fe-imgwrap{ width:100%; }
+  .fe-imgwrap img{ width:100%; height:auto; max-height:52vh; object-fit:contain; }
+  /* Las dos vistas previas van lado a lado y el dato del enfoque en su propia
+     linea: si .fe-coord compite por el ancho, las etiquetas se encavalgan. */
+  .fe-previews{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:flex-start; gap:10px; }
+  .fe-prev-group{ flex:1 1 0; min-width:130px; }
+  .fe-prev-label{ font-size:10.5px; letter-spacing:.3px; line-height:1.3; white-space:normal; }
+  .fe-coord{ flex:1 0 100%; margin-top:2px; }
+  /* El punto se toca con el dedo: mas grande y con mas contraste */
+  .fe-dot{ width:26px; height:26px; }
+  .fe-foot{ flex-wrap:wrap; gap:8px; }
+  .fe-btn{ flex:1 1 auto; min-height:44px; }
+  .fe-hint{ font-size:13.5px; line-height:1.5; }
+}
+
+/* ── MODAL DE RE-LOGIN (resiliencia de sesión) ── */
+.relogin-overlay{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  background:rgba(13,61,26,.55); backdrop-filter:blur(3px);
+  opacity:0; transition:opacity .2s ease;
+}
+.relogin-overlay.open{ opacity:1; }
+.relogin-card{
+  width:100%; max-width:380px; background:#fff; border-radius:18px;
+  padding:34px 30px; text-align:center;
+  box-shadow:0 30px 70px -25px rgba(13,61,26,.6);
+  transform:translateY(14px) scale(.98); transition:transform .22s ease;
+}
+.relogin-overlay.open .relogin-card{ transform:translateY(0) scale(1); }
+.relogin-icon{
+  width:60px; height:60px; margin:0 auto 16px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:#eaf5ee; color:#1a5c2e; font-size:24px;
+}
+.relogin-card h3{ margin:0 0 8px; font-size:21px; color:#0d3d1a; font-weight:800; }
+.relogin-card p{ margin:0 0 20px; font-size:14px; line-height:1.6; color:#557; }
+.relogin-card p strong{ color:#1a5c2e; }
+#reloginForm{ display:flex; flex-direction:column; gap:12px; text-align:left; }
+#reloginForm input{
+  width:100%; padding:13px 15px; border:1.5px solid #dbe4dd; border-radius:10px;
+  font-size:15px; transition:border-color .18s, box-shadow .18s;
+}
+#reloginForm input:focus{ outline:none; border-color:#1a5c2e; box-shadow:0 0 0 3px rgba(26,92,46,.12); }
+.relogin-err{ min-height:18px; color:#a83232; font-size:13px; font-weight:600; }
+.relogin-btn{
+  margin-top:2px; padding:14px; border:none; border-radius:10px; cursor:pointer;
+  background:linear-gradient(135deg,#1a5c2e,#2d7a45); color:#fff;
+  font-size:15px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  transition:transform .2s, box-shadow .2s, opacity .2s;
+}
+.relogin-btn:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 12px 26px -10px rgba(26,92,46,.8); }
+.relogin-btn:disabled{ opacity:.6; cursor:progress; }
+
+
+/* Mismo arreglo que en el formulario de registro: en iOS el campo de fecha
+   trae fondo gris y ancho propio que desborda. Aqui aplica al gasto que se
+   captura desde el dashboard (tambien se usa desde tablet). */
+.form-input[type="date"]{
+  -webkit-appearance:none; appearance:none;
+  background-color:#fff;
+  min-width:0; width:100%;
+  line-height:1.2; font-family:inherit;
+}
+.form-input[type="date"]::-webkit-date-and-time-value{ text-align:left; margin:0; }
+.form-input[type="date"]::-webkit-calendar-picker-indicator{ margin-left:auto; opacity:.5; cursor:pointer; }

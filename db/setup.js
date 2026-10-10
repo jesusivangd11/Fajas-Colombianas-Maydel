@@ -125,8 +125,47 @@ async function setup() {
 
   // Migracion segura: columna de video en productos
   try { await conn.query('ALTER TABLE products ADD COLUMN video VARCHAR(500) DEFAULT NULL AFTER images'); } catch(e) { /* ya existe */ }
+  // Posicion del video dentro de la galeria (0 = primero). NULL = al final,
+  // que es como se comportaba antes de que se pudiera reordenar.
+  try { await conn.query('ALTER TABLE products ADD COLUMN video_position INT DEFAULT NULL AFTER video'); } catch(e) { /* ya existe */ }
+  // Varios videos por producto. `videos` guarda un arreglo JSON de objetos
+  // { url, position } (position = nº de imágenes antes del video, o null = al
+  // final). Las columnas antiguas `video`/`video_position` se conservan con el
+  // PRIMER video por compatibilidad. Backfill: los productos con un solo video
+  // heredan ese video como arreglo de un elemento.
+  try { await conn.query('ALTER TABLE products ADD COLUMN videos JSON DEFAULT NULL AFTER video_position'); } catch(e) { /* ya existe */ }
+  try {
+    await conn.query(
+      "UPDATE products SET videos = JSON_ARRAY(JSON_OBJECT('url', video, 'position', video_position)) " +
+      "WHERE (videos IS NULL OR JSON_LENGTH(videos) = 0) AND video IS NOT NULL AND video <> ''"
+    );
+  } catch(e) { /* nada que migrar */ }
   // Migracion segura: columna de marca en productos
   try { await conn.query('ALTER TABLE products ADD COLUMN brand VARCHAR(80) DEFAULT NULL AFTER category'); } catch(e) { /* ya existe */ }
+  // Precio de mayoreo: se aplica cuando el pedido lleva >= 6 piezas de ese
+  // producto (sumando tallas/colores). NULL = el producto no maneja mayoreo.
+  try { await conn.query('ALTER TABLE products ADD COLUMN wholesale_price DECIMAL(10,2) DEFAULT NULL AFTER original_price'); } catch(e) { /* ya existe */ }
+  // Punto de enfoque por imagen: mapa { urlImagen: "x% y%" } que el admin ajusta
+  // para elegir qué parte de la foto queda a la vista cuando se recorta (cover).
+  try { await conn.query('ALTER TABLE products ADD COLUMN image_focus JSON DEFAULT NULL AFTER images'); } catch(e) { /* ya existe */ }
+  // Variantes estructuradas tipo Mercado Libre: arreglo de
+  //   { color, option, sizes: [...], price }
+  // Cada variante = un color (+ opcion libre, p.ej. "Con tirantes") con QUE tallas
+  // hay en ese color y, opcional, un precio propio (si esa variante cuesta distinto).
+  // Las columnas `sizes` y `colors` se siguen llenando (union derivada) para no
+  // romper filtros de tienda ni la guia de tallas. NULL = producto sin variantes.
+  try { await conn.query('ALTER TABLE products ADD COLUMN variants JSON DEFAULT NULL AFTER colors'); } catch(e) { /* ya existe */ }
+  // Multi-categoria: un producto puede pertenecer a varias categorias. La columna
+  // `category` se conserva como categoria PRINCIPAL (= primera) por compatibilidad
+  // e indices; `categories` guarda el arreglo completo de claves y es la fuente de
+  // verdad para filtros. Backfill: los productos existentes heredan [category].
+  try { await conn.query('ALTER TABLE products ADD COLUMN categories JSON DEFAULT NULL AFTER category'); } catch(e) { /* ya existe */ }
+  try {
+    await conn.query(
+      "UPDATE products SET categories = JSON_ARRAY(category) " +
+      "WHERE (categories IS NULL OR JSON_LENGTH(categories) = 0) AND category IS NOT NULL AND category <> ''"
+    );
+  } catch(e) { /* nada que migrar */ }
 
   // Migracion segura para bases existentes
   for (const alter of [
@@ -192,6 +231,19 @@ async function setup() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
+  // Testimonios: capturas de pantalla reales que el admin sube manualmente
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS testimonials (
+      id         INT PRIMARY KEY AUTO_INCREMENT,
+      image_url  VARCHAR(255) NOT NULL,
+      caption    VARCHAR(255) DEFAULT NULL,
+      sort_order INT NOT NULL DEFAULT 0,
+      active     TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_active_sort (active, sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
   // Carrito persistente
   await conn.query(`
     CREATE TABLE IF NOT EXISTS cart_items (
@@ -201,12 +253,26 @@ async function setup() {
       qty        INT NOT NULL DEFAULT 1,
       size       VARCHAR(20),
       color      VARCHAR(40),
+      \`option\`   VARCHAR(60) NOT NULL DEFAULT '',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
       FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-      UNIQUE KEY uniq_user_var (user_id, product_id, size, color)
+      UNIQUE KEY uniq_user_var (user_id, product_id, size, color, \`option\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+  // Migración para carritos ya existentes: agrega la opción de variante y amplía
+  // la clave única para incluirla (dos variantes que solo difieren en la opción
+  // —p.ej. con/sin tirantes— son ítems distintos del carrito).
+  try { await conn.query("ALTER TABLE cart_items ADD COLUMN `option` VARCHAR(60) NOT NULL DEFAULT '' AFTER color"); } catch(e) { /* ya existe */ }
+  // Reconstruir la clave única para incluir `option`. No se puede soltar la vieja
+  // de golpe porque una FK se apoya en ella: primero se crea la nueva (con las 5
+  // columnas, también empieza por user_id), luego se suelta la vieja y se renombra.
+  const [ci] = await conn.query("SHOW INDEX FROM cart_items WHERE Key_name='uniq_user_var'");
+  if (ci.length && ci.length < 5) {
+    try { await conn.query('ALTER TABLE cart_items ADD UNIQUE KEY uniq_user_var2 (user_id, product_id, size, color, `option`)'); } catch(e) {}
+    try { await conn.query('ALTER TABLE cart_items DROP INDEX uniq_user_var'); } catch(e) {}
+    try { await conn.query('ALTER TABLE cart_items RENAME INDEX uniq_user_var2 TO uniq_user_var'); } catch(e) {}
+  }
 
   // Wishlist / favoritos
   await conn.query(`
@@ -255,6 +321,23 @@ async function setup() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+
+  // ── ÍNDICES DE RENDIMIENTO ──────────────────────────────────────────────────
+  // Evitan full table scans al filtrar catálogo y pedidos cuando crecen los datos.
+  console.log('Aplicando índices de rendimiento...');
+  for (const idx of [
+    'ALTER TABLE products ADD INDEX idx_prod_active     (active)',
+    'ALTER TABLE products ADD INDEX idx_prod_category   (category)',
+    'ALTER TABLE products ADD INDEX idx_prod_brand      (brand)',
+    'ALTER TABLE products ADD INDEX idx_prod_featured   (featured)',
+    'ALTER TABLE products ADD INDEX idx_prod_is_new     (is_new)',
+    'ALTER TABLE products ADD INDEX idx_prod_active_cat (active, category)',
+    'ALTER TABLE products ADD INDEX idx_prod_created    (created_at)',
+    'ALTER TABLE orders   ADD INDEX idx_ord_status      (status)',
+    'ALTER TABLE orders   ADD INDEX idx_ord_created     (created_at)',
+  ]) {
+    try { await conn.query(idx); } catch (e) { /* el índice ya existe */ }
+  }
 
   // ── CATEGORÍAS POR DEFECTO ──────────────────────────────────────────────────
   console.log('Insertando categorías...');

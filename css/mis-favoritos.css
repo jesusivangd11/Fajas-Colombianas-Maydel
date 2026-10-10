@@ -1,0 +1,8 @@
+/* Estilos de mis-favoritos.html — extraidos desde el bloque <style> incrustado. */
+
+.fav-page{background:#f5f0e8;min-height:80vh;padding:40px 0}
+.fav-wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+.fav-title{font-family:'Playfair Display',serif;font-size:32px;color:#071a0c;margin-bottom:6px;font-weight:800}
+.fav-sub{color:#6b7280;margin-bottom:30px}
+.empty-fav{text-align:center;padding:60px 20px;background:#fff;border-radius:12px}
+.empty-fav i{font-size:54px;color:#d1d5db;margin-bottom:18px}

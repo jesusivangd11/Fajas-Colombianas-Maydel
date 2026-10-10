@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi cuenta – Fajas Maydel</title>
+  <meta name="description" content="Configura tu nombre de usuario y tu contraseña en Fajas Maydel.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1a5c2e">
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
+  <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <script src="/config.js"></script>
+  <script src="/js/analytics.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/cuenta.css">
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <a href="index.html" class="logo-link"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></a>
+    <form class="search-bar">
+      <input type="text" placeholder="Buscar fajas, tallas, categorías...">
+      <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </form>
+    <div class="header-right">
+      <a href="carrito.html" class="header-icon-btn">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="cart-badge-count">0</span>
+        <span>Carrito</span>
+      </a>
+      <div id="authArea"></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <ul>
+      <li><a href="index.html"><i class="fa-solid fa-house"></i> Inicio</a></li>
+      <li><a href="tienda.html"><i class="fa-solid fa-store"></i> Productos</a></li>
+      <li><a href="nosotros.html"><i class="fa-solid fa-circle-info"></i> Sobre nosotros</a></li>
+      <li><a href="faq.html"><i class="fa-solid fa-circle-question"></i> Preguntas frecuentes</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="acct-page">
+  <div class="acct-wrap">
+    <h1 class="acct-title">Mi cuenta</h1>
+    <p class="acct-sub">Cambia tu nombre de usuario, tu correo y tu contraseña.</p>
+    <div id="acctRoot"></div>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/account.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await AUTH.init();
+  if (!AUTH.getSession()) { location.href = 'login.html?redirect=mi-cuenta'; return; }
+  ACCOUNT.mount(document.getElementById('acctRoot'));
+});
+</script>
+</body>
+</html>

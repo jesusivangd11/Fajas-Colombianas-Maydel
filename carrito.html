@@ -13,176 +13,7 @@
   <script src="/js/analytics.js" defer></script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    /* ── CARRITO: BANNER ───────────────────────────────── */
-    .cart-banner {
-      background: #071a0c;
-      padding: 56px 0 48px;
-      position: relative;
-      overflow: hidden;
-    }
-    .cart-banner::before {
-      content: '';
-      position: absolute;
-      width: 400px; height: 400px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,169,110,.05);
-      right: -80px; top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-    }
-    .cart-banner-inner { position: relative; z-index: 1; }
-    .cart-banner-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 3.5px;
-      text-transform: uppercase;
-      color: #c9a96e;
-      margin-bottom: 14px;
-    }
-    .cart-banner-tag::before { content: ''; display: block; width: 28px; height: 1px; background: #c9a96e; }
-    .cart-banner h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(32px, 4.5vw, 52px);
-      font-weight: 900;
-      line-height: 1.0;
-      color: white;
-    }
-    .cart-banner h1 em { font-style: italic; color: #c9a96e; }
-
-    /* ── CARRITO: LAYOUT ───────────────────────────────── */
-    .cart-layout { background: #f5f0e8; padding: 48px 0 80px; }
-    .page-title { display: none !important; }
-
-    /* ── ITEMS ─────────────────────────────────────────── */
-    .cart-item {
-      background: white !important;
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.07) !important;
-      margin-bottom: 2px !important;
-    }
-    .cart-item:hover { box-shadow: 0 4px 16px rgba(7,26,12,.06) !important; }
-    .cart-item-name { font-family: 'DM Sans', sans-serif !important; font-weight: 600 !important; color: #071a0c !important; }
-    .cart-item-meta { font-family: 'DM Sans', sans-serif !important; }
-    .cart-item-price { font-family: 'Playfair Display', serif !important; color: #1a5c2e !important; font-size: 18px !important; }
-    .qty-control { border-radius: 2px !important; border-color: rgba(7,26,12,.12) !important; }
-    .qty-btn { background: #faf8f4 !important; }
-    .qty-btn:hover { background: #f0ece4 !important; }
-    .qty-input { font-family: 'Playfair Display', serif !important; }
-    .btn-remove { border-radius: 2px !important; }
-
-    /* ── FORM ──────────────────────────────────────────── */
-    .checkout-form {
-      background: white !important;
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.07) !important;
-    }
-    .checkout-form h3 {
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 1.5px !important;
-      text-transform: uppercase !important;
-      font-size: 13px !important;
-      color: #071a0c !important;
-    }
-    .checkout-form h3 i { color: #c9a96e !important; }
-    .form-label {
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: .5px !important;
-      color: #071a0c !important;
-      font-size: 12px !important;
-      text-transform: uppercase !important;
-    }
-    .form-input, .form-textarea {
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.15) !important;
-      font-family: 'DM Sans', sans-serif !important;
-    }
-    .form-input:focus, .form-textarea:focus { border-color: #1a5c2e !important; }
-
-    /* ── SUMMARY ───────────────────────────────────────── */
-    .cart-summary {
-      background: #071a0c !important;
-      border-radius: 2px !important;
-      border: none !important;
-      color: white !important;
-    }
-    .cart-summary h3 {
-      font-family: 'DM Sans', sans-serif !important;
-      color: rgba(255,255,255,.9) !important;
-      letter-spacing: 1.5px !important;
-      text-transform: uppercase !important;
-      font-size: 12px !important;
-    }
-    .cart-summary h3 i { color: #c9a96e !important; }
-    .summary-row {
-      border-bottom-color: rgba(255,255,255,.07) !important;
-      color: rgba(255,255,255,.55) !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-size: 14px !important;
-    }
-    .summary-row span:last-child { color: rgba(255,255,255,.8) !important; }
-    .summary-total-row .label { font-family: 'DM Sans', sans-serif !important; color: rgba(255,255,255,.5) !important; font-size: 12px !important; text-transform: uppercase !important; letter-spacing: 1px !important; }
-    .summary-total { font-family: 'Playfair Display', serif !important; color: white !important; font-size: 28px !important; }
-    .checkout-btn {
-      background: #c9a96e !important;
-      color: #071a0c !important;
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-weight: 700 !important;
-      letter-spacing: 1.5px !important;
-      text-transform: uppercase !important;
-      font-size: 12px !important;
-      transition: background .3s !important;
-    }
-    .checkout-btn:hover { background: #b8934e !important; transform: none !important; }
-    .wa-btn {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 1px !important;
-      text-transform: uppercase !important;
-      font-size: 12px !important;
-    }
-    .cart-summary [style*="background:var(--gray-50)"] {
-      background: rgba(255,255,255,.06) !important;
-      border-radius: 2px !important;
-      color: rgba(255,255,255,.4) !important;
-    }
-    .cart-summary [style*="background:var(--gray-50)"] i { color: #c9a96e !important; }
-
-    /* ── EMPTY STATE ───────────────────────────────────── */
-    .empty-cart {
-      background: white !important;
-      border-radius: 2px !important;
-      box-shadow: none !important;
-      border: 1px solid rgba(7,26,12,.07) !important;
-    }
-    .empty-cart h2 { font-family: 'Playfair Display', serif !important; color: #071a0c !important; }
-    .empty-cart p { font-weight: 300 !important; }
-    .empty-cart .btn { border-radius: 2px !important; font-family: 'DM Sans', sans-serif !important; letter-spacing: 1px !important; text-transform: uppercase !important; font-size: 13px !important; }
-
-    /* ── NAVIGATION LINKS ──────────────────────────────── */
-    .cart-back a { color: #1a5c2e !important; font-family: 'DM Sans', sans-serif !important; font-weight: 600 !important; font-size: 13px !important; }
-    .cart-back button { font-family: 'DM Sans', sans-serif !important; font-weight: 600 !important; font-size: 13px !important; }
-
-    /* ── RECOMMENDED ───────────────────────────────────── */
-    #recommendedSection { background: #f5f0e8 !important; }
-    #recommendedSection .section-title { font-family: 'Playfair Display', serif !important; color: #071a0c !important; }
-    #recommendedSection .section-label { color: #1a5c2e !important; }
-    .product-card { border-radius: 2px !important; }
-    .price-main { font-family: 'Playfair Display', serif !important; }
-
-    /* ── MODAL ─────────────────────────────────────────── */
-    .modal {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-    }
-    .modal h2 { font-family: 'Playfair Display', serif !important; }
-    .modal .btn { border-radius: 2px !important; font-family: 'DM Sans', sans-serif !important; }
-  </style>
+  <link rel="stylesheet" href="css/carrito.css">
 </head>
 <body>
 
@@ -237,13 +68,15 @@
       <div>
         <div id="cartItems"></div>
         <div class="cart-back" style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
-          <a href="tienda.html" style="color:#1a5c2e;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;letter-spacing:.5px">
+          <a href="tienda.html" style="color:#1a5c2e;font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;letter-spacing:.5px">
             <i class="fa-solid fa-arrow-left"></i> Seguir comprando
           </a>
-          <button onclick="clearAll()" style="color:var(--danger);font-size:13px;background:none;border:none;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;letter-spacing:.5px">
+          <button onclick="clearAll()" style="color:var(--danger);font-size:14.5px;background:none;border:none;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;letter-spacing:.5px">
             <i class="fa-solid fa-trash"></i> Vaciar carrito
           </button>
         </div>
+
+        <div id="wholesaleBox" class="wholesale-cart" style="display:none"></div>
 
         <div class="checkout-form" id="checkoutForm" style="margin-top:20px">
           <h3><i class="fa-solid fa-location-dot"></i> Información de envío</h3>
@@ -275,7 +108,7 @@
               <textarea class="form-textarea" id="shipNotes" placeholder="Indicaciones especiales, color y talla preferida, etc." style="min-height:70px"></textarea>
             </div>
           </div>
-          <div id="shippingInfoBox" style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:12px 14px;margin-top:14px;border-radius:6px;font-size:13px;color:#0d3d1a;display:none">
+          <div id="shippingInfoBox" style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:12px 14px;margin-top:14px;border-radius:6px;font-size:14.5px;color:#0d3d1a;display:none">
             <i class="fa-solid fa-truck-fast" style="margin-right:6px"></i>
             <span id="shippingInfoText"></span>
           </div>
@@ -293,16 +126,16 @@
           <span id="shippingVal" style="color:#c9a96e;font-weight:600"><i class="fa-solid fa-truck" style="margin-right:4px"></i> Selecciona estado</span>
         </div>
         <div id="discountRow" class="summary-row" style="display:none;color:#10b981;font-weight:600">
-          <span>Descuento <span id="discountCodeLabel" style="font-size:11px;opacity:.7"></span></span>
+          <span>Descuento <span id="discountCodeLabel" style="font-size:12.5px;opacity:.7"></span></span>
           <span id="discountVal">-$ 0</span>
         </div>
 
         <div style="background:rgba(255,255,255,.05);border-radius:4px;padding:10px 12px;margin:14px 0">
           <div style="display:flex;gap:6px">
-            <input type="text" id="couponInput" placeholder="Código de cupón" style="flex:1;padding:8px 10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.2);color:#fff;border-radius:4px;font-size:12px;text-transform:uppercase">
-            <button onclick="applyCoupon()" style="background:#c9a96e;color:#071a0c;border:none;padding:8px 14px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer">APLICAR</button>
+            <input type="text" id="couponInput" placeholder="Código de cupón" style="flex:1;padding:8px 10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.2);color:#fff;border-radius:4px;font-size:13px;text-transform:uppercase">
+            <button onclick="applyCoupon()" style="background:#c9a96e;color:#071a0c;border:none;padding:8px 14px;border-radius:4px;font-size:12.5px;font-weight:700;letter-spacing:1px;cursor:pointer">APLICAR</button>
           </div>
-          <div id="couponMsg" style="font-size:11px;margin-top:6px;display:none"></div>
+          <div id="couponMsg" style="font-size:12.5px;margin-top:6px;display:none"></div>
         </div>
 
         <div class="summary-total-row">
@@ -321,11 +154,11 @@
         </a>
 
         <div style="background:rgba(255,255,255,.06);border-radius:2px;padding:14px;margin-top:14px">
-          <div style="font-size:12px;color:rgba(255,255,255,.4);display:flex;align-items:flex-start;gap:6px;margin-bottom:8px">
+          <div style="font-size:13px;color:rgba(255,255,255,.4);display:flex;align-items:flex-start;gap:6px;margin-bottom:8px">
             <i class="fa-solid fa-shield-halved" style="color:#c9a96e;flex-shrink:0;margin-top:1px"></i>
             Compra 100% segura con Stripe (tarjetas Visa / Mastercard / Amex).
           </div>
-          <div style="font-size:12px;color:rgba(255,255,255,.4);display:flex;align-items:flex-start;gap:6px">
+          <div style="font-size:13px;color:rgba(255,255,255,.4);display:flex;align-items:flex-start;gap:6px">
             <i class="fa-solid fa-credit-card" style="color:#c9a96e;flex-shrink:0;margin-top:1px"></i>
             También aceptamos transferencia y OXXO coordinando por WhatsApp.
           </div>
@@ -342,16 +175,16 @@
       <h2 style="font-size:20px;font-weight:800;color:#071a0c">Pago con tarjeta</h2>
       <button onclick="closeCardModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#9ca3af">&times;</button>
     </div>
-    <div style="background:#f9fafb;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:13px">
+    <div style="background:#f9fafb;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:14.5px">
       <div style="color:#6b7280">Pedido <strong id="cardModalOrderId" style="color:#111">--</strong></div>
       <div style="font-size:22px;font-weight:700;color:#1a5c2e;margin-top:4px">Total: <span id="cardModalTotal">$0</span></div>
     </div>
     <div id="stripeElementContainer" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;background:#fff"></div>
-    <div id="cardPayError" style="display:none;color:#dc2626;font-size:13px;margin-top:10px"></div>
+    <div id="cardPayError" style="display:none;color:#dc2626;font-size:14.5px;margin-top:10px"></div>
     <button id="stripePayBtn" onclick="stripeSubmit()" class="login-btn" style="margin-top:14px">
       <i class="fa-solid fa-lock"></i> Pagar de forma segura
     </button>
-    <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">
+    <p style="font-size:12.5px;color:#9ca3af;text-align:center;margin-top:10px">
       <i class="fa-solid fa-shield-halved"></i> Pagos procesados por Stripe. Maydel no almacena tu tarjeta.
     </p>
   </div>
@@ -365,13 +198,13 @@
     </div>
     <h2 style="font-size:24px;font-weight:800;margin-bottom:8px;color:#071a0c">¡Pedido confirmado!</h2>
     <p style="color:#6b7280;margin-bottom:6px;font-weight:300">Tu pedido fue registrado exitosamente.</p>
-    <p style="font-size:13px;color:#9ca3af;margin-bottom:24px">ID del pedido: <strong id="confirmedOrderId" style="color:#071a0c;font-family:'Playfair Display',serif"></strong></p>
-    <p style="font-size:14px;color:#6b7280;margin-bottom:24px;font-weight:300">Nos pondremos en contacto contigo para confirmar los detalles de envío y pago.</p>
+    <p style="font-size:14.5px;color:#9ca3af;margin-bottom:24px">ID del pedido: <strong id="confirmedOrderId" style="color:#071a0c;font-family:'Playfair Display',serif"></strong></p>
+    <p style="font-size:15.5px;color:#6b7280;margin-bottom:24px;font-weight:300">Nos pondremos en contacto contigo para confirmar los detalles de envío y pago.</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <a id="orderWaLink" href="#" target="_blank" class="btn btn-accent" style="font-size:13px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
+      <a id="orderWaLink" href="#" target="_blank" class="btn btn-accent" style="font-size:14.5px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
         <i class="fa-brands fa-whatsapp"></i> Contactar
       </a>
-      <a href="tienda.html" class="btn" style="background:#f5f0e8;color:#071a0c;font-size:13px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
+      <a href="tienda.html" class="btn" style="background:#f5f0e8;color:#071a0c;font-size:14.5px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
         <i class="fa-solid fa-store"></i> Seguir comprando
       </a>
     </div>
@@ -414,8 +247,8 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2025 Fajas Colombianas Maydel. Todos los derechos reservados.</span>
-      <span style="font-size:12px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
+      <span>© <span id="footerYear">2026</span> Fajas Colombianas Maydel. Todos los derechos reservados.</span>
+      <span style="font-size:13px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
     </div>
   </div>
 </footer>
@@ -434,6 +267,7 @@ let MEX_STATES = [];
 let CURRENT_SHIPPING = { cost: 0, eta: '', zone: '' };
 let CURRENT_SUBTOTAL = 0;
 let CURRENT_COUPON = null;
+let LAST_ITEMS = [];   // cache del último render, para saber el nombre al confirmar
 
 async function applyCoupon() {
   const code = document.getElementById('couponInput').value.trim().toUpperCase();
@@ -511,6 +345,7 @@ function updateTotalDisplay() {
 
 async function renderCart() {
   const items = await DB.getCartItems();
+  LAST_ITEMS = items;
   const emptyCart = document.getElementById('emptyCart');
   const cartContent = document.getElementById('cartContent');
   if (items.length === 0) { emptyCart.style.display = 'block'; cartContent.style.display = 'none'; return; }
@@ -519,7 +354,14 @@ async function renderCart() {
 
   document.getElementById('cartItems').innerHTML = items.map(item => {
     const img = item.product.images?.[0];
-    const meta = [item.size, item.color].filter(Boolean).join(' · ');
+    const meta = [item.size, item.color, item.option].filter(Boolean).join(' · ');
+    const lineTotal = item.unitPrice * item.qty;
+    // Aviso de inventario: si la cantidad pasa lo disponible, o si quedan pocas.
+    const stk = item.stockAvailable;
+    let stockNote = '';
+    if (stk != null && stk <= 0)        stockNote = `<div class="cart-item-warn" style="color:#dc2626;font-size:13px;font-weight:600;margin-top:3px"><i class="fa-solid fa-triangle-exclamation"></i> Talla agotada</div>`;
+    else if (stk != null && item.qty > stk) stockNote = `<div class="cart-item-warn" style="color:#dc2626;font-size:13px;font-weight:600;margin-top:3px"><i class="fa-solid fa-triangle-exclamation"></i> Solo quedan ${stk} — ajusta la cantidad</div>`;
+    else if (stk != null && stk <= 5)   stockNote = `<div class="cart-item-lowstock" style="color:#b45309;font-size:13px;font-weight:600;margin-top:3px"><i class="fa-solid fa-fire"></i> Últimas ${stk} piezas</div>`;
     return `
     <div class="cart-item">
       <div class="cart-item-img">
@@ -527,17 +369,22 @@ async function renderCart() {
       </div>
       <div class="cart-item-info">
         <div class="cart-item-name">${item.product.name}</div>
-        ${meta ? `<div class="cart-item-meta"><i class="fa-solid fa-circle-info" style="font-size:10px"></i> ${meta}</div>` : ''}
+        ${meta ? `<div class="cart-item-meta"><i class="fa-solid fa-circle-info" style="font-size:12px"></i> ${meta}</div>` : ''}
+        ${stockNote}
+        ${item.wholesale ? `<div class="cart-item-wholesale"><i class="fa-solid fa-boxes-stacked"></i> Precio de mayoreo aplicado</div>` : ''}
         <div class="cart-item-bottom">
           <div class="qty-control">
             <button class="qty-btn" onclick="updateQty('${item.key}', ${item.qty-1})"><i class="fa-solid fa-minus"></i></button>
             <input class="qty-input" type="number" value="${item.qty}" min="1" onchange="updateQty('${item.key}', Number(this.value))" style="width:44px">
             <button class="qty-btn" onclick="updateQty('${item.key}', ${item.qty+1})"><i class="fa-solid fa-plus"></i></button>
           </div>
-          <button class="btn-remove" onclick="removeItem('${item.key}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+          <button class="btn-remove" onclick="removeItem('${item.key}')" title="Quitar del carrito"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
-      <div class="cart-item-price">${formatPrice(item.product.price * item.qty)}</div>
+      <div class="cart-item-price">
+        ${item.wholesale ? `<span class="cart-price-was">${formatPrice(item.regularPrice * item.qty)}</span>` : ''}
+        ${formatPrice(lineTotal)}
+      </div>
     </div>`;
   }).join('');
 
@@ -549,18 +396,157 @@ async function renderCart() {
   const session = AUTH.getSession();
   if (session) { const n = document.getElementById('shipName'); if (n && !n.value) n.value = session.name; }
   updateWhatsAppLink(items, subtotal);
+  renderWholesaleBox(items);
   loadRecommended(items);
 }
 
-function updateQty(key, qty) { if (qty < 1) { removeItem(key); return; } DB.updateCartQty(key, qty); renderCart(); }
-function removeItem(key) { DB.removeFromCart(key); renderCart(); showToast('Producto eliminado'); }
-function clearAll() { if (confirm('¿Vaciar todo el carrito?')) { DB.clearCart(); renderCart(); } }
+// ── COMPRA POR MAYOREO ──
+// Regla: para precio de mayoreo, cada producto debe llevar mínimo 6 piezas.
+// Agrupamos por producto (sumando tallas/colores) y mostramos el avance.
+const WHOLESALE_MIN = 6;
+
+function renderWholesaleBox(items) {
+  const box = document.getElementById('wholesaleBox');
+  if (!box) return;
+  if (!items || !items.length) { box.style.display = 'none'; return; }
+
+  // Agrupar por producto (id), sumando todas sus variantes.
+  const groups = {};
+  items.forEach(i => {
+    const id = i.productId;
+    if (!groups[id]) groups[id] = { name: i.product ? i.product.name : 'Producto', qty: 0 };
+    groups[id].qty += i.qty;
+  });
+  const list = Object.values(groups);
+  const qualifies = list.every(g => g.qty >= WHOLESALE_MIN);
+
+  const rows = list.map(g => {
+    const ok = g.qty >= WHOLESALE_MIN;
+    const pct = Math.min(100, Math.round((g.qty / WHOLESALE_MIN) * 100));
+    return `
+      <div class="wc-row">
+        <div class="wc-row-top">
+          <span class="wc-name">${esc(g.name)}</span>
+          <span class="wc-count ${ok ? 'is-ok' : ''}">${g.qty} / ${WHOLESALE_MIN} pz ${ok ? '<i class="fa-solid fa-check"></i>' : ''}</span>
+        </div>
+        <div class="wc-bar"><span style="width:${pct}%"></span></div>
+      </div>`;
+  }).join('');
+
+  // Mensaje de WhatsApp con el pedido actual + intención de ser distribuidora.
+  let msg = '¡Hola! Quiero comprar por MAYOREO y me interesa ser DISTRIBUIDORA de Fajas Maydel.\n\n'
+          + 'Mi pedido actual:\n';
+  list.forEach(g => { msg += `• ${g.name} — ${g.qty} pz\n`; });
+  msg += `\n(Sé que el mayoreo es mínimo ${WHOLESALE_MIN} piezas de cada producto). `
+       + '¿Me pueden dar el precio de mayorista y los requisitos para ser distribuidora?';
+  const waHref = 'https://wa.me/526143716816?text=' + encodeURIComponent(msg);
+
+  box.innerHTML = `
+    <div class="wc-head">
+      <span class="wc-eyebrow"><i class="fa-solid fa-boxes-stacked"></i> Compra por mayoreo</span>
+      ${qualifies
+        ? '<span class="wc-status is-ok"><i class="fa-solid fa-circle-check"></i> Tu pedido califica</span>'
+        : '<span class="wc-status"><i class="fa-solid fa-circle-info"></i> Aún no califica</span>'}
+    </div>
+    <p class="wc-rule">Para <strong>precio de mayoreo</strong> tu pedido debe llevar <strong>mínimo ${WHOLESALE_MIN} piezas de cada producto</strong>. Así vas:</p>
+    <div class="wc-rows">${rows}</div>
+    <a class="wc-wa" href="${waHref}" target="_blank" rel="noopener">
+      <i class="fa-brands fa-whatsapp"></i> ${qualifies ? 'Aplicar mi precio de mayoreo' : 'Comprar por mayoreo / ser distribuidora'}
+    </a>
+  `;
+  box.style.display = 'block';
+}
+
+async function updateQty(key, qty) {
+  // Bajar la cantidad por debajo de 1 equivale a quitar el producto: se confirma.
+  if (qty < 1) {
+    const removed = await removeItem(key);
+    if (!removed) renderCart();   // se canceló: restaura el input a su valor real
+    return;
+  }
+  // No dejar subir por encima del inventario disponible de esa talla+color.
+  const item = LAST_ITEMS.find(i => i.key === key);
+  if (item && item.stockAvailable != null && qty > item.stockAvailable) {
+    if (item.stockAvailable <= 0) { showToast('Esa talla está agotada', 'error'); DB.removeFromCart(key); renderCart(); return; }
+    qty = item.stockAvailable;
+    showToast(`Solo hay ${item.stockAvailable} pieza${item.stockAvailable === 1 ? '' : 's'} de esa talla`, 'error');
+  }
+  DB.updateCartQty(key, qty);
+  renderCart();
+}
+
+async function removeItem(key) {
+  const item = LAST_ITEMS.find(i => i.key === key);
+  const name = item && item.product ? item.product.name : 'este producto';
+  const ok = await cartConfirm({
+    title: '¿Quitar del carrito?',
+    text: `¿Seguro que quieres eliminar «${name}» de tu carrito?`,
+    confirmLabel: 'Sí, eliminar'
+  });
+  if (ok) { DB.removeFromCart(key); renderCart(); showToast('Producto eliminado'); }
+  return ok;
+}
+
+function clearAll() {
+  cartConfirm({
+    title: '¿Vaciar el carrito?',
+    text: 'Se quitarán todos los productos de tu carrito. Esta acción no se puede deshacer.',
+    confirmLabel: 'Sí, vaciar todo'
+  }).then(ok => { if (ok) { DB.clearCart(); renderCart(); showToast('Carrito vaciado'); } });
+}
+
+// Modal de confirmación reutilizable (mismo estilo que el de cerrar sesión).
+// Devuelve una promesa: true si el usuario confirma, false si cancela.
+function cartConfirm({ title, text, confirmLabel = 'Confirmar', icon = 'fa-solid fa-trash' }) {
+  return new Promise(resolve => {
+    const prev = document.getElementById('cartConfirm');
+    if (prev) prev.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'logout-confirm';
+    overlay.id = 'cartConfirm';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'cartConfirmTitle');
+    overlay.innerHTML = `
+      <div class="lc-card" role="document">
+        <div class="lc-icon"><i class="${icon}" aria-hidden="true"></i></div>
+        <h3 class="lc-title" id="cartConfirmTitle">${title}</h3>
+        <p class="lc-text">${text}</p>
+        <div class="lc-actions">
+          <button type="button" class="lc-btn lc-cancel">Cancelar</button>
+          <button type="button" class="lc-btn lc-confirm" style="background:#a83232;border-color:#a83232">
+            <i class="fa-solid fa-trash" aria-hidden="true"></i> ${confirmLabel}
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => overlay.classList.add('open'));
+
+    const close = val => {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => overlay.remove(), 220);
+      resolve(val);
+    };
+    const onKey = ev => { if (ev.key === 'Escape') close(false); };
+
+    overlay.querySelector('.lc-cancel').addEventListener('click', () => close(false));
+    overlay.addEventListener('click', ev => { if (ev.target === overlay) close(false); });
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('.lc-confirm').addEventListener('click', () => close(true));
+    overlay.querySelector('.lc-cancel').focus();
+  });
+}
 
 function updateWhatsAppLink(items, total) {
   let msg = '¡Hola! Vengo desde la página web (Carrito) — quiero hacer el siguiente PEDIDO:\n\n';
   items.forEach(i => {
-    const meta = [i.size, i.color].filter(Boolean).join(', ');
-    msg += `• ${i.product.name}${meta ? ` (${meta})` : ''} x${i.qty} = ${formatPrice(i.product.price * i.qty)}\n`;
+    const meta = [i.size, i.color, i.option].filter(Boolean).join(', ');
+    const unit = i.unitPrice != null ? i.unitPrice : i.product.price;
+    msg += `• ${i.product.name}${meta ? ` (${meta})` : ''} x${i.qty}${i.wholesale ? ' (mayoreo)' : ''} = ${formatPrice(unit * i.qty)}\n`;
   });
   msg += `\n*Total: ${formatPrice(total)}*\n\n¿Pueden confirmar disponibilidad y datos de pago?`;
   document.getElementById('whatsappOrderBtn').href = `https://wa.me/526143716816?text=${encodeURIComponent(msg)}`;
@@ -592,7 +578,7 @@ async function createOrderOnServer(paymentMethod) {
 
   const items = await DB.getCartItems();
   const orderItems = items.map(i => ({
-    productId: i.productId, qty: i.qty, size: i.size || '', color: i.color || ''
+    productId: i.productId, qty: i.qty, size: i.size || '', color: i.color || '', option: i.option || ''
   }));
 
   const r = await fetch('/api/orders', {

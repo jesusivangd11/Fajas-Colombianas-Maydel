@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fajas Colombianas Maydel – Tienda Oficial en México</title>
+  <title>Fajas Colombianas Maydel</title>
   <meta name="description" content="Tienda oficial de fajas colombianas premium en México. Fajas reductoras, postparto, cinturillas y bodis con asesoría personalizada. Envíos a todo México.">
   <meta name="keywords" content="fajas colombianas, fajas reductoras, fajas postparto, cinturillas, bodis, Chihuahua, México, Maydel">
   <meta name="theme-color" content="#1a5c2e">
@@ -21,229 +21,7 @@
   <script src="/js/analytics.js" defer></script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    /* ── INDEX: HERO ───────────────────────────────────── */
-    .hero {
-      background: #071a0c !important;
-      background-image:
-        radial-gradient(ellipse 80% 60% at 68% 35%, rgba(26,92,46,.4) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 40% at 15% 75%, rgba(201,169,110,.06) 0%, transparent 50%) !important;
-      background-size: auto !important;
-      animation: none !important;
-      min-height: 100vh;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: '';
-      position: absolute;
-      width: 700px; height: 700px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,169,110,.06);
-      right: -180px; top: -200px;
-      pointer-events: none;
-    }
-    .hero::after {
-      content: '';
-      position: absolute;
-      width: 420px; height: 420px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,169,110,.05);
-      right: -40px; top: -60px;
-      pointer-events: none;
-    }
-    .hero-content { max-width: 820px; }
-    .hero-eyebrow {
-      background: rgba(201,169,110,.1) !important;
-      border-color: rgba(201,169,110,.2) !important;
-      color: #c9a96e !important;
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 3.5px !important;
-      border-radius: 2px !important;
-    }
-    .hero h1 {
-      font-family: 'Playfair Display', serif !important;
-      font-size: clamp(54px, 9vw, 112px) !important;
-      font-weight: 900 !important;
-      line-height: .96 !important;
-      letter-spacing: -1px;
-    }
-    .hero h1 span { color: #c9a96e !important; font-style: italic; }
-    .hero p {
-      font-family: 'DM Sans', sans-serif !important;
-      font-weight: 300 !important;
-      opacity: .55 !important;
-      font-size: 17px !important;
-    }
-    .hero .btn-accent {
-      background: #c9a96e !important;
-      color: #071a0c !important;
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-weight: 700 !important;
-      letter-spacing: 1.5px !important;
-      text-transform: uppercase !important;
-      font-size: 13px !important;
-      box-shadow: 0 8px 24px rgba(201,169,110,.3) !important;
-    }
-    .hero .btn-accent:hover { background: #b8934e !important; transform: translateY(-2px) !important; }
-    .hero .btn-outline-white {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      font-weight: 600 !important;
-      letter-spacing: 1.5px !important;
-      text-transform: uppercase !important;
-      font-size: 13px !important;
-    }
-
-    /* ── INDEX: BENEFITS ──────────────────────────────── */
-    .idx-benefits { background: #ffffff; padding: 72px 0; }
-    .benefit-card {
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.06) !important;
-      transition: transform .3s, box-shadow .3s !important;
-    }
-    .benefit-card:hover {
-      transform: translateY(-4px) !important;
-      box-shadow: 0 16px 40px rgba(7,26,12,.1) !important;
-    }
-    .benefit-card h4 {
-      font-family: 'Playfair Display', serif !important;
-      font-size: 17px !important;
-      color: #071a0c !important;
-    }
-    .benefit-card p { font-weight: 300 !important; }
-    .benefit-icon-wrap { border-radius: 2px !important; }
-
-    /* ── INDEX: CATS (dark) ───────────────────────────── */
-    .idx-cats {
-      background: #071a0c !important;
-      padding: 80px 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .idx-cats .section-label { color: #c9a96e !important; }
-    .idx-cats .section-title { color: white !important; font-family: 'Playfair Display', serif !important; }
-    .idx-cats .category-card {
-      background: rgba(255,255,255,.04) !important;
-      border: 1px solid rgba(255,255,255,.07) !important;
-      border-radius: 2px !important;
-      transition: background .3s, transform .3s !important;
-    }
-    .idx-cats .category-card:hover {
-      background: rgba(255,255,255,.09) !important;
-      border-color: rgba(201,169,110,.25) !important;
-      transform: translateY(-4px) !important;
-    }
-    .idx-cats .cat-icon-wrap {
-      background: rgba(201,169,110,.1) !important;
-      border-radius: 2px !important;
-    }
-    .idx-cats .cat-icon-wrap i { color: #c9a96e !important; }
-    .idx-cats .category-card h3 { color: white !important; }
-    .idx-cats .category-card small { color: rgba(255,255,255,.35) !important; }
-
-    /* ── INDEX: FEATURED (cream) ──────────────────────── */
-    .idx-featured { background: #f5f0e8 !important; padding: 80px 0; }
-    .idx-featured .section-title { font-family: 'Playfair Display', serif !important; color: #071a0c !important; }
-    .idx-featured .section-label { color: #1a5c2e !important; }
-    .idx-featured .section-subtitle { font-weight: 300 !important; }
-    .idx-featured .btn-outline {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 1.5px !important;
-      text-transform: uppercase !important;
-      font-size: 12px !important;
-      font-weight: 600 !important;
-    }
-
-    /* ── INDEX: NEW ARRIVALS ──────────────────────────── */
-    .idx-new { background: white !important; padding: 80px 0; }
-    .idx-new .section-title { font-family: 'Playfair Display', serif !important; color: #071a0c !important; }
-    .idx-new .section-label { color: #1a5c2e !important; }
-
-    /* ── INDEX: PROMO ─────────────────────────────────── */
-    .idx-promo {
-      background: #071a0c !important;
-      padding: 80px 0;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .idx-promo::before {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,169,110,.06);
-      left: 50%; top: 50%;
-      transform: translate(-50%,-50%);
-      pointer-events: none;
-    }
-    .idx-promo h2 {
-      font-family: 'Playfair Display', serif !important;
-      font-style: italic;
-      font-size: clamp(28px, 4vw, 48px) !important;
-      font-weight: 700 !important;
-      color: white !important;
-    }
-    .idx-promo p { font-weight: 300 !important; }
-    .idx-promo .promo-icon { font-size: 36px; color: #c9a96e; margin-bottom: 20px; display: block; }
-
-    /* ── PRODUCT CARDS (global) ───────────────────────── */
-    .product-card {
-      border-radius: 2px !important;
-      border-color: rgba(7,26,12,.07) !important;
-    }
-    .product-card:hover {
-      transform: translateY(-5px) !important;
-      box-shadow: 0 20px 48px rgba(7,26,12,.1) !important;
-    }
-    .product-card-img { border-radius: 0 !important; }
-    .product-name { font-family: 'DM Sans', sans-serif !important; font-weight: 500 !important; }
-    .price-main {
-      font-family: 'Playfair Display', serif !important;
-      color: #1a5c2e !important;
-    }
-    .btn-add-cart {
-      border-radius: 2px !important;
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 1px !important;
-      font-size: 12px !important;
-      text-transform: uppercase !important;
-    }
-
-    /* ── SECTION TITLES (global) ──────────────────────── */
-    .section-title { font-family: 'Playfair Display', serif !important; }
-    .section-label {
-      font-family: 'DM Sans', sans-serif !important;
-      letter-spacing: 3.5px !important;
-    }
-
-    /* ── REVIEWS ──────────────────────────────────────── */
-    .reviews-section { background: #071a0c !important; }
-    .reviews-section .section-title { font-family: 'Playfair Display', serif !important; }
-    .review-card { border-radius: 2px !important; background: rgba(255,255,255,.05) !important; }
-    .review-name { font-family: 'Playfair Display', serif !important; font-size: 16px !important; }
-    .review-text { font-style: italic; font-weight: 300 !important; }
-    .reviews-btn { border-radius: 2px !important; }
-    .review-dot.active { background: #c9a96e !important; }
-
-    /* ── FOOTER ───────────────────────────────────────── */
-    footer { font-family: 'DM Sans', sans-serif !important; }
-    .footer-col h4 { letter-spacing: 2px !important; }
-
-    /* ── REVEAL ───────────────────────────────────────── */
-    .idx-reveal {
-      opacity: 0; transform: translateY(28px);
-      transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);
-    }
-    .idx-reveal.d1 { transition-delay: .05s; }
-    .idx-reveal.d2 { transition-delay: .15s; }
-    .idx-reveal.d3 { transition-delay: .25s; }
-    .idx-reveal.d4 { transition-delay: .35s; }
-    .idx-reveal.visible { opacity: 1; transform: translateY(0); }
-  </style>
+  <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
 
@@ -281,21 +59,19 @@
     <div class="hero-particles" id="heroParticles"></div>
 
     <div class="hero-content">
-      <div class="hero-eyebrow hero-anim-1">
-        <i class="fa-solid fa-leaf"></i>
-        Calidad Colombiana Premium
-      </div>
       <h1 class="hero-anim-2">Fajas que<br><span>moldean</span><br>tu figura</h1>
       <p class="hero-anim-3">Descubre nuestra colección de fajas colombianas de alta compresión. Diseñadas para realzar tu figura con comodidad y elegancia.</p>
       <div class="hero-actions hero-anim-4">
         <a href="tienda.html" class="btn btn-accent">
           <i class="fa-solid fa-store"></i> Ver colección
         </a>
-        <a href="tienda.html?cat=fajas-colombianas" class="btn btn-outline-white">
-          <i class="fa-solid fa-flag"></i> Colombianas
-        </a>
+      </div>
+      <!-- Nombre de la propietaria, debajo del boton. Su estilo esta en css/index.css (.maidoly) -->
+      <div class="maidoly hero-anim-4">
+        <p>MAIDOLY DELGADO PEÑA</p>
       </div>
     </div>
+
   </section>
 
   <!-- ── DESTACADOS ── -->
@@ -309,7 +85,7 @@
         </div>
         <a href="tienda.html" class="btn btn-outline btn-sm">Ver todos <i class="fa-solid fa-arrow-right"></i></a>
       </div>
-      <div class="products-grid idx-reveal d2" id="featuredGrid"></div>
+      <div class="featured-showcase idx-reveal d2" id="featuredShowcase" aria-roledescription="carrusel" aria-label="Productos destacados"></div>
       <div id="noProducts" class="empty-state" style="display:none">
         <i class="fa-solid fa-box-open"></i>
         <h3>Próximamente</h3>
@@ -321,78 +97,120 @@
     </div>
   </div>
 
-  <!-- ── CATEGORÍAS ── -->
-  <div class="idx-cats">
+  <!-- ── EXPLORA: CATEGORÍAS + MARCAS (con selector) ── -->
+  <div class="idx-explore" id="exploreSection">
     <div class="container">
-      <div class="section-header idx-reveal d1">
-        <div>
-          <div class="section-label">Explora</div>
-          <h2 class="section-title">Categorías</h2>
+      <div class="ex-header idx-reveal d1">
+        <div class="section-label">Explora la tienda</div>
+        <h2 class="section-title">Encuentra tu faja ideal</h2>
+        <p class="section-subtitle">Navega por categoría o compra directo por tu marca favorita</p>
+      </div>
+
+      <div class="ex-toggle-wrap idx-reveal d1">
+        <div class="ex-toggle" id="exToggle" role="tablist" aria-label="Explorar por">
+          <button class="ex-tab is-active" data-panel="cats" role="tab" aria-selected="true">
+            <i class="fa-solid fa-grip" aria-hidden="true"></i> Categorías <span class="ex-tab-n" id="exCatN"></span>
+          </button>
+          <button class="ex-tab" data-panel="brands" role="tab" aria-selected="false">
+            <i class="fa-solid fa-certificate" aria-hidden="true"></i> Marcas <span class="ex-tab-n" id="exBrandN"></span>
+          </button>
         </div>
       </div>
-      <div class="categories-grid idx-reveal d2" id="categoriesGrid"></div>
+
+      <div class="ex-panels idx-reveal d2">
+        <div class="ex-panel is-active" data-panel="cats">
+          <div class="ex-grid ex-grid-cats" id="categoriesGrid"></div>
+        </div>
+        <div class="ex-panel" data-panel="brands">
+          <div class="ex-grid ex-grid-brands" id="brandsGrid"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ── MARCAS ── -->
-  <div class="idx-cats" id="brandsSection" style="display:none;background:#f5f0e8">
-    <div class="container">
-      <div class="section-header idx-reveal d1">
-        <div>
-          <div class="section-label">Nuestras marcas</div>
-          <h2 class="section-title">Compra por Marca</h2>
-          <p class="section-subtitle">Las mejores marcas de fajas colombianas</p>
-        </div>
-      </div>
-      <div class="brands-grid idx-reveal d2" id="brandsGrid"></div>
-    </div>
-  </div>
-
-  <!-- ── NUEVOS INGRESOS ── -->
+  <!-- ── NUEVOS INGRESOS (banda intro + riel deslizable) ── -->
   <div class="idx-new" id="newSection" style="display:none">
     <div class="container">
-      <div class="section-header idx-reveal d1">
-        <div>
+      <div class="new-band">
+        <div class="new-intro idx-reveal d1">
           <div class="section-label">Recién llegados</div>
-          <h2 class="section-title">Nuevos Ingresos</h2>
+          <h2 class="section-title">Nuevos <br>Ingresos</h2>
+          <p class="new-intro-desc">Lo último que llegó a la boutique. Piezas frescas, recién seleccionadas para ti.</p>
+          <div class="new-intro-foot">
+            <a href="tienda.html?sort=newest" class="btn btn-outline btn-sm">Ver todos <i class="fa-solid fa-arrow-right"></i></a>
+            <div class="new-nav">
+              <button class="new-arrow new-prev" aria-label="Anterior"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+              <button class="new-arrow new-next" aria-label="Siguiente"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+            </div>
+          </div>
         </div>
-        <a href="tienda.html?sort=newest" class="btn btn-outline btn-sm">Ver todos <i class="fa-solid fa-arrow-right"></i></a>
+        <div class="new-rail idx-reveal d2" id="newGrid"></div>
       </div>
-      <div class="products-grid idx-reveal d2" id="newGrid"></div>
     </div>
   </div>
 
-  <!-- ── BENEFICIOS ── -->
+  <!-- ── MAYOREO / DISTRIBUIDORAS ── -->
+  <div class="idx-wholesale">
+    <div class="container">
+      <div class="wholesale-band idx-reveal d1">
+        <div class="wholesale-main">
+          <span class="wholesale-eyebrow"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Compra por mayoreo</span>
+          <h2 class="wholesale-title">Conviértete en <em>distribuidora</em></h2>
+          <p class="wholesale-lead">Compra a precio de mayorista y revende con las mejores ganancias. Fajas colombianas originales, respaldo y asesoría para tu negocio.</p>
+          <div class="wholesale-rule">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <span>Para precio de mayoreo, el pedido debe llevar <strong>mínimo 6 piezas de cada producto</strong>.</span>
+          </div>
+          <a class="wholesale-wa" href="#" id="wholesaleWaHome" target="_blank" rel="noopener">
+            <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Quiero ser distribuidora
+          </a>
+        </div>
+        <div class="wholesale-aside">
+          <div class="wholesale-badge">
+            <span class="wb-num">6+</span>
+            <span class="wb-label">piezas por producto</span>
+          </div>
+          <ul class="wholesale-perks">
+            <li><i class="fa-solid fa-tags" aria-hidden="true"></i> Precios preferenciales de mayorista</li>
+            <li><i class="fa-solid fa-gem" aria-hidden="true"></i> Producto 100% original colombiano</li>
+            <li><i class="fa-solid fa-headset" aria-hidden="true"></i> Asesoría personalizada para tu negocio</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BENEFICIOS (sección propia con encabezado) ── -->
   <div class="idx-benefits">
     <div class="container">
+      <div class="benefits-head idx-reveal d1">
+        <span class="section-label">La experiencia Maydel</span>
+        <h2 class="section-title">Comprar con nosotros es fácil</h2>
+      </div>
       <div class="benefits-grid">
         <div class="benefit-card idx-reveal d1">
+          <span class="benefit-num">01</span>
           <div class="benefit-icon-wrap"><i class="fa-solid fa-truck-fast"></i></div>
-          <div>
-            <h4>Envío a todo México</h4>
-            <p>Entregas rápidas y seguras en 3–5 días hábiles directamente a tu puerta.</p>
-          </div>
+          <h4>Envío a todo México</h4>
+          <p>Entregas rápidas y seguras en 3–5 días hábiles directamente a tu puerta.</p>
         </div>
         <div class="benefit-card idx-reveal d2">
+          <span class="benefit-num">02</span>
           <div class="benefit-icon-wrap"><i class="fa-solid fa-award"></i></div>
-          <div>
-            <h4>Calidad Certificada</h4>
-            <p>Productos 100% originales colombianos con materiales de la más alta calidad.</p>
-          </div>
+          <h4>Calidad Certificada</h4>
+          <p>Productos 100% originales colombianos con materiales de la más alta calidad.</p>
         </div>
         <div class="benefit-card idx-reveal d3">
+          <span class="benefit-num">03</span>
           <div class="benefit-icon-wrap"><i class="fa-solid fa-arrows-rotate"></i></div>
-          <div>
-            <h4>Cambios sin Complicaciones</h4>
-            <p>Si la talla no es la correcta, realizamos el cambio sin problema alguno.</p>
-          </div>
+          <h4>Cambios sin Complicaciones</h4>
+          <p>Si la talla no es la correcta, realizamos el cambio sin problema alguno.</p>
         </div>
         <div class="benefit-card idx-reveal d4">
+          <span class="benefit-num">04</span>
           <div class="benefit-icon-wrap"><i class="fa-solid fa-headset"></i></div>
-          <div>
-            <h4>Asesoría Personalizada</h4>
-            <p>Te ayudamos a encontrar la faja ideal para tu tipo de cuerpo por WhatsApp.</p>
-          </div>
+          <h4>Asesoría Personalizada</h4>
+          <p>Te ayudamos a encontrar la faja ideal para tu tipo de cuerpo por WhatsApp.</p>
         </div>
       </div>
     </div>
@@ -419,21 +237,43 @@
     <div style="text-align:center;margin-bottom:48px" class="idx-reveal d1">
       <div class="section-label" style="color:#c9a96e">Clientas reales</div>
       <h2 class="section-title" style="color:white;margin-bottom:10px">Lo que dicen nuestras clientas</h2>
-      <p style="color:rgba(255,255,255,.5);font-size:15px;max-width:500px;margin:0 auto;font-weight:300">Reseñas verificadas de mujeres que ya transformaron su figura con Maydel</p>
+      <p style="color:rgba(255,255,255,.5);font-size:15px;max-width:560px;margin:0 auto;font-weight:300">Estas son capturas reales de las opiniones y comentarios que nuestras clientas han compartido sobre nuestras fajas colombianas.</p>
     </div>
-    <div class="reviews-outer idx-reveal d2">
-      <button class="reviews-btn prev" onclick="reviewsSlide(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-      <div class="reviews-viewport">
-        <div class="reviews-track" id="reviewsTrack"></div>
+    <div class="idx-reveal d2">
+      <div class="treviews">
+        <button class="treviews-nav prev" onclick="galScroll(-1)" aria-label="Ver reseñas anteriores"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="treviews-track" id="galTrack"></div>
+        <button class="treviews-nav next" onclick="galScroll(1)" aria-label="Ver más reseñas"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
-      <button class="reviews-btn next" onclick="reviewsSlide(1)"><i class="fa-solid fa-chevron-right"></i></button>
+      <div class="reviews-dots treviews-dots" id="galDots"></div>
     </div>
-    <div class="reviews-dots" id="reviewsDots"></div>
     <div style="text-align:center;margin-top:40px">
       <a href="https://wa.me/526143716816?text=Hola!%20Vengo%20desde%20la%20p%C3%A1gina%20web%20%E2%80%94%20quiero%20dejar%20mi%20rese%C3%B1a%20de%20mi%20faja." target="_blank" rel="noopener"
-        class="btn btn-accent" style="font-size:13px">
+        class="btn btn-accent" style="font-size:14.5px">
         <i class="fa-brands fa-whatsapp"></i> Deja tu reseña
       </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA FINAL: CONOCE TODO EL CATÁLOGO ── -->
+<section class="idx-catalog-cta">
+  <div class="container">
+    <div class="catcta-band idx-reveal d1">
+      <span class="catcta-ring catcta-ring-1" aria-hidden="true"></span>
+      <span class="catcta-ring catcta-ring-2" aria-hidden="true"></span>
+      <span class="catcta-eyebrow"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Colección completa</span>
+      <h2 class="catcta-title">Tu faja perfecta te está <em>esperando</em></h2>
+      <p class="catcta-lead">Explora todas nuestras fajas colombianas: reductoras, postparto, cinturillas, bodis y más. Tallas para cada cuerpo y estilos para cada ocasión.</p>
+      <a href="tienda.html" class="catcta-btn">
+        <i class="fa-solid fa-store" aria-hidden="true"></i> Conoce todas nuestras fajas
+        <i class="fa-solid fa-arrow-right catcta-btn-arrow" aria-hidden="true"></i>
+      </a>
+      <div class="catcta-trust">
+        <span><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Envío a todo México</span>
+        <span><i class="fa-solid fa-award" aria-hidden="true"></i> 100% originales</span>
+        <span><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Cambios sin líos</span>
+      </div>
     </div>
   </div>
 </section>
@@ -476,8 +316,8 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2025 Fajas Colombianas Maydel. Todos los derechos reservados.</span>
-      <span style="display:flex;align-items:center;gap:6px;font-size:12px">
+      <span>© <span id="footerYear">2026</span> Fajas Colombianas Maydel. Todos los derechos reservados.</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px">
         <i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura
       </span>
     </div>
@@ -488,6 +328,11 @@
   <i class="fa-brands fa-whatsapp"></i>
   <span>Escríbenos</span>
 </a>
+
+<!-- Lightbox para ampliar capturas de testimonios -->
+<div class="tlightbox" id="tlightbox" onclick="galCloseZoom()">
+  <img id="tlightboxImg" src="" alt="Captura de reseña ampliada">
+</div>
 
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
@@ -573,51 +418,71 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const active = products.filter(p => p.active !== false);
 
+  // ── EXPLORA: categorías + marcas bajo un mismo selector ──
+  const catEntries = Object.entries(cats).filter(([,c]) => c.active !== false);
   const catGrid = document.getElementById('categoriesGrid');
-  Object.entries(cats).filter(([,c]) => c.active !== false).forEach(([key, cat], i) => {
-    const count = active.filter(p => p.category === key).length;
-    catGrid.innerHTML += `
-    <a href="tienda.html?cat=${key}" class="category-card anim fade-up d${Math.min(i+1,6)}">
-      <div class="cat-icon-wrap"><i class="${cat.icon}"></i></div>
-      <h3>${cat.label}</h3>
-      ${count > 0 ? `<small>${count} producto${count !== 1 ? 's' : ''}</small>` : ''}
+  catGrid.innerHTML = catEntries.map(([key, cat]) => {
+    // Un producto puede pertenecer a varias categorías: contamos por pertenencia
+    // al arreglo `categories` (igual que la tienda), no solo por la principal.
+    const count = active.filter(p =>
+      (p.categories && p.categories.length ? p.categories : [p.category]).includes(key)
+    ).length;
+    return `
+    <a href="${getBase()}tienda.html?cat=${encodeURIComponent(key)}" class="ex-cat-card">
+      <span class="ex-cat-icon"><i class="${esc(cat.icon || 'fa-solid fa-tag')}" aria-hidden="true"></i></span>
+      <span class="ex-cat-text">
+        <span class="ex-cat-name">${esc(cat.label)}</span>
+        <span class="ex-cat-count">${count} producto${count !== 1 ? 's' : ''}</span>
+      </span>
+      <span class="ex-cat-go" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
     </a>`;
-  });
+  }).join('');
 
   // Marcas (solo activas; muestra logo si tiene, si no un icono)
   const brandEntries = Object.entries(brands).filter(([,b]) => b.active !== false);
-  if (brandEntries.length) {
-    const brandGrid = document.getElementById('brandsGrid');
-    brandEntries.forEach(([key, brand], i) => {
-      const count = active.filter(p => p.brand === key).length;
-      const visual = brand.logo
-        ? `<div class="brand-logo-wrap"><img src="${brand.logo}" alt="${brand.label}"></div>`
-        : `<div class="brand-logo-wrap"><i class="${brand.icon || 'fa-solid fa-certificate'}"></i></div>`;
-      brandGrid.innerHTML += `
-      <a href="tienda.html?brand=${key}" class="brand-card anim fade-up d${Math.min(i+1,6)}">
-        ${visual}
-        <h3>${brand.label}</h3>
-        ${count > 0 ? `<small>${count} producto${count !== 1 ? 's' : ''}</small>` : ''}
-      </a>`;
-    });
-    document.getElementById('brandsSection').style.display = 'block';
-  }
+  const brandGrid = document.getElementById('brandsGrid');
+  brandGrid.innerHTML = brandEntries.map(([key, brand]) => {
+    const count = active.filter(p => p.brand === key).length;
+    const visual = brand.logo
+      ? `<img src="${esc(brand.logo)}" alt="${esc(brand.label)}" loading="lazy" decoding="async">`
+      : `<i class="${esc(brand.icon || 'fa-solid fa-certificate')}" aria-hidden="true"></i>`;
+    return `
+    <a href="${getBase()}tienda.html?brand=${encodeURIComponent(key)}" class="ex-brand-card">
+      <span class="ex-brand-logo">${visual}</span>
+      <span class="ex-brand-name">${esc(brand.label)}</span>
+      ${count > 0 ? `<span class="ex-brand-count">${count} producto${count !== 1 ? 's' : ''}</span>` : ''}
+    </a>`;
+  }).join('');
 
-  const featuredGrid = document.getElementById('featuredGrid');
+  // Contadores en las pestañas + comportamiento del selector
+  const exCatN = document.getElementById('exCatN');
+  const exBrandN = document.getElementById('exBrandN');
+  if (exCatN) exCatN.textContent = catEntries.length;
+  if (exBrandN) exBrandN.textContent = brandEntries.length;
+  initExploreToggle(brandEntries.length > 0);
+
+  const featuredHost = document.getElementById('featuredShowcase');
   const featured = active.filter(p => p.featured).slice(0, 8);
   const toShow = featured.length > 0 ? featured : active.slice(0, 8);
+  const showcaseList = toShow.length > 0 ? toShow : _DEMO_PRODUCTS;
+  featuredHost.innerHTML = buildFeaturedShowcase(showcaseList, cats);
+  initFeaturedShowcase();
 
-  if (toShow.length === 0) {
-    _DEMO_PRODUCTS.forEach(p => { featuredGrid.innerHTML += renderProductCard(p); });
-  } else {
-    toShow.forEach(p => { featuredGrid.innerHTML += renderProductCard(p); });
-  }
-
-  const newProds = active.filter(p => p.isNew).slice(0, 4);
+  const newProds = active.filter(p => p.isNew).slice(0, 10);
   if (newProds.length > 0) {
     document.getElementById('newSection').style.display = 'block';
     const newGrid = document.getElementById('newGrid');
-    newProds.forEach(p => { newGrid.innerHTML += renderProductCard(p); });
+    newGrid.innerHTML = newProds.map(p => buildNewArrivalCard(p, cats)).join('');
+    initNewRail();
+  }
+
+  // Enlace de WhatsApp para distribuidoras (mayoreo)
+  const waHome = document.getElementById('wholesaleWaHome');
+  if (waHome) {
+    const msg = '¡Hola! Estoy interesada en ser DISTRIBUIDORA de Fajas Maydel y comprar por mayoreo '
+              + '(mínimo 6 piezas de cada producto). ¿Me pueden dar información sobre precios de '
+              + 'mayorista y requisitos?';
+    waHome.href = 'https://wa.me/526143716816?text=' + encodeURIComponent(msg);
   }
 
   setTimeout(initScrollAnimations, 50);
@@ -627,55 +492,346 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
   document.querySelectorAll('.idx-reveal').forEach(el => obs.observe(el));
 
-  initReviewsSlider();
+  initTestimonials();
 });
 
-let _reviewCurrent = 0, _reviewData = [], _reviewPerView = 3, _reviewTimer = null;
+// ── SHOWCASE DE PRODUCTOS DESTACADOS ──────────────────────────────────────
+// Convierte los destacados en un carrusel protagonista (una slide por producto):
+// foto grande + ficha editorial. Con flechas, dots, miniaturas, autoplay que se
+// pausa al pasar el ratón, deslizar con el dedo y flechas del teclado.
+function fsSwatch(name) {
+  const m = {
+    negro:'#1a1a1a', blanco:'#f5f5f0', beige:'#e6d4b8', nude:'#e3c3a3', piel:'#e3c3a3',
+    cocoa:'#7a4a2b', cafe:'#6f4e37', 'café':'#6f4e37', chocolate:'#563220', marron:'#6b4423',
+    'marrón':'#6b4423', rosa:'#e29fb0', 'palo de rosa':'#c98b8b', vino:'#722f37', rojo:'#a83232',
+    azul:'#2b4a7a', 'azul marino':'#1f3253', gris:'#9a9a9a', verde:'#3a6b4a', morado:'#6b4a7a',
+    lila:'#b9a3d6', durazno:'#f0b28a', coral:'#e08a6f', naranja:'#d98032', amarillo:'#e6c34a',
+  };
+  return m[(name || '').toLowerCase().trim()] || '#c9a96e';
+}
 
-async function initReviewsSlider() {
-  try {
-    const r = await fetch('/api/reviews?featured=1');
-    _reviewData = await r.json();
-  } catch { _reviewData = []; }
-  if (!_reviewData.length) { const s = document.getElementById('reviewsSection'); if (s) s.style.display = 'none'; return; }
-  _reviewPerView = window.innerWidth < 640 ? 1 : window.innerWidth < 960 ? 2 : 3;
-  const track = document.getElementById('reviewsTrack');
-  track.innerHTML = _reviewData.map(r => `
-    <div class="review-card">
-      <div class="review-card-img-wrap" style="background:#0c2412;display:flex;align-items:center;justify-content:center">
-        <i class="fa-solid fa-user-circle" style="font-size:60px;color:#c9a96e" aria-hidden="true"></i>
+function buildFeaturedShowcase(list, cats) {
+  const total = String(list.length).padStart(2, '0');
+  const slides = list.map((p, i) => {
+    const cat  = cats[p.category] || {};
+    const img  = p.images && p.images[0];
+    const disc = p.originalPrice && p.originalPrice > p.price;
+    const off  = disc ? Math.round((1 - p.price / p.originalPrice) * 100) : 0;
+    const num  = String(i + 1).padStart(2, '0');
+    const name = esc(p.name);
+    const swatches = (p.colors || []).slice(0, 6)
+      .map(c => `<span class="fs-swatch" title="${esc(c)}" style="--sw:${fsSwatch(c)}"></span>`).join('');
+    return `
+    <article class="fs-slide" data-i="${i}" style="--fsnum:'${num}'">
+      <div class="fs-media">
+        <span class="fs-tag"><i class="fa-solid fa-star" aria-hidden="true"></i> Destacado</span>
+        <div class="fs-badges">
+          ${disc ? `<span class="fs-badge fs-off">-${off}%</span>` : ''}
+          ${p.isNew ? `<span class="fs-badge fs-new">Nuevo</span>` : ''}
+        </div>
+        <a class="fs-media-link" href="${getBase()}producto.html?id=${p.id}" aria-label="Ver ${name}">
+          ${img
+            ? `<img src="${esc(img)}" alt="${name}"${imgFocusStyle(p.imageFocus, img)} loading="lazy" decoding="async" onerror="this.parentNode.innerHTML='<div class=\\'fs-noimg\\'><i class=\\'fa-solid fa-shirt\\'></i></div>'">`
+            : `<div class="fs-noimg"><i class="fa-solid fa-shirt" aria-hidden="true"></i></div>`}
+        </a>
+        <button class="wishlist-heart fs-heart" data-pid="${p.id}" onclick="toggleCardWishlist(${p.id}, this, event)" aria-label="Guardar en favoritos">
+          <i class="fa-regular fa-heart" aria-hidden="true"></i>
+        </button>
       </div>
-      <div class="review-card-body">
-        <div class="review-stars">${'★'.repeat(r.rating||5)}${'☆'.repeat(5-(r.rating||5))}</div>
-        <div class="review-name">${esc(r.author)}</div>
-        <div class="review-text">"${esc(r.text)}"</div>
+      <div class="fs-info">
+        ${cat.label ? `<span class="fs-cat"><i class="${esc(cat.icon)}" aria-hidden="true"></i> ${esc(cat.label)}</span>` : '<span class="fs-cat">Selección Maydel</span>'}
+        <h3 class="fs-name"><a href="${getBase()}producto.html?id=${p.id}">${name}</a></h3>
+        ${p.description ? `<p class="fs-desc">${esc(p.description)}</p>` : ''}
+        ${swatches ? `<div class="fs-colors" aria-label="Colores disponibles">${swatches}</div>` : ''}
+        <div class="fs-price">
+          <span class="fs-price-main">${formatPrice(p.price)}</span>
+          ${disc ? `<span class="fs-price-orig">${formatPrice(p.originalPrice)}</span>` : ''}
+        </div>
+        <div class="fs-actions">
+          <button class="fs-add" onclick="quickAddToCart(${p.id}, event)"><i class="fa-solid fa-cart-plus" aria-hidden="true"></i> Añadir al carrito</button>
+          <a class="fs-detail" href="${getBase()}producto.html?id=${p.id}">Ver detalle <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
       </div>
-    </div>`).join('');
-  const gapPx = 20;
-  track.querySelectorAll('.review-card').forEach(c => {
-    c.style.flex = `0 0 calc(${100/_reviewPerView}% - ${gapPx*(_reviewPerView-1)/_reviewPerView}px)`;
+    </article>`;
+  }).join('');
+
+  const thumbs = list.map((p, i) => {
+    const img = p.images && p.images[0];
+    return `<button class="fs-thumb" data-i="${i}" aria-label="Ver ${esc(p.name)}">
+      ${img ? `<img src="${esc(img)}" alt=""${imgFocusStyle(p.imageFocus, img)} loading="lazy" decoding="async">` : `<span class="fs-thumb-noimg"><i class="fa-solid fa-shirt" aria-hidden="true"></i></span>`}
+    </button>`;
+  }).join('');
+
+  const dots = list.map((_, i) =>
+    `<button class="fs-dot" data-i="${i}" aria-label="Ir al destacado ${i + 1}"></button>`).join('');
+
+  return `
+    <div class="fs-stage">
+      <button class="fs-arrow fs-prev" aria-label="Anterior"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+      <div class="fs-viewport"><div class="fs-track">${slides}</div></div>
+      <button class="fs-arrow fs-next" aria-label="Siguiente"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <div class="fs-controls">
+      <span class="fs-counter"><b class="fs-cur">01</b><i>/</i>${total}</span>
+      <div class="fs-dots">${dots}</div>
+    </div>
+    <div class="fs-thumbs">${thumbs}</div>`;
+}
+
+function initFeaturedShowcase() {
+  const root = document.getElementById('featuredShowcase');
+  if (!root) return;
+  const track  = root.querySelector('.fs-track');
+  const slides = [...root.querySelectorAll('.fs-slide')];
+  const thumbs = [...root.querySelectorAll('.fs-thumb')];
+  const dots   = [...root.querySelectorAll('.fs-dot')];
+  const curEl  = root.querySelector('.fs-cur');
+  const n = slides.length;
+  if (!n) return;
+  if (n <= 1) root.classList.add('fs-single');
+
+  let idx = 0, timer = null;
+
+  function go(i, byUser) {
+    idx = (i + n) % n;
+    track.style.transform = `translateX(-${idx * 100}%)`;
+    slides.forEach((s, k) => s.classList.toggle('is-active', k === idx));
+    thumbs.forEach((t, k) => t.classList.toggle('is-active', k === idx));
+    dots.forEach((d, k) => d.classList.toggle('is-active', k === idx));
+    if (curEl) curEl.textContent = String(idx + 1).padStart(2, '0');
+    // Centrar la miniatura activa desplazando SOLO su riel horizontal.
+    // (Antes usábamos scrollIntoView, que también movía la página en vertical
+    //  y "subía" la vista cuando el usuario estaba en el footer o las reseñas.)
+    const at = thumbs[idx];
+    if (at && at.parentElement) {
+      const rail = at.parentElement;
+      const target = at.offsetLeft - (rail.clientWidth - at.clientWidth) / 2;
+      rail.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+    }
+    if (byUser) restart();
+  }
+  const next = u => go(idx + 1, u);
+  const prev = u => go(idx - 1, u);
+  function restart() { stop(); if (n > 1) timer = setInterval(() => next(false), 6000); }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+  root.querySelector('.fs-next').addEventListener('click', () => next(true));
+  root.querySelector('.fs-prev').addEventListener('click', () => prev(true));
+  thumbs.forEach((t, k) => t.addEventListener('click', () => go(k, true)));
+  dots.forEach((d, k) => d.addEventListener('click', () => go(k, true)));
+
+  const stage = root.querySelector('.fs-stage');
+  stage.addEventListener('mouseenter', stop);
+  stage.addEventListener('mouseleave', restart);
+
+  // Deslizar con el dedo / arrastrar con el ratón sobre la foto.
+  const vp = root.querySelector('.fs-viewport');
+  let sx = 0, dx = 0, dragging = false;
+  vp.addEventListener('pointerdown', e => { dragging = true; sx = e.clientX; dx = 0; stop(); });
+  vp.addEventListener('pointermove', e => { if (dragging) dx = e.clientX - sx; });
+  const endDrag = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (Math.abs(dx) > 45) (dx < 0 ? next(true) : prev(true));
+    else restart();
+  };
+  vp.addEventListener('pointerup', endDrag);
+  vp.addEventListener('pointerleave', endDrag);
+  vp.addEventListener('pointercancel', () => { dragging = false; restart(); });
+
+  // Flechas del teclado cuando el carrusel tiene el foco.
+  root.tabIndex = 0;
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); next(true); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(true); }
   });
-  const maxDots = Math.max(1, _reviewData.length - _reviewPerView + 1);
-  document.getElementById('reviewsDots').innerHTML = Array.from({length:maxDots},(_,i) =>
-    `<button class="review-dot${i===0?' active':''}" onclick="reviewsGoTo(${i})"></button>`).join('');
-  clearInterval(_reviewTimer);
-  _reviewTimer = setInterval(() => reviewsSlide(1), 5000);
+
+  go(0, false);
+  restart();
 }
-function reviewsSlide(dir) {
-  const max = Math.max(0, _reviewData.length - _reviewPerView);
-  _reviewCurrent += dir;
-  if (_reviewCurrent > max) _reviewCurrent = 0;
-  if (_reviewCurrent < 0)   _reviewCurrent = max;
-  reviewsUpdateTrack();
+
+// ── NUEVOS INGRESOS (riel deslizable de tarjetas compactas) ───────────────
+// Diseño distinto al slide de destacados: tarjetas verticales en un riel
+// horizontal con snap, flechas y arrastre, junto a un panel de intro fijo.
+function buildNewArrivalCard(p, cats) {
+  const cat  = cats[p.category] || {};
+  const img  = p.images && p.images[0];
+  const name = esc(p.name);
+  const disc = p.originalPrice && p.originalPrice > p.price;
+  return `
+  <article class="new-card">
+    <a class="new-card-media" href="${getBase()}producto.html?id=${p.id}" aria-label="Ver ${name}">
+      <span class="new-flag"><span class="new-flag-dot"></span> Nuevo</span>
+      ${img
+        ? `<img src="${esc(img)}" alt="${name}"${imgFocusStyle(p.imageFocus, img)} loading="lazy" decoding="async" onerror="this.parentNode.innerHTML='<div class=\\'new-noimg\\'><i class=\\'fa-solid fa-shirt\\'></i></div>'+this.parentNode.innerHTML">`
+        : `<div class="new-noimg"><i class="fa-solid fa-shirt" aria-hidden="true"></i></div>`}
+      <span class="new-card-eye"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+    </a>
+    <div class="new-card-body">
+      ${cat.label ? `<span class="new-card-cat"><i class="${esc(cat.icon || 'fa-solid fa-tag')}" aria-hidden="true"></i> ${esc(cat.label)}</span>` : ''}
+      <a class="new-card-name" href="${getBase()}producto.html?id=${p.id}">${name}</a>
+      <div class="new-card-foot">
+        <span class="new-card-price">
+          ${formatPrice(p.price)}
+          ${disc ? `<span class="new-card-orig">${formatPrice(p.originalPrice)}</span>` : ''}
+        </span>
+        <button class="new-card-add" onclick="quickAddToCart(${p.id}, event)" aria-label="Añadir ${name} al carrito">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </article>`;
 }
-function reviewsGoTo(i) { _reviewCurrent = i; reviewsUpdateTrack(); clearInterval(_reviewTimer); _reviewTimer = setInterval(() => reviewsSlide(1), 5000); }
-function reviewsUpdateTrack() {
-  const track = document.getElementById('reviewsTrack');
-  const card  = track.querySelector('.review-card');
-  if (!card) return;
-  track.style.transform = `translateX(-${_reviewCurrent * (card.offsetWidth + 20)}px)`;
-  document.querySelectorAll('.review-dot').forEach((d,i) => d.classList.toggle('active', i === _reviewCurrent));
+
+function initNewRail() {
+  const sec = document.getElementById('newSection');
+  if (!sec) return;
+  const rail = sec.querySelector('.new-rail');
+  const prev = sec.querySelector('.new-prev');
+  const next = sec.querySelector('.new-next');
+  const nav  = sec.querySelector('.new-nav');
+  if (!rail) return;
+
+  const step = () => {
+    const card = rail.querySelector('.new-card');
+    const gap = parseFloat(getComputedStyle(rail).columnGap || '20') || 20;
+    return card ? card.getBoundingClientRect().width + gap : rail.clientWidth * 0.8;
+  };
+  const overflows = () => rail.scrollWidth - rail.clientWidth > 4;
+
+  function sync() {
+    if (nav) nav.style.display = overflows() ? '' : 'none';
+    if (!prev || !next) return;
+    prev.disabled = rail.scrollLeft <= 2;
+    next.disabled = rail.scrollLeft >= rail.scrollWidth - rail.clientWidth - 2;
+  }
+  prev && prev.addEventListener('click', () => rail.scrollBy({ left: -step(), behavior: 'smooth' }));
+  next && next.addEventListener('click', () => rail.scrollBy({ left:  step(), behavior: 'smooth' }));
+  rail.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync);
+
+  // Arrastrar con el ratón para desplazar el riel (además del scroll táctil).
+  let down = false, sx = 0, sl = 0, moved = false;
+  rail.addEventListener('pointerdown', e => { down = true; moved = false; sx = e.clientX; sl = rail.scrollLeft; });
+  rail.addEventListener('pointermove', e => {
+    if (!down) return;
+    const d = e.clientX - sx;
+    if (Math.abs(d) > 4) { moved = true; rail.classList.add('is-dragging'); }
+    rail.scrollLeft = sl - d;
+  });
+  const up = () => { down = false; rail.classList.remove('is-dragging'); };
+  rail.addEventListener('pointerup', up);
+  rail.addEventListener('pointerleave', up);
+  // Evita que un arrastre dispare el clic del enlace/tarjeta.
+  rail.addEventListener('click', e => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+
+  sync();
 }
+
+// ── SELECTOR EXPLORA (Categorías ↔ Marcas) ────────────────────────────────
+function initExploreToggle(hasBrands) {
+  const sec = document.getElementById('exploreSection');
+  if (!sec) return;
+  const tabs   = [...sec.querySelectorAll('.ex-tab')];
+  const panels = [...sec.querySelectorAll('.ex-panel')];
+
+  // Sin marcas: ocultamos el selector y dejamos solo categorías.
+  if (!hasBrands) {
+    const wrap = sec.querySelector('.ex-toggle-wrap');
+    if (wrap) wrap.style.display = 'none';
+    sec.querySelector('.ex-panel[data-panel="brands"]')?.classList.remove('is-active');
+    sec.querySelector('.ex-panel[data-panel="cats"]')?.classList.add('is-active');
+    return;
+  }
+
+  function activate(panel) {
+    tabs.forEach(t => {
+      const on = t.dataset.panel === panel;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    panels.forEach(p => p.classList.toggle('is-active', p.dataset.panel === panel));
+  }
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.panel)));
+}
+
+// ── GALERÍA DE TESTIMONIOS (capturas reales subidas desde el dashboard) ──
+// Filmstrip responsivo: varias capturas visibles a la vez, deslizable en móvil.
+let _gal = [], _galAuto = null;
+
+async function initTestimonials() {
+  try {
+    const r = await fetch('/api/testimonials');
+    _gal = await r.json();
+  } catch { _gal = []; }
+  const section = document.getElementById('reviewsSection');
+  if (!Array.isArray(_gal) || !_gal.length) { if (section) section.style.display = 'none'; return; }
+
+  const track = document.getElementById('galTrack');
+  track.innerHTML = _gal.map((t, i) => `
+    <figure class="treview-card" onclick="galZoom(${i})">
+      <div class="treview-shot"><img src="${esc(t.imageUrl)}" alt="${esc(t.caption || 'Reseña real de clienta')}" loading="lazy" decoding="async"></div>
+      ${t.caption ? `<figcaption>${esc(t.caption)}</figcaption>` : ''}
+    </figure>`).join('');
+
+  const dots = document.getElementById('galDots');
+  dots.innerHTML = _gal.map((_, i) =>
+    `<button class="review-dot${i === 0 ? ' active' : ''}" onclick="galGo(${i})" aria-label="Ir a la reseña ${i + 1}"></button>`).join('');
+
+  // El punto activo sigue a la captura más centrada al deslizar
+  track.addEventListener('scroll', () => {
+    clearTimeout(track._st);
+    track._st = setTimeout(() => {
+      const cards = [...track.children];
+      const center = track.scrollLeft + track.clientWidth / 2;
+      let best = 0, bestDist = Infinity;
+      cards.forEach((c, i) => {
+        const d = Math.abs((c.offsetLeft + c.offsetWidth / 2) - center);
+        if (d < bestDist) { bestDist = d; best = i; }
+      });
+      dots.querySelectorAll('.review-dot').forEach((d, i) => d.classList.toggle('active', i === best));
+    }, 80);
+  }, { passive: true });
+
+  // Autoavance suave (se pausa al interactuar)
+  track.addEventListener('mouseenter', stopGalAuto);
+  track.addEventListener('mouseleave', startGalAuto);
+  track.addEventListener('touchstart', stopGalAuto, { passive: true });
+  startGalAuto();
+}
+
+function galGo(i) {
+  const track = document.getElementById('galTrack');
+  const card = track?.children[i];
+  if (!track || !card) return;
+  track.scrollTo({ left: card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2, behavior: 'smooth' });
+}
+function galScroll(dir) {
+  const track = document.getElementById('galTrack');
+  if (!track) return;
+  const card = track.querySelector('.treview-card');
+  const step = card ? card.offsetWidth + 22 : track.clientWidth * 0.8;
+  track.scrollBy({ left: dir * step, behavior: 'smooth' });
+}
+function startGalAuto() {
+  stopGalAuto();
+  _galAuto = setInterval(() => {
+    const track = document.getElementById('galTrack');
+    if (!track) return;
+    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 8;
+    if (atEnd) track.scrollTo({ left: 0, behavior: 'smooth' });
+    else galScroll(1);
+  }, 5000);
+}
+function stopGalAuto() { clearInterval(_galAuto); }
+
+function galZoom(i) {
+  if (!_gal.length) return;
+  const lb = document.getElementById('tlightbox');
+  document.getElementById('tlightboxImg').src = _gal[i].imageUrl;
+  lb.classList.add('open');
+}
+function galCloseZoom() { document.getElementById('tlightbox').classList.remove('open'); }
 </script>
 </body>
 </html>

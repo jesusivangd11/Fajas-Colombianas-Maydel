@@ -7,25 +7,26 @@
   <link rel="stylesheet" href="../css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    .section-panel{background:white;border-radius:var(--radius);box-shadow:var(--shadow-sm);border:1px solid var(--gray-200);padding:24px;margin-bottom:20px}
-    .img-url-row{display:flex;gap:8px}
-    .color-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-  </style>
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/cuenta.css">
 </head>
 <body>
 
 <div class="dash-layout">
   <!-- SIDEBAR -->
   <aside class="dash-sidebar">
-    <div class="dash-logo">
+    <a href="../index.html" class="dash-logo" title="Ir al inicio de la tienda">
       <img src="../assets/logo.jpeg" alt="Maydel">
       <div class="dash-logo-text">
         <strong>Maydel</strong>
         <small>Panel admin</small>
       </div>
-    </div>
+    </a>
     <nav class="dash-nav">
+      <button class="dash-nav-item dash-nav-store" onclick="window.open('../index.html','_blank')">
+        <i class="fa-solid fa-store"></i> Ver tienda
+      </button>
+
       <div class="dash-nav-section">Principal</div>
       <button class="dash-nav-item active" onclick="showPanel('overview', this)">
         <i class="fa-solid fa-gauge"></i> Resumen
@@ -57,21 +58,24 @@
       </button>
 
       <div class="dash-nav-section">Configuración</div>
+      <button class="dash-nav-item" onclick="showPanel('account', this)">
+        <i class="fa-solid fa-user-gear"></i> Mi cuenta
+      </button>
       <button class="dash-nav-item" onclick="showPanel('users', this)">
         <i class="fa-solid fa-users"></i> Usuarios
       </button>
       <button class="dash-nav-item" onclick="showPanel('reviews', this)">
         <i class="fa-solid fa-star"></i> Reseñas
       </button>
+      <button class="dash-nav-item" onclick="showPanel('testimonials', this)">
+        <i class="fa-solid fa-camera-retro"></i> Testimonios
+      </button>
       <button class="dash-nav-item" onclick="showPanel('coupons', this)">
         <i class="fa-solid fa-ticket"></i> Cupones
       </button>
 
       <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px">
-        <button class="dash-nav-item" onclick="window.open('../index.html','_blank')">
-          <i class="fa-solid fa-store"></i> Ver tienda
-        </button>
-        <button class="dash-nav-item" onclick="AUTH.logout()" style="color:rgba(255,100,100,.8)">
+        <button class="dash-nav-item" onclick="AUTH.confirmLogout(event)" style="color:rgba(255,100,100,.8)">
           <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
         </button>
       </div>
@@ -313,6 +317,14 @@
     </div>
 
     <!-- ── USUARIOS ── -->
+    <!-- ── MI CUENTA ── -->
+    <div id="panel-account" style="display:none">
+      <div class="dash-header">
+        <div><h1>Mi cuenta</h1><div class="dash-header-sub">Cambia tu nombre de usuario, tu correo y tu contraseña</div></div>
+      </div>
+      <div id="acctRoot"></div>
+    </div>
+
     <div id="panel-users" style="display:none">
       <div class="dash-header">
         <div><h1>Gestión de Usuarios</h1><div class="dash-header-sub">Administra las cuentas registradas en la tienda</div></div>
@@ -409,6 +421,32 @@
       </div>
     </div>
 
+    <!-- ── TESTIMONIOS (capturas) ── -->
+    <div id="panel-testimonials" style="display:none">
+      <div class="dash-header">
+        <div><h1>Testimonios</h1><div class="dash-header-sub">Capturas reales de opiniones y comentarios de clientas que se muestran en la página de inicio</div></div>
+        <div style="font-size:13px;color:var(--gray-500)" id="testimonialsCount"></div>
+      </div>
+
+      <div style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:14px 18px;margin-bottom:20px;border-radius:6px;font-size:14px;color:#0d3d1a">
+        <i class="fa-solid fa-circle-info" style="margin-right:6px"></i>
+        Sube las capturas de pantalla (de WhatsApp, Facebook, etc.) que quieras mostrar como referencias reales. Aparecerán en el carrusel "Lo que dicen nuestras clientas" de la página de inicio. Puedes subir hasta 6 a la vez.
+      </div>
+
+      <div class="table-card" style="padding:20px;margin-bottom:20px">
+        <label class="upload-zone" for="testimonialUpload" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px;border:2px dashed var(--gray-300);border-radius:10px;cursor:pointer;text-align:center">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--primary)"></i>
+          <span style="font-weight:600">Subir capturas</span>
+          <span style="font-size:12px;color:var(--gray-400)">JPG, PNG, WEBP o GIF · hasta 5 MB cada una</span>
+          <input type="file" id="testimonialUpload" accept="image/*" multiple style="display:none" onchange="handleTestimonialUpload(this)">
+        </label>
+      </div>
+
+      <div class="table-card" style="padding:20px">
+        <div id="testimonialsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px"></div>
+      </div>
+    </div>
+
     <!-- ── CUPONES ── -->
     <div id="panel-coupons" style="display:none">
       <div class="dash-header">
@@ -489,7 +527,7 @@
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('info',this)">Información</button>
       <button class="tab-btn" onclick="switchTab('images',this)">Imágenes</button>
-      <button class="tab-btn" onclick="switchTab('variants',this)">Tallas y Colores</button>
+      <button class="tab-btn" onclick="switchTab('variants',this)">Precios e Inventario</button>
     </div>
 
     <!-- TAB INFO -->
@@ -499,33 +537,27 @@
           <label class="form-label">Nombre del producto *</label>
           <input type="text" class="form-input" id="f-name" placeholder="Ej: Faja Reductora Premium Body Shaper">
         </div>
-        <div class="form-group">
-          <label class="form-label">Categoría *</label>
-          <select class="form-select" id="f-category"><option value="">Seleccionar...</option></select>
+        <div class="form-group full">
+          <label class="form-label">Categorías * <span style="font-weight:400;color:var(--gray-400);font-size:12px">— elige una o varias (la 1ª es la principal)</span></label>
+          <div id="catCheckboxes" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:8px"></div>
         </div>
         <div class="form-group">
-          <label class="form-label">Marca</label>
-          <select class="form-select" id="f-brand"><option value="">Sin marca</option></select>
+          <label class="form-label">Marca *</label>
+          <select class="form-select" id="f-brand"><option value="">Seleccionar...</option></select>
         </div>
         <div class="form-group">
           <label class="form-label">Referencia</label>
           <input type="text" class="form-input" id="f-reference" placeholder="FM-001">
         </div>
         <div class="form-group">
-          <label class="form-label">Precio MXN *</label>
-          <input type="number" class="form-input" id="f-price" placeholder="1299" min="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Precio original (antes de descuento)</label>
-          <input type="number" class="form-input" id="f-original-price" placeholder="Dejar vacío si no hay descuento" min="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Stock</label>
-          <input type="number" class="form-input" id="f-stock" placeholder="10" min="0">
-        </div>
-        <div class="form-group">
           <label class="form-label">Material</label>
           <input type="text" class="form-input" id="f-material" placeholder="Lycra, Nylon, Poliéster...">
+        </div>
+        <div class="form-group full">
+          <div style="background:#eaf5ee;border-left:3px solid #1a5c2e;padding:12px 14px;border-radius:6px;font-size:12.5px;color:#38614a;display:flex;align-items:center;gap:8px">
+            <i class="fa-solid fa-circle-info" style="color:#1a5c2e"></i>
+            Los <b>precios</b> y el <b>inventario</b> se administran en la pestaña <b>"Precios e Inventario"</b>.
+          </div>
         </div>
         <div class="form-group full">
           <label class="form-label">Descripción</label>
@@ -554,8 +586,8 @@
 
     <!-- TAB IMAGES -->
     <div id="tab-images" style="display:none">
-      <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px">Agrega hasta <strong>6 imágenes</strong> por URL o subiendo archivos. La primera imagen es la principal del producto.</p>
-      <label class="form-label">URL de imagen <span id="imgCount" style="color:var(--gray-400);font-weight:400">(0/6)</span></label>
+      <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px">Agrega hasta <strong>12 imágenes</strong> por URL o subiendo archivos. <i class="fa-solid fa-up-down-left-right"></i> <strong>Arrastra las miniaturas</strong> para cambiar su orden: la primera es la imagen principal del producto. <strong>Los videos también se arrastran</strong> y puedes ponerlos donde quieras dentro de la galería.</p>
+      <label class="form-label">URL de imagen <span id="imgCount" style="color:var(--gray-400);font-weight:400">(0/12)</span></label>
       <div class="img-url-row" style="margin-top:6px;margin-bottom:14px">
         <input type="text" class="form-input" id="imgUrlInput" placeholder="https://ejemplo.com/imagen.jpg" style="flex:1">
         <button class="btn-save" onclick="addImageUrl()" style="border-radius:8px;padding:10px 16px">
@@ -566,14 +598,14 @@
         <input type="file" id="imgFileInput" accept="image/*" multiple onchange="handleFileUpload(this)" style="display:none">
         <i class="fa-solid fa-cloud-arrow-up"></i>
         Haz clic para subir imágenes desde tu equipo
-        <div style="font-size:12px;margin-top:4px;opacity:.7">JPG, PNG, WEBP · máx. 5 MB por imagen · hasta 6</div>
+        <div style="font-size:12px;margin-top:4px;opacity:.7">JPG, PNG, WEBP · máx. 5 MB por imagen · hasta 12</div>
       </div>
       <div class="img-preview" id="imgPreview" style="margin-top:16px"></div>
 
-      <!-- VIDEO -->
+      <!-- VIDEOS -->
       <hr style="margin:24px 0;border:none;border-top:1px solid var(--gray-200)">
-      <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px"><i class="fa-solid fa-video" style="color:var(--primary);margin-right:6px"></i> Agrega <strong>1 video</strong> del producto (opcional), por URL o subiéndolo.</p>
-      <label class="form-label">URL del video</label>
+      <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px"><i class="fa-solid fa-video" style="color:var(--primary);margin-right:6px"></i> Agrega hasta <strong>6 videos</strong> del producto (opcional), por URL o subiéndolos. Cada video aparece en la tira de arriba y puedes arrastrarlo a la posición que quieras.</p>
+      <label class="form-label">URL del video <span id="vidCount" style="color:var(--gray-400);font-weight:400">(0/6)</span></label>
       <div class="img-url-row" style="margin-top:6px;margin-bottom:14px">
         <input type="text" class="form-input" id="videoUrlInput" placeholder="https://ejemplo.com/video.mp4" style="flex:1">
         <button class="btn-save" onclick="addVideoUrl()" style="border-radius:8px;padding:10px 16px">
@@ -583,28 +615,86 @@
       <div class="drag-area" onclick="document.getElementById('videoFileInput').click()">
         <input type="file" id="videoFileInput" accept="video/*" onchange="handleVideoUpload(this)" style="display:none">
         <i class="fa-solid fa-film"></i>
-        Haz clic para subir un video desde tu equipo
-        <div style="font-size:12px;margin-top:4px;opacity:.7">MP4, WEBM, MOV · máx. 50 MB</div>
+        Haz clic para subir videos desde tu equipo
+        <div style="font-size:12px;margin-top:4px;opacity:.7">MP4, WEBM, MOV · máx. 50 MB · hasta 6</div>
       </div>
       <div id="videoPreview" style="margin-top:16px"></div>
     </div>
 
     <!-- TAB VARIANTS -->
     <div id="tab-variants" style="display:none">
-      <div class="form-group" style="margin-bottom:22px">
-        <label class="form-label"><i class="fa-solid fa-ruler" style="color:var(--primary);margin-right:6px"></i> Tallas disponibles</label>
-        <div style="display:flex;flex-wrap:wrap;gap:7px;margin:10px 0" id="sizeCheckboxes"></div>
-        <input type="text" class="form-input" id="customSizeInput" placeholder="Talla personalizada + Enter" style="margin-top:8px;max-width:280px">
-      </div>
-      <div class="form-group">
-        <label class="form-label"><i class="fa-solid fa-palette" style="color:var(--primary);margin-right:6px"></i> Colores disponibles</label>
-        <div class="color-swatches" id="colorSwatches"></div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <input type="text" class="form-input" id="customColorInput" placeholder="Nombre del color personalizado" style="flex:1">
-          <button class="btn-save" onclick="addCustomColor()" style="border-radius:8px;padding:10px 14px"><i class="fa-solid fa-plus"></i></button>
+      <!-- ── PRECIOS DEL PRODUCTO ── -->
+      <div class="price-panel">
+        <div class="pp-title"><i class="fa-solid fa-tags"></i> Precios del producto</div>
+        <div class="pp-grid">
+          <div class="form-group">
+            <label class="form-label">Precio general MXN *</label>
+            <input type="number" class="form-input" id="f-price" placeholder="1299" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio antes (descuento)</label>
+            <input type="number" class="form-input" id="f-original-price" placeholder="Vacío si no hay descuento" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-boxes-stacked" style="color:#c9a96e;margin-right:5px"></i> Precio de mayoreo MXN</label>
+            <input type="number" class="form-input" id="f-wholesale-price" placeholder="Desde 6 pz" min="0">
+          </div>
         </div>
-        <div class="color-chips" id="selectedColorsChips"></div>
+        <small style="display:block;margin-top:8px;color:var(--gray-400);font-size:11px">El mayoreo se aplica solo cuando el cliente lleva 6+ piezas de este producto (sumando tallas/colores). Cada variante puede tener además su propio precio.</small>
       </div>
+
+      <!-- ── VARIANTES E INVENTARIO ── -->
+      <div class="variant-intro">
+        <i class="fa-solid fa-layer-group"></i>
+        <div>
+          <strong>Variantes e inventario</strong>
+          <p>Da de alta lo que realmente tienes: cada <b>color</b> con sus <b>tallas</b> y <b>cuántas piezas hay de cada talla</b>. Puedes agregar <b>opciones</b> (con/sin tirantes, largo…) y un <b>precio propio</b> por variante. Cuando una talla llega a 0, se marca agotada y no se puede pedir. El <b>stock total se calcula solo</b>. Si no agregas variantes, se usa el stock general de abajo.</p>
+        </div>
+      </div>
+
+      <div class="variant-builder" id="variantBuilder">
+        <div class="vb-title" id="vbTitle"><i class="fa-solid fa-plus-circle"></i> Nueva variante</div>
+        <div class="vb-grid">
+          <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-palette" style="color:var(--primary);margin-right:6px"></i> Color</label>
+            <div class="color-swatches" id="vColorSwatches"></div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <input type="text" class="form-input" id="vColorCustom" placeholder="Color personalizado" style="flex:1">
+              <button class="btn-save" type="button" onclick="vAddCustomColor()" style="border-radius:8px;padding:10px 14px"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="vColorChosen" class="vb-chosen"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-sliders" style="color:var(--primary);margin-right:6px"></i> Opciones <span style="font-weight:400;color:var(--gray-400)">(opcional)</span></label>
+            <div id="vOptionList"></div>
+            <button class="vb-add-opt" type="button" onclick="vAddOptionField()"><i class="fa-solid fa-plus"></i> Agregar opción</button>
+            <label class="form-label" style="margin-top:16px"><i class="fa-solid fa-tag" style="color:var(--primary);margin-right:6px"></i> Precio de esta variante <span style="font-weight:400;color:var(--gray-400)">(opcional)</span></label>
+            <input type="number" class="form-input" id="vPrice" placeholder="Vacío = usa el precio general" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:6px">
+          <label class="form-label"><i class="fa-solid fa-ruler" style="color:var(--primary);margin-right:6px"></i> Tallas e inventario de esta variante</label>
+          <p style="font-size:12px;color:var(--gray-400);margin:2px 0 8px">Marca las tallas que tienes en este color y pon cuántas piezas hay de cada una.</p>
+          <div id="vSizeGrid" class="vsize-grid"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <input type="text" class="form-input" id="vSizeCustom" placeholder="Talla personalizada + Enter" style="max-width:280px">
+          </div>
+        </div>
+        <div class="vb-actions">
+          <button class="btn-cancel" type="button" id="vCancelBtn" onclick="resetVariantBuilder()" style="display:none">Cancelar edición</button>
+          <button class="btn-save" type="button" id="vAddBtn" onclick="addVariant()"><i class="fa-solid fa-plus"></i> Agregar variante</button>
+        </div>
+      </div>
+
+      <div id="variantList" class="variant-list"></div>
+
+      <!-- Stock general: solo para productos SIN variantes -->
+      <div id="plainStockBox" class="plain-stock">
+        <label class="form-label" style="margin-bottom:6px"><i class="fa-solid fa-warehouse" style="color:var(--primary);margin-right:6px"></i> Stock general del producto</label>
+        <input type="number" class="form-input" id="f-stock" placeholder="10" min="0" style="max-width:220px">
+        <small style="display:block;margin-top:6px;color:var(--gray-400);font-size:11px">Se usa cuando el producto no tiene variantes. Si agregas variantes, el stock total se calcula sumando el inventario de cada talla.</small>
+      </div>
+      <div id="variantStockInfo" class="variant-stock-info" style="display:none"></div>
     </div>
 
     <div class="modal-footer">
@@ -743,6 +833,7 @@
 
 <script src="../js/data.js"></script>
 <script src="../js/auth.js"></script>
+<script src="../js/account.js"></script>
 <script src="dashboard.js"></script>
 <script src="finance.js"></script>
 </body>

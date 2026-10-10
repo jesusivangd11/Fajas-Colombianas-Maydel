@@ -5,6 +5,38 @@ const { quoteShipping } = require('../services/shipping');
 const mailer = require('../services/mailer');
 const telegram = require('../services/telegram');
 
+// Piezas mínimas de un mismo producto (sumando tallas/colores) para precio de mayoreo.
+const WHOLESALE_MIN = 6;
+
+// Ajusta el inventario de un ítem de pedido al cancelar (sign=+1, restaura) o
+// des-cancelar (sign=-1, vuelve a descontar). Si el producto lleva inventario por
+// talla, ajusta esa talla+color+opción y recalcula el stock total; si no, ajusta
+// el stock del producto. Debe llamarse dentro de una transacción con la fila
+// del producto ya bloqueable (usa FOR UPDATE).
+async function adjustProductStock(conn, item, sign) {
+  const [[prod]] = await conn.execute('SELECT id, name, stock, variants FROM products WHERE id = ? FOR UPDATE', [item.productId]);
+  if (!prod) return { ok: true }; // producto borrado: nada que ajustar
+  const qty = Math.max(0, Number(item.qty || 0));
+  const variants = Array.isArray(prod.variants) ? prod.variants : [];
+  const isTracked = variants.some(v => Array.isArray(v.sizes) && v.sizes.some(s => s && typeof s === 'object' && s.stock != null));
+  if (isTracked) {
+    const variant = variants.find(v => (v.color || '') === (item.color || '') && (v.option || '') === (item.option || ''));
+    const se = variant && Array.isArray(variant.sizes) ? variant.sizes.find(s => s && typeof s === 'object' && s.size === (item.size || '')) : null;
+    if (se && se.stock != null) {
+      if (sign < 0 && se.stock < qty) return { ok: false, name: prod.name };
+      se.stock = Math.max(0, se.stock + sign * qty);
+    }
+    let sum = 0;
+    for (const v of variants) for (const s of (v.sizes || [])) if (s && typeof s === 'object' && s.stock != null) sum += s.stock;
+    await conn.execute('UPDATE products SET variants = ?, stock = ? WHERE id = ?', [JSON.stringify(variants), sum, prod.id]);
+  } else {
+    const cur = Number(prod.stock) || 0;
+    if (sign < 0 && cur < qty) return { ok: false, name: prod.name };
+    await conn.execute('UPDATE products SET stock = ? WHERE id = ?', [Math.max(0, cur + sign * qty), prod.id]);
+  }
+  return { ok: true };
+}
+
 function parseOrder(row) {
   return {
     id:              row.id,
@@ -104,32 +136,87 @@ router.post('/', authenticate, async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // Bloquear filas de productos y verificar stock
-    let subtotal = 0;
-    const enriched = [];
+    // Total de piezas por producto (combinando tallas/colores) para el mayoreo.
+    const qtyByProduct = {};
     for (const it of items) {
+      const pid = it.productId;
+      qtyByProduct[pid] = (qtyByProduct[pid] || 0) + Math.max(1, Number(it.qty) || 1);
+    }
+
+    // Bloquear cada producto UNA vez y guardarlo en memoria. El inventario se
+    // descuenta sobre esta copia (por talla si la variante lo maneja, o del stock
+    // del producto si no) y al final se escribe de vuelta.
+    const prodMap = new Map();
+    for (const it of items) {
+      if (prodMap.has(it.productId)) continue;
       const [[prod]] = await conn.execute(
-        'SELECT id, name, price, stock, active FROM products WHERE id = ? FOR UPDATE',
+        'SELECT id, name, price, wholesale_price, stock, active, variants FROM products WHERE id = ? FOR UPDATE',
         [it.productId]
       );
       if (!prod) throw new Error(`Producto ${it.productId} no encontrado`);
       if (!prod.active) throw new Error(`"${prod.name}" ya no esta disponible`);
+      const variants = Array.isArray(prod.variants) ? prod.variants : [];
+      // ¿Este producto lleva inventario por talla? (alguna talla con stock numérico)
+      const isTracked = variants.some(v => Array.isArray(v.sizes) && v.sizes.some(s => s && typeof s === 'object' && s.stock != null));
+      prodMap.set(it.productId, { row: prod, variants, stock: Number(prod.stock) || 0, isTracked, changed: false });
+    }
+
+    let subtotal = 0;
+    const enriched = [];
+    for (const it of items) {
+      const entry = prodMap.get(it.productId);
+      const prod = entry.row;
       const qty = Math.max(1, Number(it.qty) || 1);
-      if (prod.stock < qty) throw new Error(`"${prod.name}" solo tiene ${prod.stock} en stock`);
+      const size = it.size || '', color = it.color || '', option = it.option || '';
+      const variant = entry.variants.find(v => (v.color || '') === color && (v.option || '') === option);
+
+      // Descontar inventario
+      if (entry.isTracked) {
+        const sizeEntry = variant && Array.isArray(variant.sizes)
+          ? variant.sizes.find(s => s && typeof s === 'object' && s.size === size)
+          : null;
+        if (!sizeEntry || sizeEntry.stock == null)
+          throw new Error(`La combinación de "${prod.name}"${color ? ' · ' + color : ''}${size ? ' talla ' + size : ''} ya no está disponible`);
+        if (sizeEntry.stock < qty)
+          throw new Error(`"${prod.name}"${color ? ' · ' + color : ''}${size ? ' talla ' + size : ''} solo tiene ${sizeEntry.stock} disponible(s)`);
+        sizeEntry.stock -= qty;
+        entry.changed = true;
+      } else {
+        if (entry.stock < qty) throw new Error(`"${prod.name}" solo tiene ${entry.stock} en stock`);
+        entry.stock -= qty;
+        entry.changed = true;
+      }
+
+      // Precio base de la VARIANTE (si tiene precio propio manda sobre el del producto).
+      const variantPrice = (variant && variant.price != null && Number(variant.price) > 0) ? Number(variant.price) : null;
+      const basePrice = variantPrice != null ? variantPrice : Number(prod.price);
+      // Precio de mayoreo si el producto lo maneja y se alcanzan 6+ piezas en total.
+      const totalForProduct = qtyByProduct[prod.id] || qty;
+      const isWholesale = prod.wholesale_price != null && Number(prod.wholesale_price) > 0 && totalForProduct >= WHOLESALE_MIN;
+      const unitPrice = isWholesale ? Number(prod.wholesale_price) : basePrice;
       enriched.push({
         productId: prod.id, productName: prod.name, qty,
-        price: Number(prod.price), size: it.size || '', color: it.color || ''
+        price: unitPrice, regularPrice: basePrice, wholesale: isWholesale,
+        size, color, option
       });
-      subtotal += Number(prod.price) * qty;
+      subtotal += unitPrice * qty;
     }
 
     // Cotizar envio en el servidor (no confiar en el cliente)
     const shipQ = quoteShipping(shippingState);
     const total = subtotal + shipQ.cost;
 
-    // Descontar stock
-    for (const it of enriched) {
-      await conn.execute('UPDATE products SET stock = stock - ? WHERE id = ?', [it.qty, it.productId]);
+    // Escribir de vuelta el inventario de cada producto.
+    for (const [pid, entry] of prodMap) {
+      if (!entry.changed) continue;
+      if (entry.isTracked) {
+        // Stock total = suma del inventario por talla (fuente de verdad: las variantes).
+        let sum = 0;
+        for (const v of entry.variants) for (const s of (v.sizes || [])) if (s && typeof s === 'object' && s.stock != null) sum += s.stock;
+        await conn.execute('UPDATE products SET variants = ?, stock = ? WHERE id = ?', [JSON.stringify(entry.variants), sum, pid]);
+      } else {
+        await conn.execute('UPDATE products SET stock = ? WHERE id = ?', [entry.stock, pid]);
+      }
     }
 
     const id = 'ORD-' + Date.now();
@@ -178,23 +265,18 @@ router.put('/:id/status', adminOnly, async (req, res) => {
     const [[prev]] = await conn.execute('SELECT * FROM orders WHERE id = ? FOR UPDATE', [req.params.id]);
     if (!prev) { await conn.rollback(); return res.status(404).json({ error: 'Pedido no encontrado' }); }
 
-    // Si se cancela un pedido no entregado, restaurar stock
+    // Si se cancela un pedido no entregado, restaurar stock (por talla si aplica)
     if (status === 'cancelled' && prev.status !== 'cancelled' && prev.status !== 'delivered') {
-      const items = prev.items || [];
-      for (const it of items) {
-        await conn.execute('UPDATE products SET stock = stock + ? WHERE id = ?', [Number(it.qty || 0), it.productId]);
-      }
+      for (const it of (prev.items || [])) await adjustProductStock(conn, it, +1);
     }
     // Si se "des-cancela" (raro), volver a descontar
     if (prev.status === 'cancelled' && status !== 'cancelled') {
-      const items = prev.items || [];
-      for (const it of items) {
-        const [[p]] = await conn.execute('SELECT stock FROM products WHERE id = ? FOR UPDATE', [it.productId]);
-        if (!p || p.stock < Number(it.qty || 0)) {
+      for (const it of (prev.items || [])) {
+        const r = await adjustProductStock(conn, it, -1);
+        if (!r.ok) {
           await conn.rollback();
           return res.status(400).json({ error: `Stock insuficiente para restaurar el pedido` });
         }
-        await conn.execute('UPDATE products SET stock = stock - ? WHERE id = ?', [Number(it.qty || 0), it.productId]);
       }
     }
 

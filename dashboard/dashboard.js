@@ -38,9 +38,11 @@ async function showPanel(name, btn) {
   else if (name === 'finance')    await loadFinance();
   else if (name === 'expenses')   await loadExpenseTable();
   else if (name === 'reviews')    loadReviewTable();
+  else if (name === 'testimonials') loadTestimonialPanel();
   else if (name === 'coupons')    loadCouponTable();
   else if (name === 'users')      loadUserPanel();
   else if (name === 'income')     loadIncomePanel();
+  else if (name === 'account')    await ACCOUNT.mount(document.getElementById('acctRoot'));
 }
 
 // ── TABS ──
@@ -117,17 +119,12 @@ async function populateCatFilter() {
   Object.entries(cats).forEach(([k, v]) => {
     sel.innerHTML += `<option value="${k}">${v.label}</option>`;
   });
-  const fCat = document.getElementById('f-category');
-  if (fCat) {
-    fCat.innerHTML = '<option value="">Seleccionar...</option>';
-    Object.entries(cats).forEach(([k, v]) => {
-      fCat.innerHTML += `<option value="${k}">${v.label}</option>`;
-    });
-  }
   const brands = await DB.getBrands();
   const fBrand = document.getElementById('f-brand');
   if (fBrand) {
-    fBrand.innerHTML = '<option value="">Sin marca</option>';
+    // La marca es obligatoria: es lo que alimenta el filtro de marcas de la
+    // tienda, así que ya no ofrecemos "Sin marca" como opción válida.
+    fBrand.innerHTML = '<option value="">Seleccionar...</option>';
     Object.entries(brands).forEach(([k, v]) => {
       fBrand.innerHTML += `<option value="${k}">${v.label}</option>`;
     });
@@ -142,7 +139,7 @@ async function loadProductTable() {
 
   let list = products;
   if (q) list = list.filter(p => p.name.toLowerCase().includes(q) || (p.reference || '').toLowerCase().includes(q));
-  if (cat) list = list.filter(p => p.category === cat);
+  if (cat) list = list.filter(p => (p.categories && p.categories.length ? p.categories : [p.category]).includes(cat));
   if (status === 'active')   list = list.filter(p => p.active !== false);
   if (status === 'inactive') list = list.filter(p => p.active === false);
 
@@ -153,7 +150,10 @@ async function loadProductTable() {
 
   tbody.innerHTML = list.map(p => {
     const img     = p.images?.[0];
-    const catInfo = cats[p.category] || {};
+    const prodCats = (p.categories && p.categories.length) ? p.categories : (p.category ? [p.category] : []);
+    // La primera categoría se muestra con su ícono; el resto como "+N".
+    const primaryCat = cats[prodCats[0]] || {};
+    const extraCats  = prodCats.length - 1;
     const isActive = p.active !== false;
     const hasDiscount = p.originalPrice && p.originalPrice > p.price;
     return `<tr>
@@ -166,7 +166,7 @@ async function loadProductTable() {
         ${p.reference ? `<div style="font-size:11px;color:var(--gray-400)">${p.reference}</div>` : ''}
         ${p.featured ? `<span class="badge" style="background:#fef9c3;color:#854d0e;margin-top:3px"><i class="fa-solid fa-star"></i> Destacado</span>` : ''}
       </td>
-      <td>${catInfo.icon ? `<i class="${catInfo.icon}" style="color:var(--primary);margin-right:5px"></i>` : ''}${catInfo.label || p.category || '–'}</td>
+      <td>${primaryCat.icon ? `<i class="${primaryCat.icon}" style="color:var(--primary);margin-right:5px"></i>` : ''}${primaryCat.label || prodCats[0] || '–'}${extraCats > 0 ? `<span class="badge" style="background:var(--gray-100);color:var(--gray-600);margin-left:6px" title="${prodCats.slice(1).map(k => cats[k]?.label || k).join(', ')}">+${extraCats}</span>` : ''}</td>
       <td>
         <div style="font-weight:700;color:var(--primary)">${formatPrice(p.price)}</div>
         ${hasDiscount ? `<div style="font-size:11px;color:var(--gray-400);text-decoration:line-through">${formatPrice(p.originalPrice)}</div>` : ''}
@@ -187,37 +187,59 @@ async function loadProductTable() {
 // ── PRODUCT MODAL ──
 let editingProductId = null;
 let currentImages = [];
-let currentVideo = '';
+// Enfoque por imagen: { urlImagen: "x% y%" }. Elige qué parte se ve al recortar.
+let currentImageFocus = {};
+// Varios videos por producto. Cada uno: { url, position }, donde position es el
+// nº de imágenes que van antes del video en la galería (0 = primero, null = al
+// final). Se arrastran junto a las imágenes en la misma tira.
+let currentVideos = [];
 let currentTags = [];
+let selectedCats = [];
 let selectedSizes = [];
 let selectedColors = [];
-const MAX_IMAGES = 6;
+// Variantes estructuradas del producto: [{ color, option, sizes:[{size,stock}], price }].
+// Vacío = el producto no usa variantes (stock/tallas planos).
+let currentVariants = [];
+// Estado del constructor de variantes (el formulario de arriba en la pestaña).
+let vSelColor = '';        // color elegido para la variante en construcción
+let vSizeStock = {};       // { talla: cantidad } de la variante en construcción
+let vOptions = [''];       // valores de opción (con tirantes, largo…); 1+ inputs
+let vEditIndex = null;     // índice que se está editando (null = variante nueva)
+const MAX_IMAGES = 12;
+const MAX_VIDEOS = 6;
+// La mayoría de los videos van en segunda posición, así que ahí caen por defecto.
+const DEFAULT_VIDEO_POS = 1;
 
 async function openProductModal(id) {
   editingProductId = id || null;
-  currentImages = []; currentVideo = ''; currentTags = []; selectedSizes = []; selectedColors = [];
+  currentImages = []; currentVideos = []; currentImageFocus = {};
+  currentTags = []; selectedCats = []; selectedSizes = []; selectedColors = [];
+  currentVariants = []; resetVariantBuilder();
 
   document.getElementById('productModalTitle').textContent = id ? 'Editar Producto' : 'Nuevo Producto';
-  ['f-name','f-reference','f-price','f-original-price','f-stock','f-material','f-desc'].forEach(f => document.getElementById(f).value = '');
-  document.getElementById('f-category').value = '';
+  ['f-name','f-reference','f-price','f-original-price','f-wholesale-price','f-stock','f-material','f-desc'].forEach(f => document.getElementById(f).value = '');
   const fBrandEl = document.getElementById('f-brand'); if (fBrandEl) fBrandEl.value = '';
   document.getElementById('f-active').checked = true;
   document.getElementById('f-featured').checked = false;
   document.getElementById('f-isnew').checked = false;
 
   switchTab('info', document.querySelector('.tab-btn'));
-  renderTagsInput(); renderImagePreviews(); renderVideoPreview(); renderSizeCheckboxes(); renderColorSwatches(); renderSelectedColors();
+  renderTagsInput(); renderImagePreviews(); renderVideoPreview();
+  renderVariantBuilder(); renderVariantList();
   await populateCatFilter();
+  renderCatCheckboxes();
 
   if (id) {
     const p = await DB.getProduct(id);
     if (!p) return;
     document.getElementById('f-name').value          = p.name || '';
-    document.getElementById('f-category').value      = p.category || '';
+    selectedCats = (p.categories && p.categories.length) ? [...p.categories] : (p.category ? [p.category] : []);
+    renderCatCheckboxes();
     const fBrandSet = document.getElementById('f-brand'); if (fBrandSet) fBrandSet.value = p.brand || '';
     document.getElementById('f-reference').value     = p.reference || '';
     document.getElementById('f-price').value         = p.price || '';
     document.getElementById('f-original-price').value= p.originalPrice || '';
+    document.getElementById('f-wholesale-price').value = p.wholesalePrice || '';
     document.getElementById('f-stock').value         = p.stock ?? '';
     document.getElementById('f-material').value      = p.material || '';
     document.getElementById('f-desc').value          = p.description || '';
@@ -225,11 +247,21 @@ async function openProductModal(id) {
     document.getElementById('f-featured').checked    = !!p.featured;
     document.getElementById('f-isnew').checked       = !!p.isNew;
     currentImages  = [...(p.images  || [])];
-    currentVideo   = p.video || '';
+    currentImageFocus = (p.imageFocus && typeof p.imageFocus === 'object') ? { ...p.imageFocus } : {};
+    currentVideos  = (Array.isArray(p.videos) && p.videos.length)
+      ? p.videos.map(v => ({ url: v.url, position: v.position == null ? null : Number(v.position) }))
+      : (p.video ? [{ url: p.video, position: p.videoPosition ?? null }] : []);
     currentTags    = [...(p.tags    || [])];
     selectedSizes  = [...(p.sizes   || [])];
     selectedColors = [...(p.colors  || [])];
-    renderTagsInput(); renderImagePreviews(); renderVideoPreview(); renderSizeCheckboxes(); renderColorSwatches(); renderSelectedColors();
+    currentVariants = Array.isArray(p.variants)
+      ? p.variants.map(v => ({ color: v.color || '', option: v.option || '', sizes: [...(v.sizes || [])], price: v.price != null ? Number(v.price) : null }))
+      : [];
+    // selectedSizes / selectedColors se conservan aunque ya no haya UI de "modo
+    // simple": así los productos antiguos (con tallas/colores planos y sin
+    // variantes) no pierden esos datos al guardarse.
+    renderTagsInput(); renderImagePreviews(); renderVideoPreview();
+    renderVariantBuilder(); renderVariantList();
   }
 
   document.getElementById('productModal').classList.remove('hidden');
@@ -239,18 +271,24 @@ function closeProductModal() { document.getElementById('productModal').classList
 
 async function saveProduct() {
   const name     = document.getElementById('f-name').value.trim();
-  const category = document.getElementById('f-category').value;
+  const brand    = document.getElementById('f-brand')?.value || '';
   const price    = Number(document.getElementById('f-price').value);
 
   if (!name)            { showToast('El nombre es obligatorio', 'error');    switchTab('info', document.querySelector('.tab-btn')); return; }
-  if (!category)        { showToast('Selecciona una categoría', 'error');    switchTab('info', document.querySelector('.tab-btn')); return; }
-  if (!price || price <= 0){ showToast('Ingresa un precio válido', 'error'); switchTab('info', document.querySelector('.tab-btn')); return; }
+  if (!selectedCats.length){ showToast('Selecciona al menos una categoría', 'error'); switchTab('info', document.querySelector('.tab-btn')); return; }
+  // Sin marca el producto no aparece en el filtro de marcas de la tienda.
+  if (!brand)           { showToast('Selecciona una marca', 'error');        switchTab('info', document.querySelector('.tab-btn')); return; }
+  // El precio ahora vive en la pestaña "Precios e Inventario" (3er tab).
+  if (!price || price <= 0){ showToast('Ingresa un precio válido', 'error'); switchTab('variants', document.querySelectorAll('.tab-btn')[2]); return; }
 
   const data = {
-    name, category, price,
-    brand:         document.getElementById('f-brand')?.value || '',
+    name, price, brand,
+    // La primera categoría elegida es la principal; se envían todas.
+    category:   selectedCats[0],
+    categories: [...selectedCats],
     reference:     document.getElementById('f-reference').value.trim(),
     originalPrice: Number(document.getElementById('f-original-price').value) || null,
+    wholesalePrice: Number(document.getElementById('f-wholesale-price').value) || null,
     stock:         Number(document.getElementById('f-stock').value) || 0,
     material:      document.getElementById('f-material').value.trim(),
     description:   document.getElementById('f-desc').value.trim(),
@@ -258,10 +296,14 @@ async function saveProduct() {
     featured:      document.getElementById('f-featured').checked,
     isNew:         document.getElementById('f-isnew').checked,
     images:        [...currentImages],
-    video:         currentVideo,
+    imageFocus:    { ...currentImageFocus },
+    videos:        currentVideos.map(v => ({ url: v.url, position: v.position })),
     tags:          [...currentTags],
     sizes:         [...selectedSizes],
     colors:        [...selectedColors],
+    // Variantes: si hay al menos una, el servidor deriva de ellas las tallas/colores
+    // planos; si no, se queda con el modo simple de arriba.
+    variants:      currentVariants.map(v => ({ color: v.color, option: v.option, sizes: [...v.sizes], price: v.price })),
   };
 
   try {
@@ -307,32 +349,331 @@ async function handleFileUpload(input) {
   input.value = '';
 }
 
-function removeImage(i) { currentImages.splice(i, 1); renderImagePreviews(); }
+function removeImage(i) {
+  const removedUrl = currentImages[i];
+  currentImages.splice(i, 1);
+  if (removedUrl) delete currentImageFocus[removedUrl];   // su enfoque ya no aplica
+  // Los videos que iban después de esa imagen pierden un hueco por delante;
+  // luego se recorta cualquier posición que se salga de la galería.
+  currentVideos.forEach(v => {
+    if (v.position != null && v.position > i) v.position -= 1;
+    if (v.position != null) v.position = Math.min(v.position, currentImages.length);
+  });
+  renderImagePreviews();
+}
 
+// ── EDITOR DE ENFOQUE (qué parte de la imagen se ve al recortar) ──────────────
+// Solo el admin lo usa. Haces clic/arrastras sobre la foto para elegir el punto
+// que debe quedar centrado; se guarda como object-position ("x% y%") y se aplica
+// en la tienda donde la foto se recorta (destacados, nuevos ingresos, miniaturas).
+function openFocusEditor(index) {
+  const url = currentImages[index];
+  if (!url) return;
+  if (document.querySelector('.focus-editor')) return;
+
+  let x = 50, y = 50;
+  const cur = currentImageFocus[url];
+  if (typeof cur === 'string') { const m = cur.match(/^(\d{1,3})% (\d{1,3})%$/); if (m) { x = +m[1]; y = +m[2]; } }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'focus-editor';
+  overlay.innerHTML = `
+    <div class="fe-card" role="dialog" aria-modal="true" aria-label="Enfoque de la imagen">
+      <div class="fe-head">
+        <h3><i class="fa-solid fa-crop-simple"></i> Enfoque de la imagen</h3>
+        <button class="fe-x fe-cancel" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="fe-hint">Toca o arrastra sobre la foto para elegir qué parte queda a la vista cuando se recorta. Apunta a la <b>prenda</b> (no a la cara): la mayoría de las clientas entran desde el celular, donde la foto se recorta en cuadrado.</p>
+      <div class="fe-body">
+        <div class="fe-pick">
+          <div class="fe-imgwrap">
+            <img class="fe-img" src="${esc(url)}" draggable="false" alt="">
+            <span class="fe-dot"></span>
+          </div>
+        </div>
+        <div class="fe-previews">
+          <div class="fe-prev-group">
+            <span class="fe-prev-label">Nuevos ingresos / miniaturas</span>
+            <div class="fe-prev fe-prev-tall"><img src="${esc(url)}" alt=""></div>
+          </div>
+          <div class="fe-prev-group">
+            <span class="fe-prev-label">Destacado (celular y escritorio)</span>
+            <div class="fe-prev fe-prev-wide"><img src="${esc(url)}" alt=""></div>
+          </div>
+          <div class="fe-coord">Enfoque: <b class="fe-val"></b></div>
+        </div>
+      </div>
+      <div class="fe-foot">
+        <button class="fe-btn fe-reset"><i class="fa-solid fa-arrows-to-dot"></i> Restablecer</button>
+        <span class="fe-spacer"></span>
+        <button class="fe-btn fe-cancel">Cancelar</button>
+        <button class="fe-btn fe-save primary"><i class="fa-solid fa-check"></i> Guardar enfoque</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => overlay.classList.add('open'));
+
+  const imgwrap = overlay.querySelector('.fe-imgwrap');
+  const pickImg = overlay.querySelector('.fe-img');
+  const dot     = overlay.querySelector('.fe-dot');
+  const val     = overlay.querySelector('.fe-val');
+  const prevs   = [...overlay.querySelectorAll('.fe-prev img')];
+
+  function apply() {
+    const pos = `${x}% ${y}%`;
+    dot.style.left = x + '%';
+    dot.style.top  = y + '%';
+    prevs.forEach(p => { p.style.objectPosition = pos; });
+    val.textContent = pos;
+  }
+  function setFromEvent(e) {
+    const r = pickImg.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    x = Math.round(Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width)  * 100)));
+    y = Math.round(Math.min(100, Math.max(0, ((e.clientY - r.top)  / r.height) * 100)));
+    apply();
+  }
+  let dragging = false;
+  imgwrap.addEventListener('pointerdown', e => { dragging = true; imgwrap.setPointerCapture(e.pointerId); setFromEvent(e); });
+  imgwrap.addEventListener('pointermove', e => { if (dragging) setFromEvent(e); });
+  imgwrap.addEventListener('pointerup',   () => { dragging = false; });
+
+  const close = () => {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKey);
+    setTimeout(() => overlay.remove(), 200);
+  };
+  const onKey = ev => { if (ev.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelectorAll('.fe-cancel').forEach(b => b.addEventListener('click', close));
+  overlay.querySelector('.fe-reset').addEventListener('click', () => {
+    delete currentImageFocus[url];           // vuelve al enfoque por defecto del sitio
+    renderImagePreviews();
+    close();
+  });
+  overlay.querySelector('.fe-save').addEventListener('click', () => {
+    currentImageFocus[url] = `${x}% ${y}%`;
+    renderImagePreviews();
+    close();
+  });
+
+  // La imagen puede tardar en cargar; recalculamos al terminar por si acaso.
+  if (pickImg.complete) apply(); else pickImg.addEventListener('load', apply, { once: true });
+  apply();
+}
+
+// Construye la tira (= galería tal como la verá la clienta): imágenes con los
+// videos intercalados en su hueco. Devuelve descriptores en orden de aparición.
+// Un video con position null (o fuera de rango) cae al final.
+function buildStrip() {
+  const n = currentImages.length;
+  const strip = [];
+  for (let s = 0; s <= n; s++) {
+    currentVideos.forEach((v, vi) => {
+      const pos = v.position == null ? n : Math.max(0, Math.min(v.position, n));
+      if (pos === s) strip.push({ kind: 'video', vi });
+    });
+    if (s < n) strip.push({ kind: 'img', i: s });
+  }
+  return strip;
+}
+
+// Todo se arrastra, incluidos los videos. data-i / data-vi guardan el índice
+// ORIGINAL de cada imagen/video: al soltar reconstruimos el orden leyendo el
+// DOM (ver commitImageOrder).
 function renderImagePreviews() {
   const c = document.getElementById('imgPreview');
   const counter = document.getElementById('imgCount');
   if (counter) counter.textContent = `(${currentImages.length}/${MAX_IMAGES})`;
-  if (!currentImages.length) { c.innerHTML = '<span style="color:var(--gray-400);font-size:13px">Sin imágenes.</span>'; return; }
-  c.innerHTML = currentImages.map((src, i) => `
-    <div class="img-preview-item">
-      <img src="${src}" alt="">
-      ${i === 0 ? `<div class="img-label">Principal</div>` : ''}
-      <button class="img-remove" onclick="removeImage(${i})"><i class="fa-solid fa-xmark"></i></button>
-    </div>`).join('');
+
+  if (!currentImages.length && !currentVideos.length) {
+    c.innerHTML = '<span style="color:var(--gray-400);font-size:13px">Sin imágenes.</span>';
+    return;
+  }
+
+  c.innerHTML = buildStrip().map(item => {
+    if (item.kind === 'img') {
+      const src = currentImages[item.i];
+      const focus = currentImageFocus[src];
+      const focusStyle = (typeof focus === 'string' && /^\d{1,3}% \d{1,3}%$/.test(focus)) ? ` style="object-position:${focus}"` : '';
+      const hasFocus = !!focusStyle;
+      return `
+    <div class="img-preview-item" data-kind="img" data-i="${item.i}" title="Arrastra para cambiar el orden">
+      <img src="${src}" alt="" draggable="false"${focusStyle}>
+      <div class="img-label">Principal</div>
+      <button class="img-focus${hasFocus ? ' is-set' : ''}" title="Elegir qué parte se ve (enfoque)" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();openFocusEditor(${item.i})"><i class="fa-solid fa-crop-simple"></i></button>
+      <button class="img-remove" onpointerdown="event.stopPropagation()" onclick="removeImage(${item.i})"><i class="fa-solid fa-xmark"></i></button>
+    </div>`;
+    }
+    const v = currentVideos[item.vi];
+    return `
+    <div class="img-preview-item is-video" data-kind="video" data-vi="${item.vi}" title="Arrastra el video a donde quieras">
+      <video src="${v.url}#t=0.1" muted playsinline preload="metadata"></video>
+      <span class="video-play"><i class="fa-solid fa-circle-play"></i></span>
+      <div class="img-label">Principal</div>
+      <button class="img-remove" onclick="removeVideo(${item.vi})"><i class="fa-solid fa-xmark"></i></button>
+    </div>`;
+  }).join('');
+}
+
+/* ── REORDENAR IMÁGENES ARRASTRÁNDOLAS ────────────────────────────────────────
+   Con Pointer Events (no con el drag&drop nativo de HTML5) para que funcione
+   igual con el ratón que con el dedo: el nativo no dispara nada en móvil.
+
+   Se arrastra un CLON flotante ("fantasma") que sigue al cursor en coordenadas
+   de pantalla, mientras la miniatura real se queda en el flujo como hueco y va
+   saltando de posición. Es importante que el fantasma sea independiente: si en
+   vez de eso movemos la propia miniatura con un transform, cada reinserción
+   obliga a reajustar su punto de origen y el arrastre se rompe (la última no
+   llegaba nunca a la primera posición).
+
+   La primera imagen es la principal, así que traer una al frente es lo que la
+   convierte en portada.                                                        */
+let imgDrag = null;
+
+function initImageSort() {
+  const c = document.getElementById('imgPreview');
+  if (!c) return;
+  // Delegado en el contenedor: sobrevive a los renderImagePreviews().
+  c.addEventListener('pointerdown', e => {
+    const item = e.target.closest('.img-preview-item');
+    if (!item || e.target.closest('.img-remove')) return; // la X sigue siendo un botón
+    if (e.button > 0) return;                             // solo el botón izquierdo
+    // Con un solo elemento en la tira no hay nada que reordenar. Cuenta el
+    // video, que también se arrastra: 1 imagen + 1 video ya son reordenables.
+    if (c.querySelectorAll('.img-preview-item').length < 2) return;
+
+    e.preventDefault(); // evita la selección de texto y el arrastre nativo del navegador
+    imgDrag = {
+      item, container: c, pointerId: e.pointerId,
+      startX: e.clientX, startY: e.clientY,
+      ghost: null, moved: false,
+    };
+
+    // Los listeners van en DOCUMENT, no en la miniatura. Y sin setPointerCapture:
+    // insertBefore() saca el nodo del documento y lo vuelve a meter, y sacarlo
+    // LIBERA su captura de puntero. Si escucháramos en la miniatura, en cuanto
+    // cambiara de hueco dejaría de recibir pointermove/pointerup y el arrastre
+    // moriría a medias (era justo lo que impedía llevar la última al frente).
+    document.addEventListener('pointermove',   onImageDragMove);
+    document.addEventListener('pointerup',     endImageDrag);
+    document.addEventListener('pointercancel', endImageDrag);
+  });
+}
+
+// Despega la miniatura: crea el fantasma sobre ella y deja el hueco marcado.
+function liftImage(d) {
+  const r = d.item.getBoundingClientRect();
+  const ghost = d.item.cloneNode(true);
+  ghost.classList.add('img-ghost');
+  ghost.removeAttribute('data-i');
+  ghost.style.left   = `${r.left}px`;
+  ghost.style.top    = `${r.top}px`;
+  ghost.style.width  = `${r.width}px`;
+  ghost.style.height = `${r.height}px`;
+  document.body.appendChild(ghost);
+
+  d.ghost = ghost;
+  d.item.classList.add('is-placeholder');
+}
+
+function onImageDragMove(e) {
+  if (!imgDrag || e.pointerId !== imgDrag.pointerId) return;
+  const dx = e.clientX - imgDrag.startX;
+  const dy = e.clientY - imgDrag.startY;
+
+  // Umbral: un clic con el pulso tembloroso no debe contar como arrastre.
+  if (!imgDrag.moved) {
+    if (Math.hypot(dx, dy) < 6) return;
+    imgDrag.moved = true;
+    liftImage(imgDrag);
+  }
+
+  // El fantasma sigue al cursor. Nada que reanclar: siempre desde el mismo origen.
+  imgDrag.ghost.style.transform = `translate(${dx}px, ${dy}px)`;
+
+  // El fantasma lleva pointer-events:none, así que esto devuelve la miniatura
+  // que hay debajo del cursor, no el propio fantasma.
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const over  = under && under.closest ? under.closest('.img-preview-item') : null;
+  if (!over || over === imgDrag.item || over.parentElement !== imgDrag.container) return;
+
+  // ¿El hueco va antes o después? Según de qué lado del centro voy pasando.
+  const r = over.getBoundingClientRect();
+  const after = e.clientX > r.left + r.width / 2;
+  imgDrag.container.insertBefore(imgDrag.item, after ? over.nextSibling : over);
+}
+
+function endImageDrag(e) {
+  if (!imgDrag || e.pointerId !== imgDrag.pointerId) return;
+  const { item, ghost, container, moved } = imgDrag;
+
+  document.removeEventListener('pointermove',   onImageDragMove);
+  document.removeEventListener('pointerup',     endImageDrag);
+  document.removeEventListener('pointercancel', endImageDrag);
+  if (ghost) ghost.remove();
+  item.classList.remove('is-placeholder');
+  imgDrag = null;
+
+  if (!moved) return; // fue un clic, no un arrastre: no toques nada
+  commitImageOrder(container);
+}
+
+// El DOM ya quedó en el orden nuevo; de ahí sacamos el orden de las imágenes y,
+// para cada video, su nueva posición (= nº de imágenes que quedaron antes de él).
+function commitImageOrder(container) {
+  const nodos = [...container.querySelectorAll('.img-preview-item')];
+
+  const newImages = nodos
+    .filter(el => el.dataset.kind === 'img')
+    .map(el => currentImages[Number(el.dataset.i)]);
+
+  const newVideos = [];
+  let imgsBefore = 0;
+  for (const el of nodos) {
+    if (el.dataset.kind === 'img') { imgsBefore++; continue; }
+    const v = currentVideos[Number(el.dataset.vi)];
+    if (v) newVideos.push({ url: v.url, position: imgsBefore });
+  }
+
+  currentImages = newImages;
+  currentVideos = newVideos;
+
+  renderImagePreviews(); // re-numera los data-i/data-vi y mueve la etiqueta "Principal"
 }
 
 // ── VIDEO HANDLING ──
-function addVideoUrl() {
-  const url = document.getElementById('videoUrlInput').value.trim();
-  if (!url) return;
-  currentVideo = url;
-  document.getElementById('videoUrlInput').value = '';
+// Un video recién puesto aterriza en segunda posición (lo habitual). Si el
+// producto tiene menos imágenes que eso, cae al final. Luego se arrastra.
+function addVideo(url) {
+  if (!url) return false;
+  if (currentVideos.length >= MAX_VIDEOS) {
+    showToast(`Máximo ${MAX_VIDEOS} videos por producto`, 'error');
+    return false;
+  }
+  currentVideos.push({ url, position: Math.min(DEFAULT_VIDEO_POS, currentImages.length) });
+  renderImagePreviews();
   renderVideoPreview();
+  return true;
+}
+
+function addVideoUrl() {
+  const input = document.getElementById('videoUrlInput');
+  const url = input.value.trim();
+  if (!url) return;
+  if (addVideo(url)) input.value = '';
 }
 
 async function handleVideoUpload(input) {
   if (!input.files?.length) return;
+  if (currentVideos.length >= MAX_VIDEOS) {
+    showToast(`Máximo ${MAX_VIDEOS} videos por producto`, 'error');
+    input.value = '';
+    return;
+  }
   const formData = new FormData();
   formData.append('video', input.files[0]);
   showToast('Subiendo video...');
@@ -340,26 +681,37 @@ async function handleVideoUpload(input) {
     const res  = await fetch('/api/upload/video', { method: 'POST', credentials: 'include', body: formData });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Error al subir el video', 'error'); return; }
-    currentVideo = data.url;
-    renderVideoPreview();
-    showToast('Video agregado');
+    addVideo(data.url);
+    // El servidor mira si el archivo trae pista de audio. Si viene mudo de
+    // origen no hay reproductor que lo arregle, así que avisamos ahora.
+    if (data.hasAudio === false) {
+      showToast('Ojo: este video NO tiene pista de audio. Se verá pero no se oirá.', 'error');
+    } else {
+      showToast('Video agregado');
+    }
   } catch {
     showToast('Error al subir el video', 'error');
   }
   input.value = '';
 }
 
-function removeVideo() { currentVideo = ''; renderVideoPreview(); }
+function removeVideo(vi) {
+  currentVideos.splice(vi, 1);
+  renderImagePreviews();
+  renderVideoPreview();
+}
 
 function renderVideoPreview() {
   const c = document.getElementById('videoPreview');
   if (!c) return;
-  if (!currentVideo) { c.innerHTML = '<span style="color:var(--gray-400);font-size:13px">Sin video.</span>'; return; }
-  c.innerHTML = `
-    <div class="img-preview-item" style="width:100%;max-width:320px;position:relative">
-      <video src="${currentVideo}" controls style="width:100%;border-radius:8px;display:block"></video>
-      <button class="img-remove" onclick="removeVideo()"><i class="fa-solid fa-xmark"></i></button>
-    </div>`;
+  const counter = document.getElementById('vidCount');
+  if (counter) counter.textContent = `(${currentVideos.length}/${MAX_VIDEOS})`;
+  if (!currentVideos.length) { c.innerHTML = '<span style="color:var(--gray-400);font-size:13px">Sin videos.</span>'; return; }
+  c.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:12px">' + currentVideos.map((v, vi) => `
+    <div class="img-preview-item" style="width:220px;max-width:100%;position:relative">
+      <video src="${v.url}" controls style="width:100%;border-radius:8px;display:block"></video>
+      <button class="img-remove" onclick="removeVideo(${vi})"><i class="fa-solid fa-xmark"></i></button>
+    </div>`).join('') + '</div>';
 }
 
 // ── TAGS ──
@@ -377,6 +729,8 @@ function renderTagsInput() {
 function removeTag(i) { currentTags.splice(i, 1); renderTagsInput(); }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initImageSort();
+
   const tagField = document.getElementById('tagField');
   if (tagField) {
     tagField.addEventListener('keydown', e => {
@@ -399,7 +753,39 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  // Talla personalizada del constructor de variantes.
+  const vSize = document.getElementById('vSizeCustom');
+  if (vSize) {
+    vSize.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = vSize.value.trim().toUpperCase();
+        if (val && !Object.prototype.hasOwnProperty.call(vSizeStock, val)) { vSizeStock[val] = 1; renderVSizeGrid(); }
+        vSize.value = '';
+      }
+    });
+  }
 });
+
+// ── CATEGORÍAS (multi-selección) ──
+// Un producto puede tener varias categorías; la primera elegida es la principal.
+function renderCatCheckboxes() {
+  const c = document.getElementById('catCheckboxes');
+  if (!c) return;
+  const cats = DB.getCats();
+  const entries = Object.entries(cats);
+  if (!entries.length) { c.innerHTML = '<span style="font-size:12px;color:var(--gray-400)">Crea categorías primero en la pestaña Categorías.</span>'; return; }
+  c.innerHTML = entries.map(([key, cat]) => {
+    const on = selectedCats.includes(key);
+    return `<button type="button" class="size-btn${on ? ' active' : ''}" data-cat="${key}" onclick="toggleCat('${key}', this)">
+      ${cat.icon ? `<i class="${cat.icon}" style="margin-right:5px"></i>` : ''}${cat.label}</button>`;
+  }).join('');
+}
+function toggleCat(key, btn) {
+  const i = selectedCats.indexOf(key);
+  if (i === -1) selectedCats.push(key); else selectedCats.splice(i, 1);
+  btn.classList.toggle('active');
+}
 
 // ── SIZES ──
 function renderSizeCheckboxes() {
@@ -445,6 +831,215 @@ function renderSelectedColors() {
 }
 function removeColor(i) { selectedColors.splice(i, 1); renderColorSwatches(); renderSelectedColors(); }
 
+// ── VARIANTES E INVENTARIO (color → tallas con stock + opciones + precio) ─────
+// Constructor: color, opciones (varias), precio propio y qué tallas hay con cuántas
+// piezas de cada una. "Agregar" la mete a la lista; editar la recarga al formulario.
+
+function renderVariantBuilder() {
+  // Colores: los estándar + cualquiera ya usado en variantes.
+  const usados = [...new Set(currentVariants.map(v => v.color).filter(Boolean))];
+  const paleta = [...Object.keys(COLOR_MAP), ...usados.filter(c => !(c in COLOR_MAP))];
+  const sw = document.getElementById('vColorSwatches');
+  if (sw) {
+    sw.innerHTML = paleta.map(name => {
+      const on = vSelColor === name;
+      return `<button type="button" title="${esc(name)}" onclick="vPickColor('${esc(name).replace(/'/g,"\\'")}')" style="width:30px;height:30px;border-radius:50%;background:${COLOR_MAP[name] || '#999'};cursor:pointer;outline:2.5px solid ${on ? 'var(--primary)' : 'transparent'};outline-offset:2px;border:3px solid white;transition:outline .2s"></button>`;
+    }).join('');
+  }
+  const chosen = document.getElementById('vColorChosen');
+  if (chosen) chosen.innerHTML = vSelColor
+    ? `Color: <b>${esc(vSelColor)}</b>`
+    : '<span style="color:var(--gray-400)">Sin color (variante solo de talla u opción)</span>';
+  renderVOptions();
+  renderVSizeGrid();
+}
+
+// Inputs de opciones (varias). Cada uno actualiza vOptions en vivo; el botón − lo quita.
+function renderVOptions() {
+  const box = document.getElementById('vOptionList');
+  if (!box) return;
+  if (!vOptions.length) vOptions = [''];
+  box.innerHTML = vOptions.map((val, i) => `
+    <div class="vb-opt-row">
+      <input type="text" class="form-input" placeholder="Ej. Con tirantes / Largo" value="${esc(val)}" oninput="vOptions[${i}]=this.value">
+      ${vOptions.length > 1 ? `<button type="button" class="vb-opt-del" title="Quitar opción" onclick="vRemoveOptionField(${i})"><i class="fa-solid fa-xmark"></i></button>` : ''}
+    </div>`).join('');
+}
+function vAddOptionField() { vSyncOptions(); vOptions.push(''); renderVOptions(); }
+function vRemoveOptionField(i) { vSyncOptions(); vOptions.splice(i, 1); if (!vOptions.length) vOptions = ['']; renderVOptions(); }
+// Lee los valores actuales de los inputs al DOM → vOptions (por si se re-renderiza).
+function vSyncOptions() {
+  const inputs = document.querySelectorAll('#vOptionList .vb-opt-row input');
+  if (inputs.length) vOptions = [...inputs].map(inp => inp.value);
+}
+
+// Rejilla de tallas con su inventario. Marcar una talla la pone "on" con 1 pz por
+// defecto; el número ajusta el stock (0 = agotada pero se sigue ofreciendo/mostrando).
+function renderVSizeGrid() {
+  const grid = document.getElementById('vSizeGrid');
+  if (!grid) return;
+  const extra = Object.keys(vSizeStock).filter(s => !STANDARD_SIZES.includes(s));
+  const all = [...STANDARD_SIZES, ...extra];
+  grid.innerHTML = all.map(s => {
+    const on = Object.prototype.hasOwnProperty.call(vSizeStock, s);
+    const qty = on ? vSizeStock[s] : '';
+    const sc = esc(s).replace(/'/g, "\\'");
+    return `<div class="vsize-cell ${on ? 'on' : ''}">
+      <button type="button" class="vsz-toggle" onclick="vToggleSize('${sc}')">${esc(s)}</button>
+      <input type="number" class="vsz-qty" min="0" value="${qty}" ${on ? '' : 'disabled'} onclick="event.stopPropagation()" oninput="vSetSizeStock('${sc}', this.value)">
+      <span class="vsz-unit">pz</span>
+    </div>`;
+  }).join('');
+}
+
+function vPickColor(name) {
+  vSelColor = (vSelColor === name) ? '' : name;
+  renderVariantBuilder();
+}
+function vAddCustomColor() {
+  const input = document.getElementById('vColorCustom');
+  const val = (input.value || '').trim();
+  if (val) { vSelColor = val; input.value = ''; renderVariantBuilder(); }
+}
+function vToggleSize(size) {
+  if (Object.prototype.hasOwnProperty.call(vSizeStock, size)) delete vSizeStock[size];
+  else vSizeStock[size] = 1;
+  renderVSizeGrid();
+}
+function vSetSizeStock(size, val) {
+  if (!Object.prototype.hasOwnProperty.call(vSizeStock, size)) return;
+  vSizeStock[size] = Math.max(0, Math.floor(Number(val) || 0));
+}
+
+function addVariant() {
+  vSyncOptions();
+  const color  = vSelColor.trim();
+  const option = vOptions.map(o => (o || '').trim()).filter(Boolean).join(' · ');
+  const priceRaw = document.getElementById('vPrice').value;
+  const price  = priceRaw !== '' && Number(priceRaw) > 0 ? Number(priceRaw) : null;
+  const sizes  = Object.keys(vSizeStock).map(size => ({ size, stock: Math.max(0, Math.floor(Number(vSizeStock[size]) || 0)) }));
+  if (!color && !option && !sizes.length) {
+    showToast('La variante necesita al menos un color, una opción o tallas', 'error');
+    return;
+  }
+  // Evitar duplicar la misma combinación color+opción (salvo que se esté editando esa).
+  const dupe = currentVariants.findIndex(v => (v.color||'') === color && (v.option||'') === option);
+  if (dupe !== -1 && dupe !== vEditIndex) {
+    showToast('Ya existe una variante con ese color y opciones', 'error');
+    return;
+  }
+  const variant = { color, option, sizes, price };
+  if (vEditIndex != null) currentVariants[vEditIndex] = variant;
+  else                    currentVariants.push(variant);
+  resetVariantBuilder();
+  renderVariantList();
+}
+
+function editVariant(i) {
+  const v = currentVariants[i]; if (!v) return;
+  vEditIndex = i;
+  vSelColor = v.color || '';
+  vOptions = v.option ? String(v.option).split(' · ') : [''];
+  vSizeStock = {};
+  (v.sizes || []).forEach(s => {
+    const name = (s && typeof s === 'object') ? s.size : s;
+    const stock = (s && typeof s === 'object' && s.stock != null) ? s.stock : 0;
+    if (name) vSizeStock[name] = stock;
+  });
+  document.getElementById('vPrice').value  = v.price != null ? v.price : '';
+  document.getElementById('vbTitle').innerHTML = '<i class="fa-solid fa-pen"></i> Editar variante';
+  document.getElementById('vAddBtn').innerHTML = '<i class="fa-solid fa-check"></i> Guardar cambios';
+  document.getElementById('vCancelBtn').style.display = '';
+  renderVariantBuilder();
+  document.getElementById('variantBuilder').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Pide confirmación antes de quitar la variante (reutiliza el modal de confirmación
+// del dashboard, que se pinta encima del modal de producto por estar después en el DOM).
+function confirmRemoveVariant(i) {
+  const v = currentVariants[i]; if (!v) return;
+  const label = [v.color || 'Sin color', v.option].filter(Boolean).join(' · ');
+  document.getElementById('confirmMsg').textContent = `¿Eliminar la variante "${label}"? Esta acción no elimina el producto, solo esta variante.`;
+  document.getElementById('confirmModal').classList.remove('hidden');
+  document.getElementById('confirmDeleteBtn').onclick = () => { removeVariant(i); closeConfirm(); };
+}
+
+function removeVariant(i) {
+  currentVariants.splice(i, 1);
+  if (vEditIndex === i) resetVariantBuilder();
+  else if (vEditIndex != null && i < vEditIndex) vEditIndex -= 1;
+  renderVariantList();
+}
+
+function resetVariantBuilder() {
+  vSelColor = ''; vSizeStock = {}; vOptions = ['']; vEditIndex = null;
+  const pr = document.getElementById('vPrice');    if (pr) pr.value = '';
+  const t  = document.getElementById('vbTitle');   if (t)  t.innerHTML = '<i class="fa-solid fa-plus-circle"></i> Nueva variante';
+  const ab = document.getElementById('vAddBtn');   if (ab) ab.innerHTML = '<i class="fa-solid fa-plus"></i> Agregar variante';
+  const cb = document.getElementById('vCancelBtn');if (cb) cb.style.display = 'none';
+  renderVariantBuilder();
+}
+
+// Total de piezas de una variante (suma del inventario por talla).
+function variantTotalStock(v) {
+  return (v.sizes || []).reduce((n, s) => n + ((s && typeof s === 'object' && s.stock != null) ? s.stock : 0), 0);
+}
+
+function renderVariantList() {
+  const box = document.getElementById('variantList');
+  if (box) {
+    if (!currentVariants.length) {
+      box.innerHTML = '<div class="variant-empty"><i class="fa-solid fa-circle-info"></i> Aún no hay variantes. El producto usará el stock general de abajo.</div>';
+    } else {
+      box.innerHTML = currentVariants.map((v, i) => {
+        const dot   = `<span class="vc-dot" style="background:${COLOR_MAP[v.color] || (v.color ? '#999' : '#e5e7eb')}"></span>`;
+        const name  = esc(v.color || 'Sin color');
+        const opt   = v.option ? `<span class="vc-opt">${esc(v.option)}</span>` : '';
+        const price = (v.price != null) ? `<span class="vc-price">${formatPrice(v.price)}</span>` : '';
+        const total = variantTotalStock(v);
+        const sizes = (v.sizes && v.sizes.length)
+          ? `<div class="vc-sizes">${v.sizes.map(s => {
+              const nm = (s && typeof s === 'object') ? s.size : s;
+              const st = (s && typeof s === 'object') ? s.stock : null;
+              const zero = st === 0;
+              return `<span${zero ? ' style="opacity:.5;text-decoration:line-through"' : ''}>${esc(nm)}${st != null ? ` ×${st}` : ''}</span>`;
+            }).join('')} <span style="background:none;border:none;color:var(--gray-400);font-weight:600">= ${total} pz</span></div>`
+          : '<div class="vc-sizes" style="color:var(--gray-400)">Sin tallas</div>';
+        return `<div class="variant-card">
+          ${dot}
+          <div class="vc-body">
+            <div class="vc-name">${name} ${opt} ${price}</div>
+            ${sizes}
+          </div>
+          <div class="vc-actions">
+            <button type="button" class="vc-btn" title="Editar" onclick="editVariant(${i})"><i class="fa-solid fa-pen"></i></button>
+            <button type="button" class="vc-btn del" title="Quitar" onclick="confirmRemoveVariant(${i})"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+  refreshStockUI();
+}
+
+// Muestra el campo de stock general (sin variantes) o el total calculado (con
+// variantes), según corresponda.
+function refreshStockUI() {
+  const plain = document.getElementById('plainStockBox');
+  const info  = document.getElementById('variantStockInfo');
+  const hasVariants = currentVariants.length > 0;
+  if (plain) plain.style.display = hasVariants ? 'none' : 'block';
+  if (info) {
+    if (hasVariants) {
+      const total = currentVariants.reduce((n, v) => n + variantTotalStock(v), 0);
+      info.style.display = 'flex';
+      info.innerHTML = `<i class="fa-solid fa-warehouse"></i> Stock total del producto: ${total} pz <span style="font-weight:400;color:#38614a">(suma del inventario de todas las variantes)</span>`;
+    } else {
+      info.style.display = 'none';
+    }
+  }
+}
+
 // ── CATEGORIES ──
 let editingCatKey = null;
 
@@ -452,7 +1047,7 @@ async function loadCategoryTable() {
   const [cats, products] = await Promise.all([DB.getCategories(), DB.getProducts()]);
   const tbody = document.getElementById('catTableBody');
   tbody.innerHTML = Object.entries(cats).map(([key, cat]) => {
-    const count    = products.filter(p => p.category === key).length;
+    const count    = products.filter(p => (p.categories && p.categories.length ? p.categories : [p.category]).includes(key)).length;
     const isActive = cat.active !== false;
     return `<tr>
       <td><div style="width:36px;height:36px;background:var(--primary-bg);border-radius:8px;display:flex;align-items:center;justify-content:center">
@@ -463,7 +1058,7 @@ async function loadCategoryTable() {
       <td><span class="badge ${isActive ? 'badge-active' : 'badge-inactive'}">${isActive ? 'Activa' : 'Inactiva'}</span></td>
       <td><div class="action-btns">
         <button class="btn-edit" onclick="openCategoryModal('${key}')"><i class="fa-solid fa-pen"></i> Editar</button>
-        <button class="btn-del" onclick="confirmDeleteCategory('${key}','${cat.label}')"><i class="fa-solid fa-trash"></i></button>
+        <button class="btn-del" onclick="confirmDeleteCategory('${key}','${cat.label.replace(/'/g, "\\'")}',${count})"><i class="fa-solid fa-trash"></i></button>
       </div></td>
     </tr>`;
   }).join('');
@@ -510,14 +1105,19 @@ async function saveCategory() {
   }
 }
 
-async function confirmDeleteCategory(key, name) {
-  document.getElementById('confirmMsg').textContent = `¿Eliminar "${name}"? Solo se puede si no tiene productos asignados.`;
+async function confirmDeleteCategory(key, name, count = 0) {
+  document.getElementById('confirmMsg').textContent = count > 0
+    ? `¿Eliminar "${name}"? Se quitará de ${count} producto${count !== 1 ? 's' : ''} que la tiene${count !== 1 ? 'n' : ''} (los productos NO se borran).`
+    : `¿Eliminar "${name}"?`;
   document.getElementById('confirmModal').classList.remove('hidden');
   document.getElementById('confirmDeleteBtn').onclick = async () => {
     try {
-      await DB.deleteCategory(key);
+      const res = await DB.deleteCategory(key);
       closeConfirm();
-      showToast('Categoría eliminada');
+      const n = res && typeof res.affected === 'number' ? res.affected : 0;
+      showToast(n > 0
+        ? `Categoría eliminada y retirada de ${n} producto${n !== 1 ? 's' : ''}`
+        : 'Categoría eliminada');
       await loadCategoryTable();
       await populateCatFilter();
     } catch (err) {
@@ -928,6 +1528,70 @@ function deleteReviewEntry(id) {
   };
 }
 
+// ── TESTIMONIOS (capturas) ────────────────────────────────────────────────────
+async function loadTestimonialPanel() {
+  const grid = document.getElementById('testimonialsGrid');
+  let list = [];
+  try { list = await apiFetch('/api/testimonials/admin'); } catch {}
+  document.getElementById('testimonialsCount').textContent = `${list.length} captura${list.length !== 1 ? 's' : ''}`;
+  if (!list.length) {
+    grid.innerHTML = '<p style="grid-column:1/-1;color:var(--gray-400);font-size:14px;text-align:center;padding:24px 0">Aún no hay capturas. Sube la primera arriba.</p>';
+    return;
+  }
+  grid.innerHTML = list.map(t => `
+    <div class="test-card${t.active ? '' : ' inactive'}">
+      <img src="${esc(t.imageUrl)}" alt="Captura de testimonio" loading="lazy">
+      ${t.active ? '' : '<span class="test-badge">Oculta</span>'}
+      <div class="test-card-actions">
+        <button title="${t.active ? 'Ocultar' : 'Mostrar'}" onclick="toggleTestimonial(${t.id}, ${t.active ? 0 : 1})">
+          <i class="fa-solid fa-eye${t.active ? '' : '-slash'}"></i>
+        </button>
+        <button title="Eliminar" onclick="deleteTestimonial(${t.id})"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+async function handleTestimonialUpload(input) {
+  if (!input.files?.length) return;
+  const fd = new FormData();
+  Array.from(input.files).slice(0, 6).forEach(f => fd.append('images', f));
+  showToast('Subiendo capturas...');
+  try {
+    const res  = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Error al subir', 'error'); input.value = ''; return; }
+    for (const url of data.urls) {
+      await apiFetch('/api/testimonials', { method: 'POST', body: JSON.stringify({ imageUrl: url }) });
+    }
+    showToast('Capturas agregadas');
+    await loadTestimonialPanel();
+  } catch {
+    showToast('Error al subir las capturas', 'error');
+  }
+  input.value = '';
+}
+
+async function toggleTestimonial(id, active) {
+  try {
+    await apiFetch(`/api/testimonials/${id}`, { method: 'PUT', body: JSON.stringify({ active }) });
+    showToast(active ? 'Captura visible' : 'Captura oculta');
+    await loadTestimonialPanel();
+  } catch (e) { showToast(e.message || 'Error', 'error'); }
+}
+
+function deleteTestimonial(id) {
+  document.getElementById('confirmMsg').textContent = '¿Eliminar esta captura? No se puede deshacer.';
+  document.getElementById('confirmModal').classList.remove('hidden');
+  document.getElementById('confirmDeleteBtn').onclick = async () => {
+    try {
+      await apiFetch(`/api/testimonials/${id}`, { method: 'DELETE' });
+      closeConfirm();
+      showToast('Captura eliminada');
+      await loadTestimonialPanel();
+    } catch (e) { showToast(e.message || 'Error al eliminar', 'error'); closeConfirm(); }
+  };
+}
+
 // ── CUPONES ──────────────────────────────────────────────────────────────────
 async function loadCouponTable() {
   const tbody = document.getElementById('couponsTableBody');
@@ -1181,12 +1845,96 @@ function filterIncomeTable() {
   }).join('');
 }
 
-// backdrop close
+// Cerrar al hacer clic en el fondo.
+// El modal de producto NO está aquí a propósito: es un formulario largo (con
+// imágenes, tallas y colores) y un clic fuera por accidente borraba todo lo
+// capturado. Solo se cierra con Cancelar, con la X, o al guardar el producto.
 document.addEventListener('click', e => {
-  if (e.target.id === 'productModal')     closeProductModal();
   if (e.target.id === 'confirmModal')     closeConfirm();
   if (e.target.id === 'categoryModal')    closeCategoryModal();
   if (e.target.id === 'brandModal')       closeBrandModal();
   if (e.target.id === 'orderDetailModal') closeOrderDetail();
   if (e.target.id === 'userModal')        closeUserModal();
 });
+
+// ── RESILIENCIA DE SESIÓN ────────────────────────────────────────────────────
+// Antes: si la cookie de sesión se perdía (expiraba, se limpiaba, o el servidor
+// se reiniciaba a media tarea), cualquier acción de admin devolvía un escueto
+// "No autenticado" y te dejaba atorado, con riesgo de perder el producto que
+// estabas capturando. Ahora, en vez de eso, aparece un modal para volver a
+// entrar SIN recargar la página: el formulario a medio llenar queda intacto y
+// puedes reintentar el botón donde te quedaste. Además, un chequeo periódico
+// detecta la pérdida de sesión antes de que pierdas tiempo llenando datos.
+(function sessionResilience() {
+  let modalOpen = false;
+
+  function showReloginModal() {
+    if (modalOpen || document.getElementById('reloginModal')) return;
+    modalOpen = true;
+    const email = (typeof AUTH !== 'undefined' && AUTH.getSession && AUTH.getSession()?.email) || '';
+    const ov = document.createElement('div');
+    ov.id = 'reloginModal';
+    ov.className = 'relogin-overlay';
+    ov.innerHTML = `
+      <div class="relogin-card" role="dialog" aria-modal="true" aria-labelledby="reloginTitle">
+        <div class="relogin-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
+        <h3 id="reloginTitle">Tu sesión se cerró</h3>
+        <p>Vuelve a iniciar sesión para continuar. <strong>No perderás lo que ya escribiste</strong> — el formulario sigue tal cual.</p>
+        <form id="reloginForm" autocomplete="on">
+          <input type="email" id="reloginEmail" placeholder="Correo" value="${esc(email)}" required autocomplete="username">
+          <input type="password" id="reloginPass" placeholder="Contraseña" required autocomplete="current-password">
+          <div id="reloginErr" class="relogin-err" role="alert"></div>
+          <button type="submit" class="relogin-btn"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Entrar y continuar</button>
+        </form>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('open'));
+    (email ? document.getElementById('reloginPass') : document.getElementById('reloginEmail')).focus();
+
+    document.getElementById('reloginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = ov.querySelector('.relogin-btn');
+      const errEl = document.getElementById('reloginErr');
+      btn.disabled = true; errEl.textContent = '';
+      const r = await AUTH.login(
+        document.getElementById('reloginEmail').value.trim(),
+        document.getElementById('reloginPass').value
+      );
+      if (r && r.success) {
+        ov.classList.remove('open');
+        setTimeout(() => ov.remove(), 200);
+        modalOpen = false;
+        if (typeof showToast === 'function') showToast('Sesión renovada. Continúa justo donde estabas.', 'success');
+      } else {
+        errEl.textContent = (r && r.error) || 'No se pudo iniciar sesión';
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // Guardamos la fetch original para el chequeo periódico (evita recursión) y
+  // para no engancharnos a nuestras propias llamadas de login/heartbeat.
+  const _fetch = window.fetch.bind(window);
+
+  // Interceptor global: cualquier 401 de la API abre el modal de re-login.
+  window.fetch = async function (...args) {
+    const res = await _fetch(...args);
+    try {
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';
+      if (res.status === 401 && url.includes('/api/')
+          && !url.includes('/api/auth/login') && !url.includes('/api/auth/me')) {
+        showReloginModal();
+      }
+    } catch {}
+    return res;
+  };
+
+  // Latido: detecta la pérdida de sesión ANTES de que llenes un producto en vano.
+  setInterval(async () => {
+    if (modalOpen) return;
+    try {
+      const r = await _fetch('/api/auth/me', { credentials: 'include' });
+      if (r.status === 401) showReloginModal();
+    } catch {}
+  }, 4 * 60 * 1000);
+})();

@@ -5,13 +5,13 @@ const { authenticate } = require('../middleware/auth');
 // GET /api/cart  - obtiene carrito del usuario logueado
 router.get('/', authenticate, async (req, res) => {
   const [rows] = await pool.execute(
-    `SELECT ci.id, ci.product_id, ci.qty, ci.size, ci.color, p.name, p.price, p.images, p.stock
+    `SELECT ci.id, ci.product_id, ci.qty, ci.size, ci.color, ci.\`option\`, p.name, p.price, p.images, p.stock
      FROM cart_items ci JOIN products p ON p.id = ci.product_id
      WHERE ci.user_id = ?`,
     [req.user.id]
   );
   res.json(rows.map(r => ({
-    productId: r.product_id, qty: r.qty, size: r.size || '', color: r.color || '',
+    productId: r.product_id, qty: r.qty, size: r.size || '', color: r.color || '', option: r.option || '',
     product: { id: r.product_id, name: r.name, price: Number(r.price), images: r.images || [], stock: r.stock }
   })));
 });
@@ -27,13 +27,13 @@ router.put('/', authenticate, async (req, res) => {
       const qty = Math.max(1, Number(it.qty) || 1);
       try {
         await conn.execute(
-          'INSERT INTO cart_items (user_id, product_id, qty, size, color) VALUES (?,?,?,?,?)',
-          [req.user.id, Number(it.productId), qty, it.size || '', it.color || '']
+          'INSERT INTO cart_items (user_id, product_id, qty, size, color, `option`) VALUES (?,?,?,?,?,?)',
+          [req.user.id, Number(it.productId), qty, it.size || '', it.color || '', it.option || '']
         );
       } catch (e) { /* unique violation: ya existe, hacer update */
         await conn.execute(
-          'UPDATE cart_items SET qty = ? WHERE user_id=? AND product_id=? AND size=? AND color=?',
-          [qty, req.user.id, Number(it.productId), it.size || '', it.color || '']
+          'UPDATE cart_items SET qty = ? WHERE user_id=? AND product_id=? AND size=? AND color=? AND `option`=?',
+          [qty, req.user.id, Number(it.productId), it.size || '', it.color || '', it.option || '']
         );
       }
     }

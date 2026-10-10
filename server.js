@@ -46,7 +46,19 @@ app.get('/config.js', (req, res) => {
   res.type('application/javascript').send(`window.MAYDEL_CFG = ${JSON.stringify(cfg)};`);
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Imagenes subidas: cambian poco y pesan, conviene cachearlas fuerte.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d' }));
+
+// HTML, CSS y JS: 'no-cache' NO desactiva la cache, obliga a revalidar. El
+// navegador sigue reusando el archivo, pero pregunta antes y recibe un 304
+// vacio si no cambio. Sin esto, moviles (sobre todo Safari en iOS) se quedan
+// con el CSS viejo horas despues de un cambio y la pagina se ve rota.
+app.use((req, res, next) => {
+  if (/\.(html|css|js)$/i.test(req.path) || req.path === '/') {
+    res.set('Cache-Control', 'no-cache');
+  }
+  next();
+});
 
 // Bloquea servir como estaticos los archivos del servidor (codigo fuente, config, BD).
 // La comparacion es case-insensitive porque el FS de Windows no distingue mayusculas.
@@ -73,11 +85,12 @@ app.use('/api/upload',     require('./routes/upload'));
 app.use('/api/shipping',   require('./routes/shipping'));
 app.use('/api/checkout',   require('./routes/checkout'));
 app.use('/api/reviews',    require('./routes/reviews'));
+app.use('/api/testimonials', require('./routes/testimonials'));
 app.use('/api/cart',       require('./routes/cart'));
 app.use('/api/wishlist',   require('./routes/wishlist'));
 app.use('/api/coupons',    require('./routes/coupons'));
 
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname), { etag: true, lastModified: true }));
 
 // Fallback: API 404 vs HTML 404
 app.get('*', (req, res) => {

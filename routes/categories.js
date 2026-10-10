@@ -62,16 +62,38 @@ router.put('/:key', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/categories/:key
+// En vez de bloquear si hay productos usándola, la RETIRA de cada producto (del
+// arreglo `categories` y, si era la principal, reasigna a la siguiente) y luego
+// borra la categoría. Devuelve cuántos productos quedaron afectados.
 router.delete('/:key', adminOnly, async (req, res) => {
+  const key = req.params.key;
+  const conn = await pool.getConnection();
   try {
-    const [inUse] = await pool.execute('SELECT id FROM products WHERE category = ? LIMIT 1', [req.params.key]);
-    if (inUse.length) return res.status(409).json({ error: 'Categoría en uso por uno o más productos' });
+    await conn.beginTransaction();
+    const [[cat]] = await conn.execute('SELECT id FROM categories WHERE `key` = ?', [key]);
+    if (!cat) { await conn.rollback(); return res.status(404).json({ error: 'Categoría no encontrada' }); }
 
-    await pool.execute('DELETE FROM categories WHERE `key` = ?', [req.params.key]);
-    res.json({ ok: true });
+    // Productos que la tienen (en el arreglo o como principal).
+    const [prods] = await conn.execute(
+      'SELECT id, category, categories FROM products WHERE JSON_CONTAINS(categories, ?) OR category = ? FOR UPDATE',
+      [JSON.stringify(key), key]
+    );
+    for (const p of prods) {
+      const list = Array.isArray(p.categories) ? p.categories : (p.category ? [p.category] : []);
+      const next = list.filter(c => c !== key);
+      const primary = next[0] || '';   // la nueva principal es la primera que quede
+      await conn.execute('UPDATE products SET categories = ?, category = ? WHERE id = ?', [JSON.stringify(next), primary, p.id]);
+    }
+
+    await conn.execute('DELETE FROM categories WHERE `key` = ?', [key]);
+    await conn.commit();
+    res.json({ ok: true, affected: prods.length });
   } catch (err) {
+    await conn.rollback();
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar categoría' });
+  } finally {
+    conn.release();
   }
 });
 

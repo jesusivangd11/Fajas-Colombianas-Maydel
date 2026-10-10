@@ -13,17 +13,7 @@
   <script src="/js/analytics.js" defer></script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    .login-bg-circle{position:absolute;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none}
-    .login-box{max-height:94vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
-    .login-box::-webkit-scrollbar{width:5px}
-    .login-box::-webkit-scrollbar-thumb{background:rgba(26,92,46,.25);border-radius:4px}
-    .form-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--primary);margin:20px 0 12px;display:flex;align-items:center;gap:8px}
-    .form-section-title::after{content:'';flex:1;height:1px;background:var(--gray-200)}
-    .form-row{display:grid;gap:12px}
-    .form-row.cols-2{grid-template-columns:1fr 1fr}
-    .form-row.cols-3-1{grid-template-columns:3fr 1fr}
-  </style>
+  <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
 
@@ -35,7 +25,7 @@
 
   <div class="login-box" style="animation:fadeUp .6s ease both">
     <div class="login-header">
-      <img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel">
+      <a href="index.html" aria-label="Ir al inicio"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></a>
       <h1>Bienvenida</h1>
       <p>Accede a tu cuenta para hacer pedidos</p>
     </div>
@@ -89,12 +79,12 @@
         </button>
 
         <div style="text-align:center;margin-top:14px">
-          <a href="forgot-password.html" style="color:var(--primary);font-size:13px;font-weight:600">¿Olvidaste tu contraseña?</a>
+          <a href="forgot-password.html" style="color:var(--primary);font-size:14.5px;font-weight:600">¿Olvidaste tu contraseña?</a>
         </div>
 
         <div class="login-divider">¿Eres nuevo? <a href="#" onclick="switchLoginTabByName('register');return false" style="color:var(--primary);font-weight:600">Regístrate aquí</a></div>
         <div style="text-align:center">
-          <a href="index.html" style="color:var(--gray-400);font-size:13px">
+          <a href="index.html" style="color:var(--gray-400);font-size:14.5px">
             <i class="fa-solid fa-arrow-left"></i> Volver a la tienda
           </a>
         </div>
@@ -125,7 +115,7 @@
             <i class="fa-solid fa-mobile-screen"></i>
             <input type="tel" id="regPhone" placeholder="614 123 4567" required autocomplete="tel" inputmode="tel">
           </div>
-          <small style="color:var(--gray-400);font-size:11px;display:block;margin-top:4px">Lo usaremos para recuperar tu cuenta por SMS o WhatsApp.</small>
+          <small style="color:var(--gray-400);font-size:12.5px;display:block;margin-top:4px">Lo usaremos para recuperar tu cuenta por SMS o WhatsApp.</small>
         </div>
 
         <div class="form-section-title"><i class="fa-solid fa-lock"></i> Acceso a la cuenta</div>
@@ -218,7 +208,7 @@
 
         <div class="login-divider">¿Ya tienes cuenta? <a href="#" onclick="switchLoginTabByName('login');return false" style="color:var(--primary);font-weight:600">Inicia sesión</a></div>
         <div style="text-align:center">
-          <a href="index.html" style="color:var(--gray-400);font-size:13px">
+          <a href="index.html" style="color:var(--gray-400);font-size:14.5px">
             <i class="fa-solid fa-arrow-left"></i> Volver a la tienda
           </a>
         </div>
@@ -230,13 +220,25 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+// Destinos permitidos tras iniciar sesión. Es una lista blanca a propósito: así
+// un "?redirect=..." manipulado no puede mandar al usuario a un sitio externo.
+const REDIRECTS = {
+  dashboard:   'dashboard/index.html',
+  'mi-cuenta': 'mi-cuenta.html',
+  favoritos:   'mis-favoritos.html',
+  pedidos:     'mis-pedidos.html',
+  carrito:     'carrito.html',
+};
+function redirectTarget() {
+  const key = new URLSearchParams(window.location.search).get('redirect');
+  return REDIRECTS[key] || 'index.html';
+}
+
 // Redirect if already logged in
 document.addEventListener('DOMContentLoaded', async () => {
   const session = await AUTH.init();
   if (session) {
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get('redirect');
-    window.location.href = redirect === 'dashboard' ? 'dashboard/index.html' : 'index.html';
+    window.location.href = redirectTarget();
     return;
   }
   const tab = new URLSearchParams(window.location.search).get('tab');
@@ -288,9 +290,7 @@ async function handleLogin(e) {
   const password = document.getElementById('loginPassword').value;
   const result   = await AUTH.login(email, password);
   if (result.success) {
-    const params   = new URLSearchParams(window.location.search);
-    const redirect = params.get('redirect');
-    window.location.href = redirect === 'dashboard' ? 'dashboard/index.html' : 'index.html';
+    window.location.href = redirectTarget();
   } else {
     showError('loginError', result.error);
   }
@@ -331,9 +331,8 @@ function showSocialError(msg) {
 
 function finishSocialLogin(user) {
   if (window.AUTH) AUTH._session = user;
-  const params   = new URLSearchParams(window.location.search);
-  const redirect = params.get('redirect');
-  window.location.href = redirect === 'dashboard' ? 'dashboard/index.html' : 'index.html';
+  try { sessionStorage.setItem('maydel_welcome', user.name || ''); } catch {}
+  window.location.href = redirectTarget();
 }
 
 async function postSocial(url, body) {

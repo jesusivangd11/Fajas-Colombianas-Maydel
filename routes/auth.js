@@ -1,26 +1,10 @@
 const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
 const crypto  = require('crypto');
 const pool    = require('../db/connection');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, signToken, COOKIE_OPTS } = require('../middleware/auth');
 const mailer = require('../services/mailer');
 const otp    = require('../services/otp');
-
-const COOKIE_OPTS = () => ({
-  httpOnly: true,
-  secure:   process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge:   7 * 24 * 60 * 60 * 1000,
-});
-
-function signToken(user) {
-  return jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-}
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {

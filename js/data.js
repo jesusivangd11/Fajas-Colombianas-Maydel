@@ -1,3 +1,16 @@
+/* =============================================================================
+   data.js  ·  CAPA DE DATOS DEL FRONT-END
+   -----------------------------------------------------------------------------
+   Es el "puente" entre las paginas y el servidor. Aqui vive:
+     • DB      → objeto con todas las llamadas a la API (productos, categorias,
+                 marcas, pedidos, gastos...) y el CARRITO (busca "── CART ──").
+     • Helpers → formatPrice, formatDate, showToast (avisos), updateCartBadge
+                 (el numerito rojo del carrito), animaciones al hacer scroll.
+     • Constantes → categorias, tallas, colores y estados de pedido por defecto.
+   El CARRITO se guarda en el navegador (localStorage) y, si hay sesion iniciada,
+   se sincroniza con la base de datos. Ver getCart / addToCart / _saveCart.
+   ============================================================================= */
+
 // ── API HELPER ───────────────────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
   const res = await fetch(url, {
@@ -38,11 +51,14 @@ const DB = {
     if (filters.sort)     params.sort     = filters.sort;
     if (filters.minPrice) params.minPrice = filters.minPrice;
     if (filters.maxPrice) params.maxPrice = filters.maxPrice;
-    if (filters.categories?.length) params.cat = filters.categories[0]; // single cat filter
+    // Una sola categoría → la filtra el servidor (índice + JSON_CONTAINS). Varias
+    // categorías → se traen todas y se filtran aquí con OR contra el arreglo de
+    // categorías del producto (antes esto colapsaba a la primera categoría).
+    if (filters.categories?.length === 1) params.cat = filters.categories[0];
     if (filters.brands?.length === 1) params.brand = filters.brands[0]; // single brand filter
     let products = await apiFetch('/api/products?' + new URLSearchParams(params));
     if (filters.categories?.length > 1) {
-      products = products.filter(p => filters.categories.includes(p.category));
+      products = products.filter(p => (p.categories || [p.category]).some(c => filters.categories.includes(c)));
     }
     if (filters.brands?.length > 1) {
       products = products.filter(p => filters.brands.includes(p.brand));
@@ -116,28 +132,41 @@ const DB = {
       const localCart = this.getCart();
       if (!localCart.length) {
         // Local vacio: usar DB tal cual
-        const merged = serverCart.map(s => ({ key:`${s.productId}-${s.size}-${s.color}`, productId:s.productId, qty:s.qty, size:s.size, color:s.color }));
+        const merged = serverCart.map(s => ({ key:`${s.productId}-${s.size}-${s.color}-${s.option||''}`, productId:s.productId, qty:s.qty, size:s.size, color:s.color, option:s.option||'' }));
         localStorage.setItem(this.CART_KEY, JSON.stringify(merged));
         document.dispatchEvent(new CustomEvent('cartUpdated'));
       } else {
-        // Merge: sumar cantidades por (productId,size,color)
-        const map = new Map(localCart.map(i => [`${i.productId}-${i.size}-${i.color}`, i]));
+        // Merge: sumar cantidades por (productId,size,color,option)
+        const k = i => `${i.productId}-${i.size}-${i.color}-${i.option||''}`;
+        const map = new Map(localCart.map(i => [k(i), i]));
         for (const s of serverCart) {
-          const key = `${s.productId}-${s.size}-${s.color}`;
+          const key = k(s);
           if (map.has(key)) map.get(key).qty += s.qty;
-          else map.set(key, { key, productId:s.productId, qty:s.qty, size:s.size, color:s.color });
+          else map.set(key, { key, productId:s.productId, qty:s.qty, size:s.size, color:s.color, option:s.option||'' });
         }
         this._saveCart([...map.values()]);
       }
     } catch {}
   },
 
-  addToCart(productId, qty = 1, size = '', color = '') {
+  addToCart(productId, qty = 1, size = '', color = '', option = '') {
+    this.addManyToCart([{ productId, qty, size, color, option }]);
+  },
+
+  // Varias combinaciones de una vez (la misma faja en 4 tallas, por ejemplo).
+  // Un solo _saveCart por lote: si guardaramos una por una, los PUT /api/cart
+  // van sueltos y pueden llegar desordenados, dejando en la DB un carrito viejo.
+  // `option` = opción extra de la variante (p.ej. "Con tirantes"); forma parte de
+  // la clave para no mezclar dos variantes que solo difieren en esa opción.
+  addManyToCart(entries) {
     const cart = this.getCart();
-    const key  = `${productId}-${size}-${color}`;
-    const item = cart.find(i => i.key === key);
-    if (item) item.qty += qty;
-    else cart.push({ key, productId, qty, size, color });
+    for (const { productId, qty = 1, size = '', color = '', option = '' } of entries) {
+      if (qty < 1) continue;
+      const key  = `${productId}-${size}-${color}-${option}`;
+      const item = cart.find(i => i.key === key);
+      if (item) item.qty += qty;
+      else cart.push({ key, productId, qty, size, color, option });
+    }
     this._saveCart(cart);
   },
 
@@ -150,6 +179,53 @@ const DB = {
   clearCart() { this._saveCart([]); },
   getCartCount() { return this.getCart().reduce((s, i) => s + i.qty, 0); },
 
+  // Piezas mínimas de un mismo producto (sumando tallas/colores) para mayoreo.
+  WHOLESALE_MIN: 6,
+
+  // Precio base de un ítem según su VARIANTE. Si la variante elegida (color +
+  // opción) tiene precio propio, ese manda; si no, el precio del producto. Debe
+  // coincidir con la misma lógica del servidor en routes/orders.js.
+  _variantBasePrice(product, item) {
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    if (variants.length) {
+      const m = variants.find(v => (v.color || '') === (item.color || '') && (v.option || '') === (item.option || ''));
+      if (m && m.price != null && Number(m.price) > 0) return Number(m.price);
+    }
+    return product.price;
+  },
+
+  // Inventario disponible de un ítem (talla+color+opción). Devuelve un número, o
+  // null cuando no hay control de inventario (producto/variante sin stock por talla
+  // = sin límite). Si el producto tiene variantes pero la combinación no existe, 0.
+  _comboStock(product, item) {
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    if (variants.length) {
+      const v = variants.find(v => (v.color || '') === (item.color || '') && (v.option || '') === (item.option || ''));
+      if (!v) return product.stock != null ? product.stock : 0;
+      const se = (v.sizes || []).find(s => (s && typeof s === 'object' ? s.size : s) === (item.size || ''));
+      if (!se) return 0;                                   // esa talla ya no está
+      return (typeof se === 'object') ? se.stock : null;   // número, o null (talla vieja sin control)
+    }
+    return product.stock != null ? product.stock : null;
+  },
+
+  // Aplica el precio de mayoreo: cada ítem recibe `unitPrice` (mayoreo o normal)
+  // y `wholesale` (bool). El mayoreo se activa por PRODUCTO cuando la suma de sus
+  // piezas —combinando tallas/colores— llega a WHOLESALE_MIN y tiene precio de mayoreo.
+  // El precio "normal" es el de la variante (puede diferir entre variantes).
+  _applyWholesale(items) {
+    const qtyByProduct = {};
+    items.forEach(i => { qtyByProduct[i.productId] = (qtyByProduct[i.productId] || 0) + i.qty; });
+    return items.map(i => {
+      const wp = i.product.wholesalePrice;
+      const totalQty = qtyByProduct[i.productId] || i.qty;
+      const wholesale = wp != null && wp > 0 && totalQty >= this.WHOLESALE_MIN;
+      const regularPrice = this._variantBasePrice(i.product, i);
+      const unitPrice = wholesale ? wp : regularPrice;
+      return { ...i, unitPrice, wholesale, regularPrice };
+    });
+  },
+
   async getCartItems() {
     const cart = this.getCart();
     if (!cart.length) return [];
@@ -159,15 +235,17 @@ const DB = {
       products = await apiFetch(`/api/products?ids=${ids.join(',')}`);
     } catch { products = []; }
     const map = Object.fromEntries(products.map(p => [p.id, p]));
-    return cart.map(item => {
+    const items = cart.map(item => {
       const product = map[item.productId];
       return product ? { ...item, product } : null;
     }).filter(Boolean);
+    // Precio (variante/mayoreo) + inventario disponible de cada combinación.
+    return this._applyWholesale(items).map(i => ({ ...i, stockAvailable: this._comboStock(i.product, i) }));
   },
 
   async getCartTotal() {
     const items = await this.getCartItems();
-    return items.reduce((s, i) => s + i.product.price * i.qty, 0);
+    return items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   },
 
   // ── ORDERS ──────────────────────────────────────────────────────────────────

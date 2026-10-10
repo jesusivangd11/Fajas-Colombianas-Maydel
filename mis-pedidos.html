@@ -13,46 +13,7 @@
   <script src="/js/analytics.js" defer></script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    .orders-page{background:#f5f0e8;min-height:80vh;padding:40px 0}
-    .orders-wrap{max-width:900px;margin:0 auto;padding:0 16px}
-    .orders-title{font-family:'Playfair Display',serif;font-size:32px;color:#071a0c;margin-bottom:6px;font-weight:800}
-    .orders-sub{color:#6b7280;margin-bottom:30px}
-    .order-card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb;margin-bottom:18px;overflow:hidden}
-    .order-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #f3f4f6;gap:12px;flex-wrap:wrap}
-    .order-id{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#071a0c}
-    .order-date{font-size:13px;color:#9ca3af;margin-top:2px}
-    .order-total{font-size:20px;font-weight:800;color:#1a5c2e}
-    .order-body{padding:22px}
-    .timeline{display:flex;justify-content:space-between;position:relative;margin:18px 0 26px;gap:6px}
-    .timeline::before{content:'';position:absolute;top:18px;left:18px;right:18px;height:2px;background:#e5e7eb;z-index:0}
-    .timeline-step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;text-align:center}
-    .timeline-dot{width:36px;height:36px;border-radius:50%;background:#fff;border:2px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:14px;transition:all .3s}
-    .timeline-step.done .timeline-dot{background:#1a5c2e;border-color:#1a5c2e;color:#fff}
-    .timeline-step.current .timeline-dot{background:#c9a96e;border-color:#c9a96e;color:#fff;box-shadow:0 0 0 4px rgba(201,169,110,.25)}
-    .timeline-step.cancelled .timeline-dot{background:#dc2626;border-color:#dc2626;color:#fff}
-    .timeline-label{font-size:11px;font-weight:600;color:#6b7280;margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
-    .timeline-step.done .timeline-label,.timeline-step.current .timeline-label{color:#1a5c2e}
-    .order-items{margin-top:14px;border-top:1px solid #f3f4f6;padding-top:14px;font-size:14px;color:#4b5563}
-    .order-item-row{display:flex;justify-content:space-between;padding:6px 0}
-    .order-totals{margin-top:12px;border-top:1px dashed #e5e7eb;padding-top:12px;font-size:13px}
-    .order-totals-row{display:flex;justify-content:space-between;padding:3px 0;color:#6b7280}
-    .order-totals-row.total{font-weight:700;color:#071a0c;font-size:15px;border-top:2px solid #111;padding-top:8px;margin-top:6px}
-    .empty-orders{text-align:center;padding:60px 20px;background:#fff;border-radius:12px}
-    .empty-orders i{font-size:54px;color:#d1d5db;margin-bottom:18px}
-    .badge-status{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
-    .badge-status.pending{background:#fef3c7;color:#92400e}
-    .badge-status.confirmed{background:#dbeafe;color:#1e40af}
-    .badge-status.processing{background:#e0e7ff;color:#3730a3}
-    .badge-status.shipped{background:#cffafe;color:#155e75}
-    .badge-status.delivered{background:#d1fae5;color:#065f46}
-    .badge-status.cancelled{background:#fee2e2;color:#991b1b}
-    @media(max-width:520px){
-      .timeline-label{font-size:9px}
-      .timeline-dot{width:30px;height:30px;font-size:12px}
-      .timeline::before{top:15px}
-    }
-  </style>
+  <link rel="stylesheet" href="css/mis-pedidos.css">
 </head>
 <body>
 
