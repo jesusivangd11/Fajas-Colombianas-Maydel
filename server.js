@@ -65,6 +65,8 @@ app.use((req, res, next) => {
 const BLOCKED_STATIC = new Set([
   'routes', 'db', 'services', 'middleware', 'node_modules', '.claude', '.git',
   'server.js', 'package.json', 'package-lock.json', '.env', '.env.example', '.gitignore',
+  '.env.production', '.vercel', '.vscode', 'vercel.json', 'tests', 'graphify-out',
+  '.graphify_python', 'guia-del-codigo.md',
 ]);
 app.use((req, res, next) => {
   const first = (req.path.split('/').filter(Boolean)[0] || '').toLowerCase();
@@ -90,7 +92,8 @@ app.use('/api/cart',       require('./routes/cart'));
 app.use('/api/wishlist',   require('./routes/wishlist'));
 app.use('/api/coupons',    require('./routes/coupons'));
 
-app.use(express.static(path.join(__dirname), { etag: true, lastModified: true }));
+// dotfiles:'ignore' => nunca sirve archivos/carpetas que empiezan con punto (.env*, .git, .vercel...)
+app.use(express.static(path.join(__dirname), { etag: true, lastModified: true, dotfiles: 'ignore' }));
 
 // Fallback: API 404 vs HTML 404
 app.get('*', (req, res) => {
