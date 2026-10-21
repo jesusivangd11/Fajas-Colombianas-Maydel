@@ -12,8 +12,14 @@ const bcrypt = require('bcryptjs');
     charset:  'utf8mb4',
   });
 
+  // Cuenta de comprador SOLO para pruebas locales. La contraseña sale del .env
+  // (nunca va escrita aqui: el repo es publico). No correr contra produccion.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('seed_buyer.js es solo para desarrollo local');
+  }
   const email = 'cliente@fajasmaydel.com';
-  const plain = 'Cliente@2025';
+  const plain = process.env.SEED_BUYER_PASSWORD;
+  if (!plain) throw new Error('Define SEED_BUYER_PASSWORD en tu .env');
   const hash  = await bcrypt.hash(plain, 10);
   const address = {
     calle:   'Av. Siempre Viva',
@@ -30,13 +36,13 @@ const bcrypt = require('bcryptjs');
       'INSERT INTO users (name, email, password_hash, role, birthdate, address) VALUES (?,?,?,?,?,?)',
       ['Maria Gomez', email, hash, 'user', '1995-06-15', JSON.stringify(address)]
     );
-    console.log('Cliente creado:', email, '/', plain);
+    console.log('Cliente creado:', email);
   } else {
     await conn.query(
       'UPDATE users SET password_hash = ?, role = "user", address = ? WHERE email = ?',
       [hash, JSON.stringify(address), email]
     );
-    console.log('Cliente actualizado:', email, '/', plain);
+    console.log('Cliente actualizado:', email);
   }
 
   await conn.end();
