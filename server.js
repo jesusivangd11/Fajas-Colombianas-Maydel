@@ -25,8 +25,9 @@ app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/auth/send-otp', authLimiter);
 app.use('/api/auth/verify-otp', authLimiter);
 
-// Stripe webhook necesita RAW body antes de express.json
-app.use('/api/checkout/webhook', require('./routes/checkout'));
+// Stripe webhook necesita RAW body antes de express.json: se lee aqui como Buffer
+// y express.json lo salta (ya viene leido). La ruta la atiende el router de /api/checkout.
+app.use('/api/checkout/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
