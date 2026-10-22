@@ -394,11 +394,18 @@ async function setup() {
 
   // ── USUARIO ADMIN ───────────────────────────────────────────────────────────
   // La contraseña NUNCA se hardcodea: se toma de ADMIN_PASSWORD en el .env.
-  const adminEmail    = process.env.ADMIN_LOGIN_EMAIL || 'admin@fajasmaydel.com';
+  // El correo tampoco tiene valor por defecto: antes caía en admin@fajasmaydel.com,
+  // un dominio que nadie registró. Quien lo comprara recibiría el correo de "olvidé
+  // mi contraseña" de ese admin y entraría al panel.
+  const adminEmail    = (process.env.ADMIN_LOGIN_EMAIL || '').trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD;
-  const [adminRows] = await conn.query('SELECT id FROM users WHERE email = ?', [adminEmail]);
+  const [adminRows] = adminEmail
+    ? await conn.query('SELECT id FROM users WHERE email = ?', [adminEmail])
+    : [[{}]];
 
-  if (adminRows.length === 0) {
+  if (!adminEmail) {
+    console.warn('⚠ ADMIN_LOGIN_EMAIL no está definido en .env (usa un correo real que controles). Omitiendo creación del administrador.');
+  } else if (adminRows.length === 0) {
     if (!adminPassword) {
       console.warn(`⚠ No existe admin y ADMIN_PASSWORD no está definida en .env. Omitiendo creación del administrador.`);
       console.warn(`  Define ADMIN_PASSWORD en tu .env y vuelve a ejecutar "npm run setup" para crear ${adminEmail}.`);

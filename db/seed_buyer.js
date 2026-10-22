@@ -17,7 +17,7 @@ const bcrypt = require('bcryptjs');
   if (process.env.NODE_ENV === 'production') {
     throw new Error('seed_buyer.js es solo para desarrollo local');
   }
-  const email = 'cliente@fajasmaydel.com';
+  const email = 'cliente@example.com'; // example.com está reservado: nadie puede recibir ese correo
   const plain = process.env.SEED_BUYER_PASSWORD;
   if (!plain) throw new Error('Define SEED_BUYER_PASSWORD en tu .env');
   const hash  = await bcrypt.hash(plain, 10);
