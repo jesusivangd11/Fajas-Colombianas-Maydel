@@ -77,7 +77,7 @@ const ACCOUNT = {
             <div>
               <h2>${hasPwd ? 'Cambiar contraseña' : 'Crear contraseña'}</h2>
               <p>${hasPwd
-                    ? 'Usa al menos 6 caracteres.'
+                    ? 'Usa al menos 8 caracteres.'
                     : `Entraste con ${esc(p.provider)}. Si creas una contraseña también podrás entrar con tu correo.`}</p>
             </div>
           </div>
@@ -91,12 +91,12 @@ const ACCOUNT = {
 
             <label class="acct-field">
               <span>Nueva contraseña</span>
-              <input type="password" id="acctNewPwd" minlength="6" autocomplete="new-password" required>
+              <input type="password" id="acctNewPwd" minlength="8" autocomplete="new-password" required>
             </label>
 
             <label class="acct-field">
               <span>Confirmar nueva contraseña</span>
-              <input type="password" id="acctNewPwd2" minlength="6" autocomplete="new-password" required>
+              <input type="password" id="acctNewPwd2" minlength="8" autocomplete="new-password" required>
             </label>
 
             <div class="acct-actions">
@@ -177,7 +177,7 @@ const ACCOUNT = {
     const nw2  = el.querySelector('#acctNewPwd2').value;
 
     if (nw !== nw2) return this._say(msg, 'Las contraseñas nuevas no coinciden', 'error');
-    if (nw.length < 6) return this._say(msg, 'Mínimo 6 caracteres', 'error');
+    if (nw.length < 8) return this._say(msg, 'Mínimo 8 caracteres', 'error');
 
     this._busy(btn, true);
     try {

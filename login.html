@@ -132,7 +132,7 @@
             <label>Contraseña *</label>
             <div class="input-icon">
               <i class="fa-solid fa-lock"></i>
-              <input type="password" id="regPassword" class="has-toggle" placeholder="Mín. 6 caracteres" required minlength="6" autocomplete="new-password">
+              <input type="password" id="regPassword" class="has-toggle" placeholder="Mín. 8 caracteres" required minlength="8" autocomplete="new-password">
               <button type="button" class="pw-toggle" aria-label="Mostrar contraseña" onclick="togglePw(this,'regPassword')"><i class="fa-solid fa-eye"></i></button>
             </div>
           </div>
@@ -325,7 +325,7 @@ async function handleRegister(e) {
   const estado    = document.getElementById('regEstado').value.trim();
 
   if (password !== password2) { showError('regError', 'Las contraseñas no coinciden'); return; }
-  if (password.length < 6)    { showError('regError', 'La contraseña debe tener al menos 6 caracteres'); return; }
+  if (password.length < 8)    { showError('regError', 'La contraseña debe tener al menos 8 caracteres'); return; }
 
   const result = await AUTH.register(name, email, password, { birthdate, phone, calle, numero, colonia, cp, ciudad, estado });
   if (result.success) {

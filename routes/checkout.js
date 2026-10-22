@@ -2,12 +2,14 @@ const express = require('express');
 const router  = express.Router();
 const pool    = require('../db/connection');
 const { authenticate } = require('../middleware/auth');
-const mailer = require('../services/mailer');
-const telegram = require('../services/telegram');
+const stripe  = require('../services/stripe');
+const { markOrderPaid, expireStaleOrders } = require('../services/orders');
 
-const SECRET = process.env.STRIPE_SECRET_KEY || '';
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
-const stripe = SECRET && !SECRET.includes('PEGA_AQUI') ? require('stripe')(SECRET) : null;
+// Stripe no acepta cobros menores a $10 MXN.
+const STRIPE_MIN_MXN = 10;
+// Intentos de pago que todavía se pueden usar para cobrar.
+const REUSABLE = ['requires_payment_method', 'requires_confirmation', 'requires_action'];
 
 // GET /api/checkout/config  -> publishable key para el frontend
 router.get('/config', (req, res) => {
@@ -19,6 +21,8 @@ router.get('/config', (req, res) => {
 });
 
 // POST /api/checkout/create-payment-intent  { orderId }
+// Si el pedido ya tiene un intento de pago vigente se reutiliza: así abrir y
+// cerrar la ventana de pago no crea cobros paralelos para el mismo pedido.
 router.post('/create-payment-intent', authenticate, async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'Pagos no configurados. Faltan claves de Stripe en .env' });
   try {
@@ -30,8 +34,21 @@ router.post('/create-payment-intent', authenticate, async (req, res) => {
     );
     if (!row) return res.status(404).json({ error: 'Pedido no encontrado' });
     if (row.payment_status === 'paid') return res.status(400).json({ error: 'Pedido ya pagado' });
+    if (row.status === 'cancelled') return res.status(410).json({ error: 'Este pedido expiró. Vuelve a confirmar tu compra.', expired: true });
+    if (Number(row.total) < STRIPE_MIN_MXN)
+      return res.status(400).json({ error: `El pago con tarjeta requiere un total mínimo de $${STRIPE_MIN_MXN}. Usa la opción por WhatsApp.` });
 
     const amount = Math.round(Number(row.total) * 100); // MXN -> centavos
+
+    if (row.stripe_intent_id) {
+      const prev = await stripe.paymentIntents.retrieve(row.stripe_intent_id).catch(() => null);
+      if (prev && prev.status === 'succeeded') return res.status(400).json({ error: 'Pedido ya pagado' });
+      if (prev && prev.status === 'processing') return res.status(409).json({ error: 'Tu pago se está procesando. Revisa "Mis pedidos" en unos minutos.' });
+      if (prev && REUSABLE.includes(prev.status) && prev.amount === amount) {
+        return res.json({ clientSecret: prev.client_secret, amount });
+      }
+    }
+
     const intent = await stripe.paymentIntents.create({
       amount,
       currency: 'mxn',
@@ -43,14 +60,14 @@ router.post('/create-payment-intent', authenticate, async (req, res) => {
       },
       receipt_email: row.user_email,
       description: `Pedido ${row.id} - Fajas Maydel`,
-    });
+    }, { idempotencyKey: `intent-${row.id}-${amount}-${row.stripe_intent_id || 'first'}` });
     await pool.execute('UPDATE orders SET stripe_intent_id = ?, payment_method = "stripe" WHERE id = ?',
       [intent.id, row.id]);
 
     res.json({ clientSecret: intent.client_secret, amount });
   } catch (err) {
     console.error('Stripe error:', err.message);
-    res.status(500).json({ error: err.message || 'Error al crear PaymentIntent' });
+    res.status(500).json({ error: 'No se pudo iniciar el pago con tarjeta. Intenta de nuevo o paga por WhatsApp.' });
   }
 });
 
@@ -67,51 +84,50 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   try {
+    const obj = event.data.object;
     if (event.type === 'payment_intent.succeeded') {
-      const intent = event.data.object;
-      const orderId = intent.metadata?.orderId;
+      const orderId = obj.metadata?.orderId;
+      // Debe ser el intento vigente del pedido y por el monto del pedido.
       if (orderId) {
-        // Solo la primera vez: si Stripe reintenta el evento no se repiten los avisos.
-        const [upd] = await pool.execute(
-          'UPDATE orders SET payment_status = "paid", status = "confirmed" WHERE id = ? AND payment_status <> "paid"',
-          [orderId]
-        );
-        const [[row]] = upd.affectedRows
-          ? await pool.execute('SELECT * FROM orders WHERE id = ?', [orderId])
-          : [[null]];
-        if (row) {
-          const order = {
-            id: row.id, userName: row.user_name, userEmail: row.user_email,
-            items: row.items || [], subtotal: Number(row.subtotal), shippingCost: Number(row.shipping_cost),
-            total: Number(row.total), shippingInfo: row.shipping_info || {}, status: 'confirmed',
-            shippingState: row.shipping_state, paymentMethod: 'stripe', paymentStatus: 'paid',
-            notes: row.notes || '', couponCode: row.coupon_code || null,
-            discountAmount: Number(row.discount_amount || 0),
-          };
-          // Esperar los avisos antes de responder: en Vercel la función se congela
-          // en cuanto responde. Stripe espera hasta 20 s, de sobra.
-          const results = await Promise.allSettled([
-            mailer.sendOrderStatusUpdate(order),
-            mailer.sendOrderToAdmin(order),
-            telegram.notifyNewOrder(order),
-          ]);
-          results.forEach(r => {
-            if (r.status === 'rejected') console.error('[avisos] venta pagada', order.id, r.reason?.message || r.reason);
-            else if (r.value && r.value.ok === false) console.error('[avisos] venta pagada', order.id, 'telegram', r.value.description);
-          });
+        const [[row]] = await pool.execute('SELECT total FROM orders WHERE id = ?', [orderId]);
+        if (row && Math.round(Number(row.total) * 100) !== obj.amount_received) {
+          console.error('[webhook] monto distinto al del pedido', orderId, obj.amount_received);
         }
+        await pool.execute('UPDATE orders SET stripe_intent_id = ? WHERE id = ?', [obj.id, orderId]);
+        await markOrderPaid(orderId);
       }
     } else if (event.type === 'payment_intent.payment_failed') {
-      const intent = event.data.object;
-      const orderId = intent.metadata?.orderId;
+      const orderId = obj.metadata?.orderId;
       if (orderId) {
-        await pool.execute('UPDATE orders SET payment_status = "failed" WHERE id = ?', [orderId]);
+        // Se marca para el panel; el pedido sigue vivo para que la clienta reintente
+        // (si no lo logra, expira solo y regresa el inventario).
+        await pool.execute(
+          'UPDATE orders SET payment_status = "failed" WHERE id = ? AND payment_status = "unpaid"', [orderId]);
+      }
+    } else if (event.type === 'charge.refunded') {
+      // Reembolso hecho desde el panel de Stripe (no desde el de la tienda).
+      if (obj.refunded && obj.payment_intent) {
+        await pool.execute(
+          'UPDATE orders SET payment_status = "refunded" WHERE stripe_intent_id = ?', [obj.payment_intent]);
       }
     }
     res.json({ received: true });
   } catch (err) {
     console.error('Webhook handler error:', err);
     res.status(500).send('Error procesando evento');
+  }
+});
+
+// GET /api/checkout/expire-orders  (cron diario de Vercel)
+// Vercel manda "Authorization: Bearer <CRON_SECRET>".
+router.get('/expire-orders', async (req, res) => {
+  const secret = process.env.CRON_SECRET || '';
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'No autorizado' });
+  try {
+    res.json(await expireStaleOrders(50));
+  } catch (err) {
+    console.error('[cron expirar]', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

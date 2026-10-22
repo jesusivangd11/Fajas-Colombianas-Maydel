@@ -16,13 +16,15 @@ real en producción.
 - Carrito persistente: se guarda en el navegador y, con sesión iniciada, en el servidor.
 - Favoritos, reseñas de producto y testimonios.
 - Cupones de descuento y cálculo de envío local o nacional.
-- Pedido por WhatsApp o pago con tarjeta (Stripe).
+- Pedido por WhatsApp o pago con tarjeta (Stripe). Un pago con tarjeta que no se completa en 60 min se cancela solo y su inventario vuelve a la venta.
+- Seguimiento del pedido con paquetería y número de guía.
 - Cuenta de cliente: registro, inicio de sesión con correo o Google, recuperación de contraseña por correo o código OTP, historial de pedidos y direcciones.
 
 **Panel de administración (`/dashboard`)**
 - Alta y edición de productos, con carga y reordenamiento de fotos y videos.
 - Gestión de categorías, marcas, cupones y testimonios.
-- Pedidos y sus estados (pendiente → confirmado → enviado → entregado).
+- Pedidos y sus estados (pendiente → confirmado → enviado → entregado), número de guía,
+  registro de pagos por WhatsApp/transferencia y reembolsos con tarjeta.
 - Registro de gastos y reportes de finanzas mensuales.
 - Avisos de pedidos nuevos por Telegram.
 
@@ -96,6 +98,7 @@ npm run dev              # http://localhost:3000
 | `npm run setup` | Crea las tablas y el administrador inicial |
 | `npm run test:*` | Pruebas end-to-end (imágenes, galería, audio de video, marca) |
 | `node db/migrate_to_cloud.js --apply` | Copia la base local a la base en la nube (`.env.production`) |
+| `node db/migrate_v3.js [--prod]` | Columnas de guía de envío, cupones de 1 uso por clienta y tabla del limitador de intentos |
 
 ## Despliegue
 
@@ -103,11 +106,21 @@ Cada push a `main` se publica automáticamente en Vercel. Las credenciales (base
 datos, JWT, SMTP, etc.) se configuran como **variables de entorno en Vercel** y nunca
 se guardan en el repositorio; `.env.example` lista las que hacen falta.
 
+Un cron diario de Vercel (`vercel.json`) llama a `/api/checkout/expire-orders` con
+`CRON_SECRET` para cancelar pedidos con tarjeta abandonados. Además se revisan solos
+cada vez que se crea un pedido o se abre el panel.
+
 ## Seguridad
 
 - Ningún secreto está en el código: todo se lee de variables de entorno.
-- Contraseñas con bcrypt; sesión con JWT en cookie `httpOnly`.
-- Límite de intentos en login, recuperación de contraseña y OTP.
+- Contraseñas con bcrypt (mínimo 8 caracteres); sesión con JWT en cookie `httpOnly`.
+  Cada petición valida la sesión contra la BD: borrar un usuario, cambiarle el rol o
+  la contraseña cierra sus sesiones abiertas.
+- Límite de intentos (guardado en la BD, compartido entre instancias de Vercel) en
+  login, registro, recuperación de contraseña, OTP, cupones, pedidos y reseñas.
+- El código por SMS/WhatsApp solo funciona con un proveedor real (Twilio/Meta); el
+  modo demo, que muestra el código en pantalla, existe solo en local.
+- Todo texto de clientes se escapa antes de mostrarse en el panel y en los correos.
 - Las rutas de administración exigen rol `admin` en el servidor.
 - El servidor bloquea que se sirvan como estáticos el código fuente y la configuración.
 

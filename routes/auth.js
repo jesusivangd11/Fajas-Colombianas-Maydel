@@ -5,6 +5,7 @@ const pool    = require('../db/connection');
 const { authenticate, signToken, COOKIE_OPTS } = require('../middleware/auth');
 const mailer = require('../services/mailer');
 const otp    = require('../services/otp');
+const { waitUntil } = require('@vercel/functions');
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -118,7 +119,10 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password, birthdate, phone, calle, numero, colonia, cp, ciudad, estado } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: 'Todos los campos son requeridos' });
-    if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()))
+      return res.status(400).json({ error: 'El correo no es válido' });
+    if (String(name).trim().length > 100) return res.status(400).json({ error: 'El nombre es demasiado largo' });
+    if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
 
     const normPhone = otp.normalizePhone(phone);
     if (normPhone && normPhone.length < 11) return res.status(400).json({ error: 'El teléfono no parece válido (incluye los 10 dígitos)' });
@@ -135,7 +139,7 @@ router.post('/register', async (req, res) => {
     );
     const user = { id: result.insertId, name: name.trim(), email: email.trim().toLowerCase(), role: 'user' };
 
-    res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
+    res.cookie('maydel_token', signToken({ ...user, password_hash: hash }), COOKIE_OPTS());
     res.status(201).json(user);
   } catch (err) {
     console.error(err);
@@ -173,7 +177,9 @@ router.post('/forgot-password', async (req, res) => {
       );
       const base = process.env.PUBLIC_URL || 'http://localhost:3000';
       const resetUrl = `${base}/reset-password.html?token=${token}`;
-      mailer.sendPasswordReset({ to: user.email, name: user.name, resetUrl }).catch(e => console.error('mail err', e.message));
+      // waitUntil: en Vercel la función se congela al responder y el correo no salía.
+      waitUntil(mailer.sendPasswordReset({ to: user.email, name: user.name, resetUrl })
+        .catch(e => console.error('[avisos] reset', e.message)));
     }
     res.json({ ok: true, message: 'Si el correo esta registrado, te enviamos un enlace para restablecer tu contrasena.' });
   } catch (err) {
@@ -187,7 +193,7 @@ router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ error: 'Token y contrasena requeridos' });
-    if (String(password).length < 6) return res.status(400).json({ error: 'La contrasena debe tener al menos 6 caracteres' });
+    if (String(password).length < 8) return res.status(400).json({ error: 'La contrasena debe tener al menos 8 caracteres' });
 
     const [rows] = await pool.execute(
       'SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()',
@@ -198,7 +204,9 @@ router.post('/reset-password', async (req, res) => {
     const reset = rows[0];
     const hash = await bcrypt.hash(password, 10);
     await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, reset.user_id]);
-    await pool.execute('UPDATE password_resets SET used = 1 WHERE id = ?', [reset.id]);
+    // Quema este y cualquier otro enlace pendiente del mismo usuario. Las sesiones
+    // abiertas con la contraseña anterior dejan de valer solas (ver middleware/auth).
+    await pool.execute('UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0', [reset.user_id]);
 
     res.json({ ok: true, message: 'Contrasena actualizada. Ya puedes iniciar sesion.' });
   } catch (err) {
@@ -207,11 +215,18 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// GET /api/auth/otp-options  -> qué canales de código por teléfono hay activos
+router.get('/otp-options', (req, res) => {
+  res.json({ sms: otp.channelAvailable('sms'), whatsapp: otp.channelAvailable('whatsapp') });
+});
+
 // POST /api/auth/send-otp  { phone, channel }  -> envia codigo de 6 digitos
 router.post('/send-otp', async (req, res) => {
   try {
     const phone   = otp.normalizePhone(req.body.phone);
     const channel = req.body.channel === 'whatsapp' ? 'whatsapp' : 'sms';
+    if (!otp.channelAvailable(channel))
+      return res.status(503).json({ error: 'La recuperación por mensaje no está disponible. Usa la opción "Por correo".' });
     if (!phone || phone.length < 11) return res.status(400).json({ error: 'Número de teléfono inválido' });
 
     const [rows] = await pool.execute(
@@ -235,7 +250,7 @@ router.post('/send-otp', async (req, res) => {
       const result = await otp.sendCode({ phone, code, channel }).catch(e => {
         console.error('otp send err', e.message); return { simulated: false, error: true };
       });
-      simulated = !!result.simulated;
+      simulated = !!result.simulated && otp.demoAllowed();
       if (simulated) devCode = code; // modo demo: lo mostramos para poder probar
     }
 
@@ -291,13 +306,18 @@ router.post('/verify-otp', async (req, res) => {
 
 // GET /api/auth/reset-password/validate?token=...
 router.get('/reset-password/validate', async (req, res) => {
-  const token = req.query.token || '';
-  if (!token) return res.json({ valid: false });
-  const [rows] = await pool.execute(
-    'SELECT id FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()',
-    [token]
-  );
-  res.json({ valid: rows.length > 0 });
+  try {
+    const token = String(req.query.token || '');
+    if (!token) return res.json({ valid: false });
+    const [rows] = await pool.execute(
+      'SELECT id FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()',
+      [token]
+    );
+    res.json({ valid: rows.length > 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno' });
+  }
 });
 
 module.exports = router;

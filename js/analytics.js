@@ -22,6 +22,13 @@
 
 // Helpers para trackear eventos puntuales (carrito, compra, etc.)
 window.trackEvent = function (name, params) {
-  try { if (window.gtag) window.gtag('event', name, params || {}); } catch {}
-  try { if (window.fbq)  window.fbq('track', name === 'purchase' ? 'Purchase' : name === 'add_to_cart' ? 'AddToCart' : name); } catch {}
+  params = params || {};
+  try { if (window.gtag) window.gtag('event', name, params); } catch {}
+  try {
+    if (window.fbq) {
+      const fbName = { purchase: 'Purchase', add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout' }[name] || name;
+      // Meta necesita value + currency en la compra para medir el retorno de anuncios.
+      window.fbq('track', fbName, params.value != null ? { value: params.value, currency: params.currency || 'MXN' } : {});
+    }
+  } catch {}
 };

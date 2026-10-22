@@ -80,7 +80,7 @@ async function renderOverview() {
       const st = ORDER_STATUSES[o.status] || {};
       return `<tr>
         <td style="font-weight:700;font-size:12px;color:var(--gray-500)">${o.id}</td>
-        <td>${o.userName}<br><small style="color:var(--gray-400)">${o.userEmail}</small></td>
+        <td>${esc(o.userName)}<br><small style="color:var(--gray-400)">${esc(o.userEmail)}</small></td>
         <td style="font-weight:700;color:var(--primary)">${formatPrice(o.total)}</td>
         <td><span class="badge badge-${o.status}"><i class="fa-solid ${st.icon}"></i> ${st.label}</span></td>
         <td style="font-size:12px;color:var(--gray-500)">${formatDate(o.createdAt)}</td>
@@ -205,6 +205,10 @@ let vSelColor = '';        // color elegido para la variante en construcción
 let vSizeStock = {};       // { talla: cantidad } de la variante en construcción
 let vOptions = [''];       // valores de opción (con tirantes, largo…); 1+ inputs
 let vEditIndex = null;     // índice que se está editando (null = variante nueva)
+// Inventario tal como estaba al abrir el formulario. El servidor aplica solo el
+// cambio que hiciste sobre el stock actual, así una venta que entre mientras
+// editas no se pierde al guardar.
+let loadedStockBase = null;
 const MAX_IMAGES = 12;
 const MAX_VIDEOS = 6;
 // La mayoría de los videos van en segunda posición, así que ahí caen por defecto.
@@ -215,6 +219,7 @@ async function openProductModal(id) {
   currentImages = []; currentVideos = []; currentImageFocus = {};
   currentTags = []; selectedCats = []; selectedSizes = []; selectedColors = [];
   currentVariants = []; resetVariantBuilder();
+  loadedStockBase = null;
 
   document.getElementById('productModalTitle').textContent = id ? 'Editar Producto' : 'Nuevo Producto';
   ['f-name','f-reference','f-price','f-original-price','f-wholesale-price','f-stock','f-material','f-desc'].forEach(f => document.getElementById(f).value = '');
@@ -232,6 +237,7 @@ async function openProductModal(id) {
   if (id) {
     const p = await DB.getProduct(id);
     if (!p) return;
+    loadedStockBase = { stock: p.stock ?? 0, variants: JSON.parse(JSON.stringify(p.variants || [])) };
     document.getElementById('f-name').value          = p.name || '';
     selectedCats = (p.categories && p.categories.length) ? [...p.categories] : (p.category ? [p.category] : []);
     renderCatCheckboxes();
@@ -304,6 +310,8 @@ async function saveProduct() {
     // Variantes: si hay al menos una, el servidor deriva de ellas las tallas/colores
     // planos; si no, se queda con el modo simple de arriba.
     variants:      currentVariants.map(v => ({ color: v.color, option: v.option, sizes: [...v.sizes], price: v.price })),
+    ...(editingProductId && loadedStockBase
+      ? { baseStock: loadedStockBase.stock, baseVariants: loadedStockBase.variants } : {}),
   };
 
   try {
@@ -1346,7 +1354,9 @@ async function loadOrderTable() {
         <div style="font-size:12px;color:var(--gray-400)">${esc(o.userEmail)}</div>
       </td>
       <td style="font-size:13px">${(o.items || []).length} item${o.items?.length !== 1 ? 's' : ''}</td>
-      <td style="font-weight:700;color:var(--primary)">${formatPrice(o.total)}</td>
+      <td style="font-weight:700;color:var(--primary)">${formatPrice(o.total)}
+        <div style="font-size:11px;font-weight:600;color:${o.paymentStatus === 'paid' ? '#166534' : 'var(--gray-400)'}">${o.paymentMethod === 'stripe' ? 'Tarjeta' : 'WhatsApp'} · ${PAYMENT_LABELS[o.paymentStatus] || o.paymentStatus}</div>
+      </td>
       <td>
         <select class="order-status-select" onchange="changeOrderStatus('${o.id}', this.value)">
           ${Object.entries(ORDER_STATUSES).map(([k, v]) =>
@@ -1416,6 +1426,21 @@ async function viewOrderDetail(id) {
       </div>
     </div>
     ${order.notes ? `<div style="background:var(--gray-50);border-radius:8px;padding:12px;margin-top:14px;font-size:13px"><strong>Notas:</strong> ${esc(order.notes)}</div>` : ''}
+    ${order.cancelReason && order.status === 'cancelled' ? `<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-top:14px;font-size:13px;color:#991b1b"><strong>Cancelado:</strong> ${esc(order.cancelReason)}</div>` : ''}
+    ${orderPaymentBox(order)}
+    ${order.status === 'cancelled' ? '' : `
+    <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-top:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-truck-fast"></i> Envío y número de guía</div>
+      <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px">
+        <input id="orderCarrier" class="form-input" maxlength="60" list="carrierList" placeholder="Paquetería (Estafeta, DHL...)" value="${esc(order.trackingCarrier)}">
+        <input id="orderTracking" class="form-input" maxlength="80" placeholder="Número de guía" value="${esc(order.trackingNumber)}">
+      </div>
+      <datalist id="carrierList"><option value="Estafeta"><option value="DHL"><option value="FedEx"><option value="Paquetexpress"><option value="J&T Express"><option value="Correos de México"><option value="99 Minutos"><option value="Entrega local"></datalist>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px">
+        <span style="font-size:12px;color:var(--gray-500)">Al guardar la guía el pedido pasa a "Enviado" y la clienta recibe un correo con ella.</span>
+        <button class="btn-save" onclick="saveOrderTracking('${order.id}')" style="border-radius:8px;padding:9px 18px">Guardar guía</button>
+      </div>
+    </div>`}
     ${['delivered', 'cancelled'].includes(order.status) ? '' : `
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px;margin-top:14px">
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#92400e;cursor:pointer">
@@ -1430,6 +1455,78 @@ async function viewOrderDetail(id) {
       </div>
     </div>`}`;
   document.getElementById('orderDetailModal').classList.remove('hidden');
+}
+
+// Pago: los de tarjeta los confirma Stripe (aquí solo se pueden reembolsar);
+// los de WhatsApp / transferencia / OXXO se marcan a mano al recibir el dinero.
+const PAYMENT_LABELS = { unpaid: 'Sin pagar', paid: 'Pagado', refunded: 'Reembolsado', failed: 'Pago rechazado' };
+function orderPaymentBox(order) {
+  const label = PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus;
+  const color = order.paymentStatus === 'paid' ? '#166534' : order.paymentStatus === 'refunded' ? '#6d28d9' : '#b45309';
+  let action = '';
+  if (order.paymentMethod === 'stripe') {
+    if (order.paymentStatus === 'paid')
+      action = `<button class="btn-del" onclick="refundOrder('${order.id}')" style="border-radius:8px;padding:8px 14px"><i class="fa-solid fa-rotate-left"></i> Reembolsar ${formatPrice(order.total)}</button>`;
+  } else if (order.paymentStatus !== 'refunded') {
+    const paid = order.paymentStatus === 'paid';
+    action = `<button class="btn-save" onclick="setOrderPayment('${order.id}', '${paid ? 'unpaid' : 'paid'}')" style="border-radius:8px;padding:8px 14px">${paid ? 'Marcar como no pagado' : '<i class="fa-solid fa-check"></i> Marcar como pagado'}</button>`;
+  }
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--gray-200);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:14px">
+    <div><i class="fa-solid ${order.paymentMethod === 'stripe' ? 'fa-credit-card' : 'fa-brands fa-whatsapp'}"></i>
+      ${order.paymentMethod === 'stripe' ? 'Tarjeta (Stripe)' : 'WhatsApp / transferencia'} ·
+      <strong style="color:${color}">${label}</strong></div>
+    ${action}
+  </div>`;
+}
+
+async function setOrderPayment(id, paymentStatus) {
+  try {
+    await DB.setOrderPayment(id, paymentStatus);
+    showToast(paymentStatus === 'paid' ? 'Pago registrado' : 'Pago quitado');
+    await viewOrderDetail(id);
+    await loadOrderTable();
+  } catch (err) {
+    showToast(err.message || 'Error al guardar el pago', 'error');
+  }
+}
+
+async function saveOrderTracking(id) {
+  const carrier = document.getElementById('orderCarrier').value.trim();
+  const number  = document.getElementById('orderTracking').value.trim();
+  if (!number && !carrier) { showToast('Escribe la paquetería y el número de guía', 'error'); return; }
+  try {
+    await DB.setOrderTracking(id, carrier, number);
+    showToast(number ? 'Guía guardada y enviada a la clienta' : 'Guardado');
+    closeOrderDetail();
+    await loadOrderTable();
+    await loadOrderStats();
+  } catch (err) {
+    showToast(err.message || 'Error al guardar la guía', 'error');
+  }
+}
+
+function refundOrder(id) {
+  document.getElementById('confirmMsg').textContent = `¿Reembolsar el pedido ${id}? Stripe le regresa el dinero a la tarjeta de la clienta y el pedido se cancela (si no se había entregado). No se puede deshacer.`;
+  document.querySelector('#confirmModal h3').textContent = '¿Confirmar reembolso?';
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Reembolsar';
+  document.getElementById('confirmModal').classList.remove('hidden');
+  btn.onclick = async () => {
+    btn.disabled = true;
+    try {
+      await DB.refundOrder(id);
+      closeConfirm();
+      showToast('Reembolso enviado a Stripe');
+      closeOrderDetail();
+      await loadOrderTable();
+      await loadOrderStats();
+    } catch (err) {
+      closeConfirm();
+      showToast(err.message || 'Error al reembolsar', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  };
 }
 
 async function saveOrderDelay(id) {
@@ -1465,7 +1562,12 @@ function confirmDeleteProduct(id, name) {
   };
 }
 
-function closeConfirm() { document.getElementById('confirmModal').classList.add('hidden'); }
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.add('hidden');
+  // El diálogo se comparte: regresa a su texto de "eliminar" por si otra acción lo cambió.
+  document.querySelector('#confirmModal h3').textContent = '¿Confirmar eliminación?';
+  document.getElementById('confirmDeleteBtn').innerHTML = '<i class="fa-solid fa-trash"></i> Eliminar';
+}
 
 // ── EXPENSES ──
 async function addExpense() {
@@ -1508,10 +1610,10 @@ async function loadExpenseTable() {
 
   tbody.innerHTML = expenses.map(e => `<tr>
     <td style="font-size:13px;color:var(--gray-500);white-space:nowrap">${formatDate(e.date)}</td>
-    <td style="font-weight:600">${e.concept}</td>
+    <td style="font-weight:600">${esc(e.concept)}</td>
     <td><span class="badge" style="background:var(--gray-100);color:var(--gray-600)">${EXPENSE_CATEGORIES[e.category] || e.category}</span></td>
     <td style="font-weight:700;color:var(--danger)">${formatPrice(e.amount)}</td>
-    <td style="font-size:13px;color:var(--gray-400)">${e.notes || '–'}</td>
+    <td style="font-size:13px;color:var(--gray-400)">${esc(e.notes) || '–'}</td>
     <td><button class="btn-del" onclick="deleteExpense('${e.id}')"><i class="fa-solid fa-trash"></i></button></td>
   </tr>`).join('');
 }
@@ -1697,13 +1799,14 @@ async function loadCouponTable() {
     const discount = c.discountType === 'percent' ? `${c.discountValue}%`
                    : c.discountType === 'free_shipping' ? 'Envío gratis' : formatPrice(c.discountValue);
     return `<tr>
-      <td><strong style="font-family:'DM Sans',sans-serif;letter-spacing:1px;color:#1a5c2e">${c.code}</strong></td>
-      <td style="font-size:13px;color:#4b5563;max-width:280px">${c.description || '-'}</td>
+      <td><strong style="font-family:'DM Sans',sans-serif;letter-spacing:1px;color:#1a5c2e">${esc(c.code)}</strong></td>
+      <td style="font-size:13px;color:#4b5563;max-width:280px">${esc(c.description) || '-'}${c.oncePerUser ? '<div style="font-size:11px;color:#6d28d9;font-weight:600">1 uso por clienta</div>' : ''}</td>
       <td style="font-weight:700;color:#1a5c2e">${discount}</td>
       <td>${formatPrice(c.minSubtotal)}</td>
       <td>${c.uses}${c.maxUses ? ' / ' + c.maxUses : ''}</td>
       <td><span style="font-size:11px;padding:3px 10px;border-radius:12px;background:${stateColor}20;color:${stateColor};font-weight:700">${stateLabel}</span></td>
-      <td>
+      <td style="white-space:nowrap">
+        <button class="btn-edit" onclick="toggleCoupon(${c.id}, ${!c.active})" aria-label="${c.active ? 'Pausar' : 'Activar'}" title="${c.active ? 'Pausar' : 'Activar'}"><i class="fa-solid ${c.active ? 'fa-pause' : 'fa-play'}"></i></button>
         <button class="btn-del" onclick="deleteCoupon(${c.id})" aria-label="Eliminar"><i class="fa-solid fa-trash"></i></button>
       </td>
     </tr>`;
@@ -1719,13 +1822,14 @@ async function createCoupon() {
   const expiresAt = document.getElementById('coupExpires').value || null;
   const description = document.getElementById('coupDesc').value.trim();
   const active = document.getElementById('coupActive').checked;
+  const oncePerUser = document.getElementById('coupOncePerUser').checked;
   if (!code) return showToast('Código requerido', 'error');
   if (discountType !== 'free_shipping' && (!discountValue || discountValue <= 0)) return showToast('Valor del descuento requerido', 'error');
   if (discountType === 'percent' && discountValue > 100) return showToast('El % no puede ser mayor a 100', 'error');
   try {
     const r = await fetch('/api/coupons', {
       method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ code, discountType, discountValue, minSubtotal, maxUses, expiresAt, description, active })
+      body: JSON.stringify({ code, discountType, discountValue, minSubtotal, maxUses, expiresAt, description, active, oncePerUser })
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Error');
@@ -1736,6 +1840,18 @@ async function createCoupon() {
     document.getElementById('coupMaxUses').value = '';
     document.getElementById('coupExpires').value = '';
     document.getElementById('coupDesc').value = '';
+    loadCouponTable();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function toggleCoupon(id, active) {
+  try {
+    const r = await fetch('/api/coupons/' + id, {
+      method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'Error');
+    showToast(active ? 'Cupón activado' : 'Cupón pausado');
     loadCouponTable();
   } catch (err) { showToast(err.message, 'error'); }
 }
@@ -1841,7 +1957,7 @@ async function saveUser() {
   const password = document.getElementById('uPassword').value;
 
   if (!name || !email) { showToast('Nombre y correo son obligatorios', 'error'); return; }
-  if (password && password.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+  if (password && password.length < 8) { showToast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
 
   try {
     await apiFetch(`/api/users/${_editingUserId}`, {
@@ -1922,8 +2038,8 @@ function filterIncomeTable() {
       <td style="font-size:12px;color:var(--gray-500);white-space:nowrap">${formatDate(o.createdAt)}</td>
       <td style="font-weight:700;font-size:12px;color:var(--gray-500)">${o.id}</td>
       <td>
-        <div style="font-weight:600">${o.userName}</div>
-        <div style="font-size:11px;color:var(--gray-400)">${o.userEmail}</div>
+        <div style="font-weight:600">${esc(o.userName)}</div>
+        <div style="font-size:11px;color:var(--gray-400)">${esc(o.userEmail)}</div>
       </td>
       <td style="font-size:13px">${(o.items||[]).length} item${o.items?.length!==1?'s':''}</td>
       <td><span class="badge badge-${o.status}"><i class="fa-solid ${st.icon}"></i> ${st.label}</span></td>

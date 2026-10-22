@@ -613,12 +613,47 @@ async function createOrderOnServer(paymentMethod) {
   return { order, customerData: data };
 }
 
+// ── Pedido con tarjeta pendiente ───────────────────────────────────────
+// Cada pedido aparta inventario. Si la clienta abre la ventana de pago, la cierra
+// y vuelve a intentar, se reutiliza el MISMO pedido (y el mismo cobro de Stripe)
+// en vez de crear otro. Si cambia el carrito o se va por WhatsApp, el pendiente
+// se libera para que el stock vuelva a la venta.
+const PENDING_CARD_KEY = 'maydel_pending_card_order';
+function readPendingCard() {
+  try { return JSON.parse(sessionStorage.getItem(PENDING_CARD_KEY) || 'null'); } catch { return null; }
+}
+function savePendingCard(v) {
+  try { v ? sessionStorage.setItem(PENDING_CARD_KEY, JSON.stringify(v)) : sessionStorage.removeItem(PENDING_CARD_KEY); } catch {}
+}
+async function releasePendingCard() {
+  const pending = readPendingCard();
+  savePendingCard(null);
+  if (!pending) return;
+  try { await fetch(`/api/orders/${encodeURIComponent(pending.order.id)}/abandon`, { method: 'POST', credentials: 'include' }); } catch {}
+}
+async function checkoutSignature() {
+  const data = getFormData();
+  if (!data) return null;
+  const items = await DB.getCartItems();
+  return JSON.stringify({
+    i: items.map(i => [i.productId, i.qty, i.size || '', i.color || '', i.option || '']),
+    d: [data.name, data.phone, data.address, data.city, data.state, data.notes],
+    c: CURRENT_COUPON ? CURRENT_COUPON.code : '',
+  });
+}
+
+function trackPurchase(order) {
+  if (window.trackEvent) window.trackEvent('purchase', { transaction_id: order.id, value: order.total, currency: 'MXN' });
+}
+
 async function confirmOrder(paymentMethod) {
   try {
+    await releasePendingCard();
     const res = await createOrderOnServer(paymentMethod || 'whatsapp');
     if (!res) return;
     const { order, customerData } = res;
     DB.clearCart();
+    trackPurchase(order);
     document.getElementById('confirmedOrderId').textContent = order.id;
     const waMsg = encodeURIComponent(
       `¡Hola! Vengo desde la página web — acabo de CONFIRMAR un pedido.\n\n` +
@@ -650,19 +685,50 @@ async function payWithCard() {
     return;
   }
 
-  const res = await createOrderOnServer('stripe').catch(e => { showToast(e.message, 'error'); return null; });
-  if (!res) return;
-  stripeOrder = res.order;
+  if (!AUTH.getSession()) { await createOrderOnServer('stripe'); return; } // muestra el aviso y lleva al login
+  const sig = await checkoutSignature();
+  if (!sig) return;
 
+  const btn = document.getElementById('payCardBtn');
+  const btnHtml = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando pago...';
   try {
-    const r = await fetch('/api/checkout/create-payment-intent', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-      body: JSON.stringify({ orderId: stripeOrder.id }),
-    });
-    const data = await r.json();
+    // ¿Ya hay un pedido con tarjeta para este mismo carrito? Se reutiliza.
+    const pending = readPendingCard();
+    if (pending && pending.sig === sig) stripeOrder = pending.order;
+    else { await releasePendingCard(); stripeOrder = null; }
+
+    const requestIntent = async () => {
+      const r = await fetch('/api/checkout/create-payment-intent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ orderId: stripeOrder.id }),
+      });
+      return { r, data: await r.json() };
+    };
+
+    const newCardOrder = async () => {
+      const res = await createOrderOnServer('stripe');
+      if (!res) return false;
+      stripeOrder = res.order;
+      savePendingCard({ sig, order: stripeOrder });
+      return true;
+    };
+    if (!stripeOrder && !(await newCardOrder())) return;
+    let { r, data } = await requestIntent();
+    if ((r.status === 410 && data.expired) || r.status === 404) {
+      // El pendiente expiró (pasó mucho tiempo) o es de otra cuenta: se crea uno nuevo.
+      savePendingCard(null);
+      if (!(await newCardOrder())) return;
+      ({ r, data } = await requestIntent());
+    }
     if (!r.ok) throw new Error(data.error || 'Error al iniciar pago');
     stripeClientSecret = data.clientSecret;
-  } catch (err) { showToast(err.message, 'error'); return; }
+  } catch (err) {
+    showToast(err.message, 'error');
+    return;
+  } finally {
+    btn.disabled = false; btn.innerHTML = btnHtml;
+  }
 
   if (!stripeInst) stripeInst = Stripe(cfg.publicKey);
   document.getElementById('stripeElementContainer').innerHTML = '';
@@ -692,6 +758,8 @@ async function stripeSubmit() {
     });
     if (error) throw new Error(error.message || 'Pago rechazado');
     // Sin redirect (tarjeta sin 3DS): consideramos OK
+    savePendingCard(null);
+    trackPurchase(stripeOrder);
     DB.clearCart();
     closeCardModal();
     document.getElementById('confirmedOrderId').textContent = stripeOrder.id;
@@ -711,6 +779,9 @@ async function stripeSubmit() {
   const paid = params.get('paid');
   const intentStatus = params.get('redirect_status');
   if (paid && intentStatus === 'succeeded') {
+    const pending = readPendingCard();
+    if (pending && pending.order.id === paid) trackPurchase(pending.order);
+    savePendingCard(null);
     DB.clearCart();
     setTimeout(() => {
       document.getElementById('confirmedOrderId').textContent = paid;

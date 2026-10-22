@@ -494,6 +494,9 @@
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px">
               <input type="checkbox" id="coupActive" checked> Activo
             </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px" title="Cada clienta solo puede usarlo en una compra">
+              <input type="checkbox" id="coupOncePerUser"> Un solo uso por clienta
+            </label>
             <button class="btn-save" onclick="createCoupon()" style="border-radius:8px;padding:11px 24px">
               <i class="fa-solid fa-plus"></i> Crear cupón
             </button>
@@ -729,7 +732,7 @@
     </div>
     <div class="form-group" style="margin-bottom:20px">
       <label class="form-label">Nueva contraseña <span style="font-weight:400;color:var(--gray-400)">(dejar vacío para no cambiar)</span></label>
-      <input type="password" class="form-input" id="uPassword" placeholder="Mín. 6 caracteres" autocomplete="new-password">
+      <input type="password" class="form-input" id="uPassword" placeholder="Mín. 8 caracteres" autocomplete="new-password">
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeUserModal()">Cancelar</button>

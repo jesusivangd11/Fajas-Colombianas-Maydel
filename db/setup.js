@@ -311,7 +311,23 @@ async function setup() {
     'ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0',
     'ALTER TABLE orders ADD COLUMN is_delayed TINYINT(1) NOT NULL DEFAULT 0',
     'ALTER TABLE orders ADD COLUMN delay_note VARCHAR(255) DEFAULT NULL',
+    // db/migrate_v3.js: guía de envío, motivo de cancelación, cupón de 1 uso por clienta
+    'ALTER TABLE orders ADD COLUMN tracking_carrier VARCHAR(60) DEFAULT NULL',
+    'ALTER TABLE orders ADD COLUMN tracking_number VARCHAR(80) DEFAULT NULL',
+    'ALTER TABLE orders ADD COLUMN cancel_reason VARCHAR(120) DEFAULT NULL',
+    'ALTER TABLE coupons ADD COLUMN once_per_user TINYINT(1) NOT NULL DEFAULT 0',
+    'ALTER TABLE orders ADD INDEX idx_ord_user (user_id)',
+    'ALTER TABLE orders ADD INDEX idx_ord_pay (payment_method, payment_status, status, created_at)',
   ]) { try { await conn.query(alter); } catch(e) {} }
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      k          VARCHAR(191) NOT NULL PRIMARY KEY,
+      hits       INT NOT NULL DEFAULT 0,
+      expires_at DATETIME NOT NULL,
+      INDEX idx_rl_expires (expires_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
 
   await conn.query(`
     CREATE TABLE IF NOT EXISTS expenses (

@@ -1,7 +1,6 @@
 const router = require('express').Router();
-const jwt    = require('jsonwebtoken');
 const pool   = require('../db/connection');
-const { adminOnly } = require('../middleware/auth');
+const { adminOnly, sessionUser } = require('../middleware/auth');
 
 // Orden estándar de tallas: se muestran siempre así (XS, S, M, L, XL...) sin
 // importar en qué orden las eligió el admin. Las tallas que no estén en la lista
@@ -133,6 +132,42 @@ function deriveFromVariants(variants, fallbackSizes, fallbackColors, fallbackSto
   return { sizes: sortSizes([...sizes]), colors: [...colors], stock: anyTracked ? sum : fStock };
 }
 
+/* El admin edita el inventario sobre lo que había al ABRIR el formulario. Si
+   mientras tanto entró una venta (o se canceló un pedido), guardar tal cual
+   regresaría el stock al valor viejo. Por eso no se guarda el número del
+   formulario sino el CAMBIO que hizo el admin, aplicado al stock actual:
+     final = actual + (formulario - base)
+   `base*` es lo que el panel cargó al abrir; si no llega (cliente viejo), se
+   guarda el formulario tal cual, como antes. */
+const sizeKey = (v, s) => `${v.color || ''}\u0000${v.option || ''}\u0000${s.size}`;
+function stockMap(variants) {
+  const m = new Map();
+  for (const v of (Array.isArray(variants) ? variants : [])) {
+    for (const s of (Array.isArray(v.sizes) ? v.sizes : [])) {
+      if (s && typeof s === 'object' && s.stock != null) m.set(sizeKey(v, s), Number(s.stock) || 0);
+    }
+  }
+  return m;
+}
+function mergeVariantStock(vars, baseVariants, currentVariants) {
+  if (!Array.isArray(baseVariants)) return vars;
+  const base = stockMap(parseVariants(baseVariants));
+  const cur  = stockMap(parseVariants(currentVariants));
+  for (const v of vars) {
+    for (const s of v.sizes) {
+      const k = sizeKey(v, s);
+      if (s.stock == null || !base.has(k) || !cur.has(k)) continue;
+      s.stock = Math.max(0, cur.get(k) + (s.stock - base.get(k)));
+    }
+  }
+  return vars;
+}
+function mergePlainStock(stock, baseStock, currentStock) {
+  if (baseStock === undefined || baseStock === null || baseStock === '') return stock;
+  const delta = (Number(stock) || 0) - (Number(baseStock) || 0);
+  return Math.max(0, (Number(currentStock) || 0) + delta);
+}
+
 // La posición de un video debe caer dentro de la galería: con N imágenes, los
 // huecos válidos van de 0 (antes de la primera) a N (al final). Fuera de ahí, o
 // si no es entero, se trata como "al final" (null).
@@ -204,19 +239,17 @@ function normalizeCategories(categories, category) {
   return { list, primary: list[0] || '' };
 }
 
-function isAdminRequest(req) {
+async function isAdminRequest(req) {
   try {
-    const token = req.cookies?.maydel_token;
-    if (!token) return false;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return decoded.role === 'admin';
+    const user = await sessionUser(req);
+    return !!user && user.role === 'admin';
   } catch { return false; }
 }
 
 // GET /api/products
 router.get('/', async (req, res) => {
   try {
-    const admin = isAdminRequest(req);
+    const admin = await isAdminRequest(req);
     const { q, cat, brand, sort, minPrice, maxPrice, ids, exclude, limit } = req.query;
 
     // Búsqueda por IDs específicos (para el carrito)
@@ -345,21 +378,25 @@ router.post('/', adminOnly, async (req, res) => {
 
 // PUT /api/products/:id
 router.put('/:id', adminOnly, async (req, res) => {
-  try {
-    const { name, description, price, originalPrice, wholesalePrice, stock, category, categories, brand, sizes, colors, variants, images, imageFocus, video, videoPosition, videos, material, reference, tags, active, featured, isNew } = req.body;
-    const cat = normalizeCategories(categories, category);
-    if (!name || !price || !cat.primary || !brand)
-      return res.status(400).json({ error: 'name, price, al menos una categoría y brand son requeridos' });
+  const { name, description, price, originalPrice, wholesalePrice, stock, category, categories, brand, sizes, colors, variants, images, imageFocus, video, videoPosition, videos, material, reference, tags, active, featured, isNew, baseVariants, baseStock } = req.body;
+  const cat = normalizeCategories(categories, category);
+  if (!name || !price || !cat.primary || !brand)
+    return res.status(400).json({ error: 'name, price, al menos una categoría y brand son requeridos' });
 
-    const [exists] = await pool.execute('SELECT id FROM products WHERE id = ?', [req.params.id]);
-    if (!exists.length) return res.status(404).json({ error: 'Producto no encontrado' });
+  // Transacción con la fila bloqueada: un pedido no puede descontar stock entre
+  // que se lee el inventario actual y se guarda el nuevo.
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[current]] = await conn.execute('SELECT id, stock, variants FROM products WHERE id = ? FOR UPDATE', [req.params.id]);
+    if (!current) { await conn.rollback(); return res.status(404).json({ error: 'Producto no encontrado' }); }
 
     const vids = normalizeVideos(videos, video, videoPosition, images);
     const focus = sanitizeImageFocus(imageFocus, images);
-    const vars = sanitizeVariants(variants);
-    const der  = deriveFromVariants(vars, sizes, colors, stock);
+    const vars = mergeVariantStock(sanitizeVariants(variants), baseVariants, current.variants);
+    const der  = deriveFromVariants(vars, sizes, colors, mergePlainStock(stock, baseStock, current.stock));
 
-    await pool.execute(
+    await conn.execute(
       `UPDATE products SET name=?,description=?,price=?,original_price=?,wholesale_price=?,stock=?,category=?,categories=?,brand=?,
        sizes=?,colors=?,variants=?,images=?,image_focus=?,video=?,video_position=?,videos=?,material=?,reference=?,tags=?,active=?,featured=?,is_new=?
        WHERE id=?`,
@@ -373,11 +410,15 @@ router.put('/:id', adminOnly, async (req, res) => {
        material || null, reference || null, JSON.stringify(tags || []),
        active !== false ? 1 : 0, featured ? 1 : 0, isNew ? 1 : 0, req.params.id]
     );
+    await conn.commit();
     const [rows] = await pool.execute('SELECT * FROM products WHERE id = ?', [req.params.id]);
     res.json(parseProduct(rows[0]));
   } catch (err) {
+    await conn.rollback();
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar producto' });
+  } finally {
+    conn.release();
   }
 });
 

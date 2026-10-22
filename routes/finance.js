@@ -10,7 +10,9 @@ router.get('/monthly', adminOnly, async (req, res) => {
     const [revRows] = await pool.execute(
       `SELECT MONTH(created_at)-1 AS month, COALESCE(SUM(total),0) AS revenue
        FROM orders
-       WHERE YEAR(created_at) = ? AND status != 'cancelled'
+       WHERE YEAR(created_at) = ? AND status != 'cancelled' AND payment_status <> 'refunded'
+         -- un pedido con tarjeta solo es venta cuando Stripe confirma el pago
+         AND (payment_method <> 'stripe' OR payment_status = 'paid')
        GROUP BY MONTH(created_at)`,
       [year]
     );

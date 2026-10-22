@@ -17,7 +17,10 @@
 //     WHATSAPP_CLOUD_TOKEN=xxxxxxxx
 //     WHATSAPP_PHONE_NUMBER_ID=xxxxxxxx
 //
-// Mientras esas variables no existan, todo corre en modo demo.
+// Mientras esas variables no existan, todo corre en modo demo, pero SOLO en
+// desarrollo local. En producción el modo demo entregaría el código a cualquiera
+// que sepa el teléfono de una clienta (robo de cuenta), así que ahí el canal
+// simplemente no está disponible hasta que se configure un proveedor.
 
 const DEFAULT_COUNTRY = process.env.OTP_DEFAULT_COUNTRY_CODE || '52'; // Mexico
 
@@ -47,6 +50,16 @@ function providerConfigured(channel) {
   if (channel === 'sms')      return !!hasTwilioSms;
   if (channel === 'whatsapp') return !!(hasTwilioWa || hasMetaWa);
   return false;
+}
+
+// Modo demo (mostrar el código en pantalla) solo fuera de producción.
+function demoAllowed() {
+  return process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
+}
+
+// ¿Se puede ofrecer este canal a la clienta? (proveedor real o demo local)
+function channelAvailable(channel) {
+  return providerConfigured(channel) || demoAllowed();
 }
 
 const MESSAGE = code =>
@@ -91,6 +104,7 @@ async function sendViaMetaWhatsApp({ phone, code }) {
 // Envia el codigo. Devuelve { simulated: true } si no hay proveedor configurado.
 async function sendCode({ phone, code, channel }) {
   if (!providerConfigured(channel)) {
+    if (!demoAllowed()) throw new Error('Sin proveedor de mensajería para ' + channel);
     console.log('\n========== OTP (modo demo, sin proveedor) ==========');
     console.log('Canal :', channel.toUpperCase());
     console.log('Para  :', toE164(phone));
@@ -109,4 +123,4 @@ async function sendCode({ phone, code, channel }) {
   }
 }
 
-module.exports = { normalizePhone, toE164, generateCode, sendCode, providerConfigured };
+module.exports = { normalizePhone, toE164, generateCode, sendCode, providerConfigured, channelAvailable, demoAllowed };

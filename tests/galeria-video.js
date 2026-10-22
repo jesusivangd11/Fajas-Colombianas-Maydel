@@ -141,9 +141,9 @@ conTemporales(async () => {
   console.log('\n2) Guardado en la base de datos');
   await page.evaluate(() => switchTab('info', document.querySelector('.tab-btn')));
   await page.fill('#f-name', PROD);
-  await page.selectOption('#f-category', { index: 1 });
+  await page.click('#catCheckboxes [data-cat]'); // primera categoría
   await page.selectOption('#f-brand', { index: 1 }); // la marca es obligatoria
-  await page.fill('#f-price', '999');
+  await page.$eval('#f-price', e => { e.value = '999'; }); // el precio vive en otra pestaña del modal
   await page.click('#productModal .modal-footer .btn-save');
   await page.waitForTimeout(1200);
 

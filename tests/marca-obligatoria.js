@@ -61,8 +61,8 @@ const check = (nombre, real, esperado) => {
 
     // Relleno todo MENOS la marca y guardo: no debe crearse nada.
     await page.fill('#f-name', PROD);
-    await page.selectOption('#f-category', { index: 1 });
-    await page.fill('#f-price', '999');
+    await page.click('#catCheckboxes [data-cat]'); // primera categoría
+    await page.$eval('#f-price', e => { e.value = '999'; }); // el precio vive en otra pestaña del modal
     await page.click('#productModal .modal-footer .btn-save');
     await page.waitForTimeout(800);
 

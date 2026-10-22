@@ -81,6 +81,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function renderOrders(orders) {
   const list = document.getElementById('ordersList');
+  // Un pago con tarjeta que nunca se completó no es un pedido real: no se muestra.
+  orders = orders.filter(o => !(o.paymentMethod === 'stripe' && o.status === 'cancelled' && !['paid', 'refunded'].includes(o.paymentStatus)));
   if (!orders.length) {
     list.innerHTML = `<div class="empty-orders">
       <i class="fa-solid fa-clipboard-list"></i>
@@ -102,7 +104,7 @@ function renderOrders(orders) {
             <div class="timeline-label">${s.label}</div>
           </div>`;
         }).join('')}</div>`;
-    const items = (o.items || []).map(it => `<div class="order-item-row"><span>${it.productName}${it.size?` (${it.size})`:''} x${it.qty}</span><span>${formatPrice(it.price*it.qty)}</span></div>`).join('');
+    const items = (o.items || []).map(it => `<div class="order-item-row"><span>${esc(it.productName)}${it.size?` (${esc(it.size)})`:''} x${it.qty}</span><span>${formatPrice(it.price*it.qty)}</span></div>`).join('');
     return `<div class="order-card">
       <div class="order-head">
         <div>
@@ -119,11 +121,22 @@ function renderOrders(orders) {
           <strong><i class="fa-solid fa-triangle-exclamation"></i> Tu pedido viene con retraso.</strong>
           ${o.delayNote ? `<div style="margin-top:4px">${esc(o.delayNote)}</div>` : ''}
         </div>` : ''}
+        ${o.paymentMethod === 'stripe' && o.paymentStatus !== 'paid' && o.paymentStatus !== 'refunded' && !cancelled ? `<div style="background:#f3f4f6;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:14px;color:#374151">
+          <i class="fa-solid fa-credit-card"></i> Pago con tarjeta pendiente. Si no se completa, el pedido se cancela solo y no se te cobra nada.
+        </div>` : ''}
+        ${o.paymentStatus === 'refunded' ? `<div style="background:#ede9fe;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:14px;color:#5b21b6">
+          <i class="fa-solid fa-rotate-left"></i> Te reembolsamos ${formatPrice(o.total)} a tu tarjeta (puede tardar de 5 a 10 días hábiles en reflejarse).
+        </div>` : ''}
+        ${o.trackingNumber && !cancelled ? `<div style="background:#eaf5ee;border:1px solid #bbe5c8;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:14px;color:#0d3d1a">
+          <strong><i class="fa-solid fa-truck-fast"></i> ${esc(o.trackingCarrier || 'Paquetería')}</strong> · Guía:
+          <span style="font-family:monospace;font-size:15px;user-select:all">${esc(o.trackingNumber)}</span>
+        </div>` : ''}
         ${timeline}
         <div class="order-items">${items}</div>
         <div class="order-totals">
           <div class="order-totals-row"><span>Subtotal</span><span>${formatPrice(o.subtotal||0)}</span></div>
-          <div class="order-totals-row"><span>Envío ${o.shippingState ? '('+o.shippingState+')' : ''}</span><span>${formatPrice(o.shippingCost||0)}</span></div>
+          ${o.discountAmount ? `<div class="order-totals-row"><span>Descuento${o.couponCode ? ' (' + esc(o.couponCode) + ')' : ''}</span><span>-${formatPrice(o.discountAmount)}</span></div>` : ''}
+          <div class="order-totals-row"><span>Envío ${o.shippingState ? '('+esc(o.shippingState)+')' : ''}</span><span>${o.shippingCost ? formatPrice(o.shippingCost) : 'GRATIS'}</span></div>
           <div class="order-totals-row total"><span>Total</span><span>${formatPrice(o.total)}</span></div>
         </div>
       </div>

@@ -7,8 +7,9 @@ const COUPON_TYPES = ['percent', 'fixed', 'free_shipping'];
 /* Busca un cupón vigente y calcula su efecto sobre `subtotal`.
    Lanza Error (con .status) si no existe, expiró, se agotó o no llega a la compra
    mínima. Dentro de una transacción pasa `db = conn` y `lock = true` para que dos
-   pedidos simultáneos no rebasen max_uses. */
-async function evaluateCoupon(code, subtotal, db = pool, lock = false) {
+   pedidos simultáneos no rebasen max_uses. Con `userId`, revisa también los
+   cupones de "un uso por clienta" (once_per_user). */
+async function evaluateCoupon(code, subtotal, db = pool, lock = false, userId = null) {
   const [rows] = await db.execute(
     `SELECT * FROM coupons WHERE code = ? AND active = 1
       AND (expires_at IS NULL OR expires_at > NOW())
@@ -17,6 +18,13 @@ async function evaluateCoupon(code, subtotal, db = pool, lock = false) {
   );
   if (!rows.length) throw Object.assign(new Error('Cupón inválido o expirado'), { status: 404 });
   const c = rows[0];
+  if (c.once_per_user && userId) {
+    const [used] = await db.execute(
+      "SELECT id FROM orders WHERE user_id = ? AND coupon_code = ? AND status <> 'cancelled' LIMIT 1",
+      [userId, c.code]
+    );
+    if (used.length) throw Object.assign(new Error('Ya usaste este cupón en una compra anterior'), { status: 400 });
+  }
   const sub = Number(subtotal || 0);
   if (sub < Number(c.min_subtotal)) {
     throw Object.assign(new Error(`Compra mínima de $${Number(c.min_subtotal)} para usar este cupón`), { status: 400 });

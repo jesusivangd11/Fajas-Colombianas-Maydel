@@ -1,22 +1,36 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node", "config": { "excludeFiles": "uploads/**" } },
+    { "src": "server.js", "use": "@vercel/node", "config": { "excludeFiles": "uploads/**", "includeFiles": ["producto.html", "index.html", "404.html"] } },
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "css/**", "use": "@vercel/static" },
     { "src": "js/**", "use": "@vercel/static" },
     { "src": "assets/**", "use": "@vercel/static" },
     { "src": "dashboard/**", "use": "@vercel/static" },
     { "src": "uploads/**", "use": "@vercel/static" },
-    { "src": "robots.txt", "use": "@vercel/static" },
-    { "src": "sitemap.xml", "use": "@vercel/static" }
+    { "src": "robots.txt", "use": "@vercel/static" }
   ],
   "routes": [
+    {
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(self \"https://js.stripe.com\")"
+      },
+      "continue": true
+    },
     { "src": "/api/(.*)", "dest": "/server.js" },
     { "src": "/config.js", "dest": "/server.js" },
+    { "src": "/sitemap.xml", "dest": "/server.js" },
+    { "src": "/producto.html", "dest": "/server.js" },
     { "src": "/(.*\\.(?:html|css|js))", "headers": { "Cache-Control": "no-cache" }, "continue": true },
     { "src": "/uploads/(.*)", "headers": { "Cache-Control": "public, max-age=604800" }, "continue": true },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/server.js" }
+  ],
+  "crons": [
+    { "path": "/api/checkout/expire-orders", "schedule": "0 10 * * *" }
   ]
 }

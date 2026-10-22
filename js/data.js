@@ -168,6 +168,8 @@ const DB = {
       else cart.push({ key, productId, qty, size, color, option });
     }
     this._saveCart(cart);
+    const pieces = entries.reduce((n, e) => n + (e.qty > 0 ? e.qty : 0), 0);
+    if (pieces && window.trackEvent) window.trackEvent('add_to_cart', { items: entries.map(e => ({ item_id: String(e.productId), quantity: e.qty })) });
   },
 
   removeFromCart(key) { this._saveCart(this.getCart().filter(i => i.key !== key)); },
@@ -256,6 +258,15 @@ const DB = {
   },
   async setOrderDelay(id, delayed, note = '') {
     return apiFetch(`/api/orders/${id}/delay`, { method: 'PUT', body: JSON.stringify({ delayed, note }) });
+  },
+  async setOrderPayment(id, paymentStatus) {
+    return apiFetch(`/api/orders/${id}/payment`, { method: 'PUT', body: JSON.stringify({ paymentStatus }) });
+  },
+  async setOrderTracking(id, carrier, number) {
+    return apiFetch(`/api/orders/${id}/tracking`, { method: 'PUT', body: JSON.stringify({ carrier, number }) });
+  },
+  async refundOrder(id) {
+    return apiFetch(`/api/orders/${id}/refund`, { method: 'POST' });
   },
   async addOrder(userId, userName, userEmail, items, total, shippingInfo = {}, notes = '') {
     return apiFetch('/api/orders', {

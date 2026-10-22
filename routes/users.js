@@ -78,7 +78,7 @@ router.put('/me', authenticate, async (req, res) => {
 
     // El JWT guarda nombre y correo: hay que volver a firmarlo.
     const updated = { id: me.id, name, email, role: me.role };
-    res.cookie('maydel_token', signToken(updated), COOKIE_OPTS());
+    res.cookie('maydel_token', signToken({ ...updated, password_hash: me.password_hash }), COOKIE_OPTS());
     res.json({ ok: true, user: updated });
   } catch (err) {
     console.error(err);
@@ -90,8 +90,8 @@ router.put('/me', authenticate, async (req, res) => {
 router.put('/me/password', authenticate, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!newPassword || String(newPassword).length < 6)
-      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    if (!newPassword || String(newPassword).length < 8)
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
 
     const [rows] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
     if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -111,6 +111,9 @@ router.put('/me/password', authenticate, async (req, res) => {
     const hash = await bcrypt.hash(String(newPassword), 10);
     await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, me.id]);
 
+    // La contraseña nueva invalida las demás sesiones abiertas; esta se renueva
+    // para que quien la cambió no tenga que volver a entrar.
+    res.cookie('maydel_token', signToken({ ...me, password_hash: hash }), COOKIE_OPTS());
     res.json({ ok: true, message: 'Contraseña actualizada correctamente' });
   } catch (err) {
     console.error(err);
@@ -138,6 +141,7 @@ router.put('/:id', adminOnly, async (req, res) => {
     const { name, email, role, password } = req.body;
 
     if (!name || !email) return res.status(400).json({ error: 'Nombre y correo son obligatorios' });
+    if (role && !['admin', 'user'].includes(role)) return res.status(400).json({ error: 'Rol inválido' });
     if (role === 'user' && req.user.id === id)
       return res.status(400).json({ error: 'No puedes quitarte el rol de administrador' });
 
@@ -145,7 +149,7 @@ router.put('/:id', adminOnly, async (req, res) => {
     const [dup] = await pool.execute('SELECT id FROM users WHERE email = ? AND id <> ?', [email.trim().toLowerCase(), id]);
     if (dup.length) return res.status(409).json({ error: 'Ese correo ya está en uso por otro usuario' });
 
-    if (password && password.length >= 6) {
+    if (password && password.length >= 8) {
       const hash = await bcrypt.hash(password, 10);
       await pool.execute('UPDATE users SET name=?, email=?, role=?, password_hash=? WHERE id=?',
         [name.trim(), email.trim().toLowerCase(), role || 'user', hash, id]);
