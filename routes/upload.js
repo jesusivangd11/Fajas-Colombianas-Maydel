@@ -84,4 +84,41 @@ router.post('/video', adminOnly, run(uploadVideo.single('video')), (req, res) =>
   });
 });
 
+/* ── Vercel Blob ─────────────────────────────────────────────────────────────
+   En Vercel el disco es de solo lectura y el cuerpo de cada petición se corta
+   en 4.5 MB, así que alli el navegador sube el archivo DIRECTO a Vercel Blob.
+   Este servidor solo firma el permiso (y solo para el admin). En local, sin
+   BLOB_READ_WRITE_TOKEN, se sigue usando el disco con las rutas de arriba. */
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN || '';
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg'];
+
+// GET /api/upload/config  -> ¿el dashboard debe subir a Blob o al disco?
+router.get('/config', adminOnly, (req, res) => res.json({ blob: !!BLOB_TOKEN }));
+
+// POST /api/upload/blob  -> token de subida directa a Vercel Blob (admin only)
+router.post('/blob', adminOnly, async (req, res) => {
+  if (!BLOB_TOKEN) return res.status(503).json({ error: 'Vercel Blob no configurado' });
+  try {
+    const { handleUpload } = require('@vercel/blob/client');
+    const json = await handleUpload({
+      token: BLOB_TOKEN,
+      request: req,
+      body: req.body,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const isVideo = clientPayload === 'video';
+        return {
+          allowedContentTypes: isVideo ? VIDEO_TYPES : IMAGE_TYPES,
+          maximumSizeInBytes: (isVideo ? 50 : 5) * 1024 * 1024,
+          addRandomSuffix: true,
+          cacheControlMaxAge: 60 * 60 * 24 * 365,
+        };
+      },
+    });
+    res.json(json);
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Error al autorizar la subida' });
+  }
+});
+
 module.exports = router;

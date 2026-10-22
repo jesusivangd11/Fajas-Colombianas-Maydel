@@ -317,6 +317,79 @@ async function saveProduct() {
   }
 }
 
+// ── SUBIDA DE ARCHIVOS ──
+/* En producción (Vercel) el disco es de solo lectura y cada petición se corta en
+   4.5 MB, así que el navegador sube DIRECTO a Vercel Blob con un permiso que firma
+   /api/upload/blob. En local el servidor guarda en uploads/ como siempre.
+   Devuelve [{ url, hasAudio }] en el mismo orden que `files`; lanza Error en español. */
+const UPLOAD_RULES = {
+  image: { exts: ['.jpg', '.jpeg', '.png', '.webp', '.gif'], maxMB: 5,  label: 'imágenes JPG, PNG, WEBP o GIF' },
+  video: { exts: ['.mp4', '.webm', '.mov', '.ogg'],          maxMB: 50, label: 'videos MP4, WEBM, MOV u OGG' },
+};
+let uploadModePromise = null;
+
+function getUploadMode() {
+  if (!uploadModePromise) {
+    uploadModePromise = fetch('/api/upload/config', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { blob: false })
+      .catch(() => ({ blob: false }));
+  }
+  return uploadModePromise;
+}
+
+async function uploadFiles(files, kind = 'image') {
+  const rules = UPLOAD_RULES[kind];
+  for (const f of files) {
+    const ext = (f.name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+    if (!rules.exts.includes(ext)) throw new Error(`Solo se permiten ${rules.label}`);
+    if (f.size > rules.maxMB * 1024 * 1024) throw new Error(`"${f.name}" pesa más de ${rules.maxMB} MB`);
+  }
+
+  const { blob } = await getUploadMode();
+  if (blob) {
+    const { upload } = await import('https://esm.sh/@vercel/blob@2.8.2/client');
+    const results = [];
+    for (const f of files) {
+      const safe = f.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
+      const res = await upload(`uploads/${safe}`, f, {
+        access: 'public',
+        handleUploadUrl: '/api/upload/blob',
+        clientPayload: kind,
+        contentType: f.type || undefined,
+      });
+      results.push({ url: res.url, hasAudio: kind === 'video' ? await videoTieneAudio(f) : null });
+    }
+    return results;
+  }
+
+  const fd = new FormData();
+  files.forEach(f => fd.append(kind === 'video' ? 'video' : 'images', f));
+  const res  = await fetch(kind === 'video' ? '/api/upload/video' : '/api/upload',
+                           { method: 'POST', credentials: 'include', body: fd });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error al subir el archivo');
+  return kind === 'video'
+    ? [{ url: data.url, hasAudio: data.hasAudio }]
+    : data.urls.map(url => ({ url, hasAudio: null }));
+}
+
+/* ¿El video trae pista de audio? (misma regla que routes/upload.js)
+   En MP4/MOV cada pista se declara en una caja "hdlr" cuyo handler_type es
+   'soun' para sonido. null = formato que no usa esas cajas (WEBM/OGG). */
+async function videoTieneAudio(file) {
+  if (!/\.(mp4|mov)$/i.test(file.name)) return null;
+  try {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const at = (i, s) => s.split('').every((c, k) => buf[i + k] === c.charCodeAt(0));
+    for (let i = 0; i < buf.length - 16; i++) {
+      if (buf[i] === 0x68 && at(i, 'hdlr') && at(i + 12, 'soun')) return true;
+    }
+    return false;
+  } catch {
+    return null;
+  }
+}
+
 // ── IMAGE HANDLING ──
 function addImageUrl() {
   const url = document.getElementById('imgUrlInput').value.trim();
@@ -335,16 +408,14 @@ async function handleFileUpload(input) {
     showToast(`Solo se agregarán ${remaining}; el máximo es ${MAX_IMAGES} imágenes`, 'error');
     files = files.slice(0, remaining);
   }
-  const formData = new FormData();
-  files.forEach(f => formData.append('images', f));
+  showToast('Subiendo imágenes...');
   try {
-    const res  = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: formData });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Error al subir imagen', 'error'); return; }
-    data.urls.forEach(url => currentImages.push(url));
+    const subidas = await uploadFiles(files, 'image');
+    subidas.forEach(s => currentImages.push(s.url));
     renderImagePreviews();
-  } catch {
-    showToast('Error al subir imagen', 'error');
+    showToast('Imágenes agregadas');
+  } catch (err) {
+    showToast(err.message || 'Error al subir imagen', 'error');
   }
   input.value = '';
 }
@@ -674,13 +745,9 @@ async function handleVideoUpload(input) {
     input.value = '';
     return;
   }
-  const formData = new FormData();
-  formData.append('video', input.files[0]);
   showToast('Subiendo video...');
   try {
-    const res  = await fetch('/api/upload/video', { method: 'POST', credentials: 'include', body: formData });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Error al subir el video', 'error'); return; }
+    const [data] = await uploadFiles([input.files[0]], 'video');
     addVideo(data.url);
     // El servidor mira si el archivo trae pista de audio. Si viene mudo de
     // origen no hay reproductor que lo arregle, así que avisamos ahora.
@@ -689,8 +756,8 @@ async function handleVideoUpload(input) {
     } else {
       showToast('Video agregado');
     }
-  } catch {
-    showToast('Error al subir el video', 'error');
+  } catch (err) {
+    showToast(err.message || 'Error al subir el video', 'error');
   }
   input.value = '';
 }
@@ -1191,18 +1258,14 @@ function renderBrandLogoPreview() {
 
 async function handleBrandLogoUpload(input) {
   if (!input.files?.length) return;
-  const formData = new FormData();
-  formData.append('images', input.files[0]);
   showToast('Subiendo logo...');
   try {
-    const res  = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: formData });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Error al subir el logo', 'error'); return; }
-    document.getElementById('brandLogo').value = data.urls[0];
+    const [data] = await uploadFiles([input.files[0]], 'image');
+    document.getElementById('brandLogo').value = data.url;
     renderBrandLogoPreview();
     showToast('Logo agregado');
-  } catch {
-    showToast('Error al subir el logo', 'error');
+  } catch (err) {
+    showToast(err.message || 'Error al subir el logo', 'error');
   }
   input.value = '';
 }
@@ -1553,20 +1616,16 @@ async function loadTestimonialPanel() {
 
 async function handleTestimonialUpload(input) {
   if (!input.files?.length) return;
-  const fd = new FormData();
-  Array.from(input.files).slice(0, 6).forEach(f => fd.append('images', f));
   showToast('Subiendo capturas...');
   try {
-    const res  = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Error al subir', 'error'); input.value = ''; return; }
-    for (const url of data.urls) {
+    const subidas = await uploadFiles(Array.from(input.files).slice(0, 6), 'image');
+    for (const { url } of subidas) {
       await apiFetch('/api/testimonials', { method: 'POST', body: JSON.stringify({ imageUrl: url }) });
     }
     showToast('Capturas agregadas');
     await loadTestimonialPanel();
-  } catch {
-    showToast('Error al subir las capturas', 'error');
+  } catch (err) {
+    showToast(err.message || 'Error al subir las capturas', 'error');
   }
   input.value = '';
 }
