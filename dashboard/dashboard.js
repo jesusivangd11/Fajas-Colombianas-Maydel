@@ -1667,7 +1667,8 @@ async function loadCouponTable() {
     const usedUp  = c.maxUses && c.uses >= c.maxUses;
     const stateLabel = !c.active ? 'Inactivo' : expired ? 'Expirado' : usedUp ? 'Agotado' : 'Activo';
     const stateColor = !c.active || expired || usedUp ? '#9ca3af' : '#10b981';
-    const discount = c.discountType === 'percent' ? `${c.discountValue}%` : formatPrice(c.discountValue);
+    const discount = c.discountType === 'percent' ? `${c.discountValue}%`
+                   : c.discountType === 'free_shipping' ? 'Envío gratis' : formatPrice(c.discountValue);
     return `<tr>
       <td><strong style="font-family:'DM Sans',sans-serif;letter-spacing:1px;color:#1a5c2e">${c.code}</strong></td>
       <td style="font-size:13px;color:#4b5563;max-width:280px">${c.description || '-'}</td>
@@ -1692,7 +1693,7 @@ async function createCoupon() {
   const description = document.getElementById('coupDesc').value.trim();
   const active = document.getElementById('coupActive').checked;
   if (!code) return showToast('Código requerido', 'error');
-  if (!discountValue || discountValue <= 0) return showToast('Valor del descuento requerido', 'error');
+  if (discountType !== 'free_shipping' && (!discountValue || discountValue <= 0)) return showToast('Valor del descuento requerido', 'error');
   if (discountType === 'percent' && discountValue > 100) return showToast('El % no puede ser mayor a 100', 'error');
   try {
     const r = await fetch('/api/coupons', {

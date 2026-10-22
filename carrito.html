@@ -283,9 +283,10 @@ async function applyCoupon() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Cupón inválido');
     CURRENT_COUPON = data;
-    msg.textContent = '✓ ' + (data.description || 'Cupón aplicado');
+    msg.textContent = '✓ ' + (data.description || (data.freeShipping ? 'Envío gratis aplicado' : 'Cupón aplicado'));
     msg.style.color = '#10b981';
-    document.getElementById('discountRow').style.display = 'flex';
+    // Un cupón de envío gratis no descuenta del subtotal: se ve en la fila de envío.
+    document.getElementById('discountRow').style.display = data.discountAmount > 0 ? 'flex' : 'none';
     document.getElementById('discountCodeLabel').textContent = `(${data.code})`;
     document.getElementById('discountVal').textContent = '-' + formatPrice(data.discountAmount);
     updateTotalDisplay();
@@ -339,7 +340,14 @@ async function recalcShipping() {
 
 function updateTotalDisplay() {
   const discount = CURRENT_COUPON ? Number(CURRENT_COUPON.discountAmount || 0) : 0;
-  const total = Math.max(0, CURRENT_SUBTOTAL - discount + (CURRENT_SHIPPING.cost || 0));
+  const freeShipping = !!(CURRENT_COUPON && CURRENT_COUPON.freeShipping);
+  const shipping = freeShipping ? 0 : (CURRENT_SHIPPING.cost || 0);
+  if (CURRENT_SHIPPING.zone) {
+    document.getElementById('shippingVal').innerHTML = freeShipping
+      ? `<s style="opacity:.6">${formatPrice(CURRENT_SHIPPING.cost)}</s> <strong style="color:#10b981">GRATIS</strong>`
+      : formatPrice(CURRENT_SHIPPING.cost);
+  }
+  const total = Math.max(0, CURRENT_SUBTOTAL - discount + shipping);
   document.getElementById('totalVal').textContent = formatPrice(total);
 }
 
@@ -593,6 +601,7 @@ async function createOrderOnServer(paymentMethod) {
       shippingState: data.state,
       notes: data.notes,
       paymentMethod,
+      couponCode: CURRENT_COUPON ? CURRENT_COUPON.code : null,
     }),
   });
   const order = await r.json();
@@ -611,7 +620,9 @@ async function confirmOrder(paymentMethod) {
       `¡Hola! Vengo desde la página web — acabo de CONFIRMAR un pedido.\n\n` +
       `ID: ${order.id}\nNombre: ${customerData.name}\nTeléfono: ${customerData.phone}\n` +
       `Dirección: ${customerData.address}\nEstado: ${customerData.state}\n\n` +
-      `Subtotal: ${formatPrice(order.subtotal)}\nEnvío: ${formatPrice(order.shippingCost)}\n` +
+      `Subtotal: ${formatPrice(order.subtotal)}\n` +
+      (order.discountAmount ? `Descuento (${order.couponCode}): -${formatPrice(order.discountAmount)}\n` : '') +
+      `Envío: ${order.shippingCost ? formatPrice(order.shippingCost) : 'GRATIS'}${order.couponCode && !order.shippingCost ? ` (${order.couponCode})` : ''}\n` +
       `*Total: ${formatPrice(order.total)}*`
     );
     document.getElementById('orderWaLink').href = `https://wa.me/526143716816?text=${waMsg}`;

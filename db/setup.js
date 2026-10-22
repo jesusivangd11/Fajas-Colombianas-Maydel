@@ -293,7 +293,7 @@ async function setup() {
       id              INT PRIMARY KEY AUTO_INCREMENT,
       code            VARCHAR(40) NOT NULL UNIQUE,
       description     VARCHAR(160) DEFAULT '',
-      discount_type   ENUM('percent','fixed') NOT NULL DEFAULT 'percent',
+      discount_type   ENUM('percent','fixed','free_shipping') NOT NULL DEFAULT 'percent',
       discount_value  DECIMAL(10,2) NOT NULL,
       min_subtotal    DECIMAL(10,2) NOT NULL DEFAULT 0,
       max_uses        INT DEFAULT NULL,
@@ -304,8 +304,9 @@ async function setup() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
-  // Migracion para orders (cupon aplicado)
+  // Migracion para orders (cupon aplicado) y cupones de envio gratis
   for (const alter of [
+    "ALTER TABLE coupons MODIFY discount_type ENUM('percent','fixed','free_shipping') NOT NULL DEFAULT 'percent'",
     'ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(40) DEFAULT NULL',
     'ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0',
   ]) { try { await conn.query(alter); } catch(e) {} }

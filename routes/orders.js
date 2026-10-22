@@ -2,6 +2,7 @@ const router = require('express').Router();
 const pool   = require('../db/connection');
 const { authenticate, adminOnly } = require('../middleware/auth');
 const { quoteShipping } = require('../services/shipping');
+const { evaluateCoupon } = require('../services/coupons');
 const mailer = require('../services/mailer');
 const telegram = require('../services/telegram');
 
@@ -47,6 +48,8 @@ function parseOrder(row) {
     subtotal:        Number(row.subtotal || 0),
     shippingCost:    Number(row.shipping_cost || 0),
     shippingState:   row.shipping_state || null,
+    couponCode:      row.coupon_code || null,
+    discountAmount:  Number(row.discount_amount || 0),
     total:           Number(row.total),
     shippingInfo:    row.shipping_info || {},
     notes:           row.notes         || '',
@@ -128,7 +131,7 @@ router.get('/stats', adminOnly, async (req, res) => {
 
 // POST /api/orders   (crea pedido con descuento atomico de stock)
 router.post('/', authenticate, async (req, res) => {
-  const { userName, userEmail, items, shippingInfo, shippingState, notes, paymentMethod } = req.body;
+  const { userName, userEmail, items, shippingInfo, shippingState, notes, paymentMethod, couponCode } = req.body;
   if (!userName || !Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'Datos del pedido incompletos' });
 
@@ -204,7 +207,16 @@ router.post('/', authenticate, async (req, res) => {
 
     // Cotizar envio en el servidor (no confiar en el cliente)
     const shipQ = quoteShipping(shippingState);
-    const total = subtotal + shipQ.cost;
+
+    // Cupón: se vuelve a validar aquí (el carrito solo muestra el cálculo).
+    let coupon = null;
+    if (couponCode) {
+      coupon = await evaluateCoupon(couponCode, subtotal, conn, true);
+      await conn.execute('UPDATE coupons SET uses = uses + 1 WHERE code = ?', [coupon.code]);
+    }
+    const discount     = coupon ? coupon.discountAmount : 0;
+    const shippingCost = coupon && coupon.freeShipping ? 0 : shipQ.cost;
+    const total        = subtotal - discount + shippingCost;
 
     // Escribir de vuelta el inventario de cada producto.
     for (const [pid, entry] of prodMap) {
@@ -224,11 +236,12 @@ router.post('/', authenticate, async (req, res) => {
     await conn.execute(
       `INSERT INTO orders
         (id, user_id, user_name, user_email, items, subtotal, shipping_cost, shipping_state,
-         total, shipping_info, notes, payment_method, payment_status, status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'unpaid', 'pending')`,
+         total, shipping_info, notes, payment_method, coupon_code, discount_amount, payment_status, status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'unpaid', 'pending')`,
       [id, req.user.id, userName, userEmail || req.user.email,
-       JSON.stringify(enriched), subtotal, shipQ.cost, shippingState || null,
-       total, JSON.stringify(shippingInfo || {}), notes || '', method]
+       JSON.stringify(enriched), subtotal, shippingCost, shippingState || null,
+       total, JSON.stringify(shippingInfo || {}), notes || '', method,
+       coupon ? coupon.code : null, discount]
     );
 
     await conn.commit();

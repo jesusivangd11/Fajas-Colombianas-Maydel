@@ -30,7 +30,8 @@ function notifyNewOrder(order) {
     `💳 ${order.paymentMethod === 'stripe' ? 'Stripe (en linea)' : 'WhatsApp'}\n\n` +
     `${itemList}${more}\n\n` +
     `Subtotal: ${fmt(order.subtotal)}\n` +
-    `Envio: ${fmt(order.shippingCost)}\n` +
+    (order.discountAmount ? `Descuento (${order.couponCode}): -${fmt(order.discountAmount)}\n` : '') +
+    `Envio: ${order.shippingCost ? fmt(order.shippingCost) : 'GRATIS'}${order.couponCode ? ` · cupón ${order.couponCode}` : ''}\n` +
     `<b>TOTAL: ${fmt(order.total)}</b>`;
   return sendTelegram(text);
 }

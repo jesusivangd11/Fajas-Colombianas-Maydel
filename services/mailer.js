@@ -73,7 +73,8 @@ function orderTable(order) {
     <tbody>${itemRows(order.items || [])}</tbody>
     <tfoot>
       <tr><td colspan="2" style="padding:10px 8px;text-align:right;color:#6b7280">Subtotal</td><td style="padding:10px 8px;text-align:right">${fmt(order.subtotal)}</td></tr>
-      <tr><td colspan="2" style="padding:10px 8px;text-align:right;color:#6b7280">Envio</td><td style="padding:10px 8px;text-align:right">${fmt(order.shippingCost)}</td></tr>
+      ${order.discountAmount ? `<tr><td colspan="2" style="padding:10px 8px;text-align:right;color:#6b7280">Descuento (${order.couponCode})</td><td style="padding:10px 8px;text-align:right">-${fmt(order.discountAmount)}</td></tr>` : ''}
+      <tr><td colspan="2" style="padding:10px 8px;text-align:right;color:#6b7280">Envio${order.couponCode && !order.shippingCost ? ` (${order.couponCode})` : ''}</td><td style="padding:10px 8px;text-align:right">${order.shippingCost ? fmt(order.shippingCost) : 'GRATIS'}</td></tr>
       <tr><td colspan="2" style="padding:14px 8px;text-align:right;font-weight:700;border-top:2px solid #111">TOTAL</td><td style="padding:14px 8px;text-align:right;font-weight:700;border-top:2px solid #111">${fmt(order.total)}</td></tr>
     </tfoot></table>`;
 }
