@@ -68,10 +68,33 @@ const AUTH = {
       });
       const data = await res.json();
       if (!res.ok) return { success: false, error: data.error };
+      // Cuenta con verificación en dos pasos: falta el código de la app.
+      if (data.twoFactor) return { success: false, twoFactor: true, ticket: data.ticket };
       this._session = data;
       try { sessionStorage.setItem('maydel_welcome', data.name || ''); } catch {}
       this.updateHeaderUI();
       return { success: true, user: data };
+    } catch {
+      return { success: false, error: 'Error de conexión con el servidor' };
+    }
+  },
+
+  // Segundo paso del login: canjea el ticket por la sesión con el código de la
+  // app (o un código de respaldo). Devuelve lo mismo que login().
+  async verify2fa(ticket, code) {
+    try {
+      const res = await fetch('/api/auth/2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ticket, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { success: false, error: data.error, expired: !!data.expired };
+      this._session = data;
+      try { sessionStorage.setItem('maydel_welcome', data.name || ''); } catch {}
+      this.updateHeaderUI();
+      return { success: true, user: data, backupCodesLeft: data.backupCodesLeft };
     } catch {
       return { success: false, error: 'Error de conexión con el servidor' };
     }

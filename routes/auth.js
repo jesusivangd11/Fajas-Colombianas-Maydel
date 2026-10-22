@@ -2,7 +2,9 @@ const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
 const crypto  = require('crypto');
 const pool    = require('../db/connection');
-const { authenticate, signToken, COOKIE_OPTS } = require('../middleware/auth');
+const jwt     = require('jsonwebtoken');
+const { authenticate, signToken, passwordStamp, COOKIE_OPTS } = require('../middleware/auth');
+const totp   = require('../services/totp');
 const mailer = require('../services/mailer');
 const otp    = require('../services/otp');
 const { waitUntil } = require('@vercel/functions');
@@ -10,6 +12,22 @@ const { waitUntil } = require('@vercel/functions');
 // En la BD solo se guarda la huella (SHA-256) del enlace de recuperación: quien
 // lea la tabla password_resets no puede usarlos para cambiar contraseñas.
 const hashToken = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+
+// Último paso de todo inicio de sesión. Si la cuenta tiene verificación en dos
+// pasos, la contraseña (o Google) NO basta: se entrega un "ticket" de 5 minutos
+// que solo se canjea por la sesión junto con el código de la app, en
+// POST /api/auth/2fa. Hasta entonces no hay cookie de sesión.
+function finishLogin(res, user) {
+  if (user.totp_enabled) {
+    const ticket = jwt.sign(
+      { id: user.id, purpose: '2fa', pv: passwordStamp(user.password_hash) },
+      process.env.JWT_SECRET, { expiresIn: '5m' }
+    );
+    return res.json({ twoFactor: true, ticket });
+  }
+  res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
+  res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+}
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -24,8 +42,7 @@ router.post('/login', async (req, res) => {
     if (!user || !user.password_hash || !(await bcrypt.compare(String(password), user.password_hash)))
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
 
-    res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    finishLogin(res, user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -91,8 +108,7 @@ router.post('/google', async (req, res) => {
     const user = await findOrCreateOAuthUser({
       email: p.email, name: p.name, provider: 'google', providerId: p.sub, avatar: p.picture,
     });
-    res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    finishLogin(res, user);
   } catch (err) {
     console.error('google login', err);
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Google' });
@@ -126,8 +142,7 @@ router.post('/facebook', async (req, res) => {
     const user = await findOrCreateOAuthUser({
       email: me.email, name: me.name, provider: 'facebook', providerId: me.id, avatar: me.picture?.data?.url,
     });
-    res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    finishLogin(res, user);
   } catch (err) {
     console.error('facebook login', err);
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Facebook' });
@@ -164,6 +179,47 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/auth/2fa  { ticket, code }
+// Segundo paso del login: canjea el ticket por la sesión con el código de 6
+// dígitos de la app, o con uno de los códigos de respaldo (cada uno sirve una vez).
+router.post('/2fa', async (req, res) => {
+  try {
+    let t;
+    try { t = jwt.verify(String(req.body.ticket || ''), process.env.JWT_SECRET); } catch { t = null; }
+    if (!t || t.purpose !== '2fa')
+      return res.status(401).json({ error: 'El tiempo para escribir el código se acabó. Vuelve a iniciar sesión.', expired: true });
+
+    const [[user]] = await pool.execute('SELECT * FROM users WHERE id = ?', [t.id]);
+    // Si la contraseña cambió desde que se emitió el ticket, el ticket ya no vale.
+    if (!user || !user.totp_enabled || t.pv !== passwordStamp(user.password_hash))
+      return res.status(401).json({ error: 'Vuelve a iniciar sesión.', expired: true });
+
+    const code = String(req.body.code || '').trim();
+    let backupLeft = null;
+    const step = totp.verify(totp.decrypt(user.totp_secret), code, user.totp_last_step);
+    if (step) {
+      // Guardar el paso usado: el mismo código no sirve dos veces (aunque llegue
+      // en dos peticiones simultáneas, solo una gana el UPDATE).
+      const [u] = await pool.execute(
+        'UPDATE users SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)',
+        [step, user.id, step]
+      );
+      if (!u.affectedRows) return res.status(401).json({ error: 'Ese código ya se usó. Espera el siguiente en tu app.' });
+    } else {
+      const left = totp.useBackupCode(user.totp_backup, code);
+      if (!left) return res.status(401).json({ error: 'Código incorrecto' });
+      await pool.execute('UPDATE users SET totp_backup = ? WHERE id = ?', [JSON.stringify(left), user.id]);
+      backupLeft = left.length;
+    }
+
+    res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, backupCodesLeft: backupLeft });
+  } catch (err) {
+    console.error('2fa', err);
+    res.status(500).json({ error: 'Error al verificar el código' });
   }
 });
 

@@ -87,4 +87,4 @@ async function optionalAuth(req, res, next) {
   next();
 }
 
-module.exports = { authenticate, adminOnly, optionalAuth, signToken, sessionUser, COOKIE_OPTS };
+module.exports = { authenticate, adminOnly, optionalAuth, signToken, sessionUser, passwordStamp, COOKIE_OPTS };

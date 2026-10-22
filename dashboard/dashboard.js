@@ -2086,6 +2086,7 @@ document.addEventListener('click', e => {
         <form id="reloginForm" autocomplete="on">
           <input type="email" id="reloginEmail" placeholder="Correo" value="${esc(email)}" required autocomplete="username">
           <input type="password" id="reloginPass" placeholder="Contraseña" required autocomplete="current-password">
+          <input type="text" id="reloginCode" placeholder="Código de 6 dígitos de tu app" inputmode="numeric" autocomplete="one-time-code" maxlength="9" hidden>
           <div id="reloginErr" class="relogin-err" role="alert"></div>
           <button type="submit" class="relogin-btn"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Entrar y continuar</button>
         </form>
@@ -2094,15 +2095,37 @@ document.addEventListener('click', e => {
     requestAnimationFrame(() => ov.classList.add('open'));
     (email ? document.getElementById('reloginPass') : document.getElementById('reloginEmail')).focus();
 
+    // Con verificación en dos pasos, tras la contraseña se pide el código de la app.
+    let ticket = '';
+    const askCode = t => {
+      ticket = t;
+      ['reloginEmail', 'reloginPass'].forEach(id => { const i = document.getElementById(id); i.hidden = true; i.required = false; });
+      const code = document.getElementById('reloginCode');
+      code.hidden = false; code.required = true; code.value = ''; code.focus();
+    };
+
     document.getElementById('reloginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = ov.querySelector('.relogin-btn');
       const errEl = document.getElementById('reloginErr');
       btn.disabled = true; errEl.textContent = '';
-      const r = await AUTH.login(
-        document.getElementById('reloginEmail').value.trim(),
-        document.getElementById('reloginPass').value
-      );
+      const r = ticket
+        ? await AUTH.verify2fa(ticket, document.getElementById('reloginCode').value)
+        : await AUTH.login(
+            document.getElementById('reloginEmail').value.trim(),
+            document.getElementById('reloginPass').value
+          );
+      if (r && r.twoFactor) {
+        askCode(r.ticket);
+        btn.disabled = false;
+        return;
+      }
+      if (r && r.expired) {
+        // Se acabaron los 5 minutos: de vuelta a correo y contraseña.
+        ticket = '';
+        ['reloginEmail', 'reloginPass'].forEach(id => { const i = document.getElementById(id); i.hidden = false; i.required = true; });
+        const code = document.getElementById('reloginCode'); code.hidden = true; code.required = false;
+      }
       if (r && r.success) {
         ov.classList.remove('open');
         setTimeout(() => ov.remove(), 200);
@@ -2125,7 +2148,8 @@ document.addEventListener('click', e => {
     try {
       const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || '';
       if (res.status === 401 && url.includes('/api/')
-          && !url.includes('/api/auth/login') && !url.includes('/api/auth/me')) {
+          && !url.includes('/api/auth/login') && !url.includes('/api/auth/me')
+          && !url.includes('/api/auth/2fa') && !url.includes('/api/users/me/2fa')) {
         showReloginModal();
       }
     } catch {}

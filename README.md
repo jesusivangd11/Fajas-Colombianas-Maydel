@@ -100,6 +100,8 @@ npm run dev              # http://localhost:3000
 | `node db/migrate_to_cloud.js --apply` | Copia la base local a la base en la nube (`.env.production`) |
 | `node db/migrate_v3.js [--prod]` | Columnas de guía de envío, cupones de 1 uso por clienta y tabla del limitador de intentos |
 | `node db/migrate_v4.js [--prod]` | Columna `email_verified` de usuarios (protección al vincular cuentas con Google) |
+| `node db/migrate_v5.js [--prod]` | Columnas de la verificación en dos pasos |
+| `node db/reset_2fa.js <correo> [--prod]` | Emergencia: quita la verificación en dos pasos de una cuenta (celular y respaldos perdidos) |
 
 ## Despliegue
 
@@ -130,6 +132,11 @@ cada vez que se crea un pedido o se abre el panel.
   Vercel Blob se sirve desde `dashboard/vendor/` (no se carga código de terceros al subir).
 - El envío se cotiza con el estado que corresponde al código postal, no con el que se elige.
 - Solo pueden reseñar las clientas que compraron el producto (una reseña por producto).
+- Verificación en dos pasos (TOTP: Google/Microsoft Authenticator) desde "Mi cuenta"
+  para el admin: la contraseña o Google ya no bastan, se pide el código de la app.
+  Secreto cifrado con una llave derivada de `JWT_SECRET` (si se cambia esa variable
+  hay que volver a activarla), 8 códigos de respaldo de un solo uso, cada código
+  sirve una vez y máximo 10 códigos fallidos por cuenta cada 15 min.
 - Las rutas de administración exigen rol `admin` en el servidor.
 - El servidor bloquea que se sirvan como estáticos el código fuente y la configuración.
 

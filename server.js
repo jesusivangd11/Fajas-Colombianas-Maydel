@@ -24,6 +24,7 @@ for (const method of ['get', 'post', 'put', 'delete', 'patch']) {
   };
 }
 
+const jwt = require('jsonwebtoken');
 const { MySqlStore } = require('./services/rateLimitStore');
 const pool = require('./db/connection');
 
@@ -80,6 +81,21 @@ app.use('/api/auth/login', rateLimit({
   keyGenerator: req => String(req.body?.email || '').trim().toLowerCase().slice(0, 150) || 'sin-correo',
   message: { error: 'Demasiados intentos fallidos con esta cuenta. Espera 15 minutos o recupera tu contraseña.' },
 }));
+
+// Código de verificación en dos pasos: además del límite por IP, máximo 10
+// códigos fallidos por cuenta cada 15 min (la cuenta sale del ticket del login).
+// Con 6 dígitos eso vuelve inútil probar códigos al azar.
+const ticketUser = req => {
+  try { return 'u' + (jwt.decode(String(req.body?.ticket || ''))?.id || 'x'); } catch { return 'ux'; }
+};
+app.use('/api/auth/2fa', authLimiter);
+app.use('/api/auth/2fa', rateLimit({
+  windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: false, legacyHeaders: false,
+  store: new MySqlStore('2fa-cuenta'), passOnStoreError: true, skipSuccessfulRequests: true,
+  keyGenerator: ticketUser,
+  message: { error: 'Demasiados códigos incorrectos. Espera 15 minutos e inténtalo de nuevo.' },
+}));
+app.use('/api/users/me/2fa', authLimiter);
 
 // Config publica que expone IDs de analytics y publicKey de Stripe al frontend
 app.get('/config.js', (req, res) => {

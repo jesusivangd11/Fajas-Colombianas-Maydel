@@ -1,7 +1,9 @@
 const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
 const pool    = require('../db/connection');
+const QRCode  = require('qrcode');
 const { adminOnly, authenticate, signToken, COOKIE_OPTS } = require('../middleware/auth');
+const totp    = require('../services/totp');
 
 function mapUser(r) {
   return {
@@ -23,7 +25,7 @@ function mapUser(r) {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT id, name, email, role, phone, birthdate, provider, password_hash, created_at FROM users WHERE id = ?',
+      'SELECT id, name, email, role, phone, birthdate, provider, password_hash, totp_enabled, totp_backup, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -34,6 +36,8 @@ router.get('/me', authenticate, async (req, res) => {
       provider: u.provider || 'local',
       // El frontend usa esto para saber si pedir la contraseña actual o no.
       hasPassword: !!u.password_hash,
+      twoFactorEnabled: !!u.totp_enabled,
+      backupCodesLeft: u.totp_enabled && Array.isArray(u.totp_backup) ? u.totp_backup.length : 0,
       createdAt: u.created_at,
     });
   } catch (err) {
@@ -123,6 +127,107 @@ router.put('/me/password', authenticate, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al cambiar la contraseña' });
+  }
+});
+
+/* ── VERIFICACIÓN EN DOS PASOS ───────────────────────────────────────────────
+   1) setup:   genera un secreto (queda "pendiente") y devuelve el QR para la app.
+   2) enable:  con el primer código de la app se activa y se entregan 8 códigos
+               de respaldo, que solo se muestran esta vez.
+   disable / backup-codes piden la contraseña actual y un código: quien robe una
+   sesión abierta no puede quitar la protección ni quedarse con los respaldos. */
+
+// Comprueba la contraseña actual si la cuenta tiene (las de Google no).
+async function checkPassword(me, currentPassword) {
+  if (!me.password_hash) return true;
+  return !!currentPassword && bcrypt.compare(String(currentPassword), me.password_hash);
+}
+
+// Comprueba un código de la app (o de respaldo) y lo marca como usado.
+async function checkSecondFactor(me, code) {
+  const step = totp.verify(totp.decrypt(me.totp_secret), code, me.totp_last_step);
+  if (step) {
+    const [u] = await pool.execute(
+      'UPDATE users SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)',
+      [step, me.id, step]);
+    return u.affectedRows > 0;
+  }
+  const left = totp.useBackupCode(me.totp_backup, code);
+  if (!left) return false;
+  await pool.execute('UPDATE users SET totp_backup = ? WHERE id = ?', [JSON.stringify(left), me.id]);
+  return true;
+}
+
+// POST /api/users/me/2fa/setup  { currentPassword }
+router.post('/me/2fa/setup', authenticate, async (req, res) => {
+  try {
+    const [[me]] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (me.totp_enabled) return res.status(400).json({ error: 'La verificación en dos pasos ya está activa' });
+    if (!(await checkPassword(me, req.body.currentPassword)))
+      return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+    const secret = totp.generateSecret();
+    await pool.execute('UPDATE users SET totp_pending = ? WHERE id = ?', [totp.encrypt(secret), me.id]);
+    const url = totp.otpauthUrl(secret, me.email);
+    res.json({ secret: secret.match(/.{1,4}/g).join(' '), qr: await QRCode.toDataURL(url, { margin: 1, width: 220 }) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudo preparar la verificación' });
+  }
+});
+
+// POST /api/users/me/2fa/enable  { code }
+router.post('/me/2fa/enable', authenticate, async (req, res) => {
+  try {
+    const [[me]] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (me.totp_enabled) return res.status(400).json({ error: 'La verificación en dos pasos ya está activa' });
+    if (!me.totp_pending) return res.status(400).json({ error: 'Primero genera el código QR' });
+    const step = totp.verify(totp.decrypt(me.totp_pending), req.body.code);
+    if (!step) return res.status(400).json({ error: 'Código incorrecto. Revisa que la hora de tu celular sea automática.' });
+    const backup = totp.generateBackupCodes();
+    await pool.execute(
+      'UPDATE users SET totp_secret = totp_pending, totp_pending = NULL, totp_enabled = 1, totp_last_step = ?, totp_backup = ? WHERE id = ?',
+      [step, JSON.stringify(backup.hashes), me.id]);
+    res.json({ ok: true, backupCodes: backup.codes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudo activar la verificación' });
+  }
+});
+
+// POST /api/users/me/2fa/disable  { currentPassword, code }
+router.post('/me/2fa/disable', authenticate, async (req, res) => {
+  try {
+    const [[me]] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!me.totp_enabled) return res.json({ ok: true });
+    if (!(await checkPassword(me, req.body.currentPassword)))
+      return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+    if (!(await checkSecondFactor(me, req.body.code)))
+      return res.status(401).json({ error: 'Código incorrecto' });
+    await pool.execute(
+      'UPDATE users SET totp_enabled = 0, totp_secret = NULL, totp_pending = NULL, totp_backup = NULL, totp_last_step = NULL WHERE id = ?',
+      [me.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudo desactivar la verificación' });
+  }
+});
+
+// POST /api/users/me/2fa/backup-codes  { currentPassword, code }  -> 8 códigos nuevos
+router.post('/me/2fa/backup-codes', authenticate, async (req, res) => {
+  try {
+    const [[me]] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!me.totp_enabled) return res.status(400).json({ error: 'La verificación en dos pasos no está activa' });
+    if (!(await checkPassword(me, req.body.currentPassword)))
+      return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+    if (!(await checkSecondFactor(me, req.body.code)))
+      return res.status(401).json({ error: 'Código incorrecto' });
+    const backup = totp.generateBackupCodes();
+    await pool.execute('UPDATE users SET totp_backup = ? WHERE id = ?', [JSON.stringify(backup.hashes), me.id]);
+    res.json({ ok: true, backupCodes: backup.codes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudieron generar los códigos' });
   }
 });
 

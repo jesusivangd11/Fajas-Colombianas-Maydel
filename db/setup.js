@@ -320,6 +320,12 @@ async function setup() {
     'ALTER TABLE orders ADD INDEX idx_ord_pay (payment_method, payment_status, status, created_at)',
     // db/migrate_v4.js: correo comprobado (ver findOrCreateOAuthUser en routes/auth.js)
     'ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0',
+    // db/migrate_v5.js: verificación en dos pasos (services/totp.js)
+    'ALTER TABLE users ADD COLUMN totp_secret VARCHAR(255) DEFAULT NULL',
+    'ALTER TABLE users ADD COLUMN totp_pending VARCHAR(255) DEFAULT NULL',
+    'ALTER TABLE users ADD COLUMN totp_enabled TINYINT(1) NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN totp_last_step BIGINT DEFAULT NULL',
+    'ALTER TABLE users ADD COLUMN totp_backup JSON DEFAULT NULL',
   ]) { try { await conn.query(alter); } catch(e) {} }
 
   await conn.query(`
