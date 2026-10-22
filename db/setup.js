@@ -318,6 +318,8 @@ async function setup() {
     'ALTER TABLE coupons ADD COLUMN once_per_user TINYINT(1) NOT NULL DEFAULT 0',
     'ALTER TABLE orders ADD INDEX idx_ord_user (user_id)',
     'ALTER TABLE orders ADD INDEX idx_ord_pay (payment_method, payment_status, status, created_at)',
+    // db/migrate_v4.js: correo comprobado (ver findOrCreateOAuthUser en routes/auth.js)
+    'ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0',
   ]) { try { await conn.query(alter); } catch(e) {} }
 
   await conn.query(`

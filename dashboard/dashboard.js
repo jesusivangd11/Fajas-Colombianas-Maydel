@@ -355,7 +355,7 @@ async function uploadFiles(files, kind = 'image') {
 
   const { blob } = await getUploadMode();
   if (blob) {
-    const { upload } = await import('https://esm.sh/@vercel/blob@2.8.2/client');
+    const { upload } = await import('/dashboard/vendor/blob-client.mjs');
     const results = [];
     for (const f of files) {
       const safe = f.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
@@ -1405,7 +1405,7 @@ async function viewOrderDetail(id) {
         <span class="badge badge-${order.status}"><i class="fa-solid ${st.icon}"></i> ${st.label}</span>
       </div>
       ${order.shippingInfo?.phone   ? `<div><div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Teléfono</div><div>${esc(order.shippingInfo.phone)}</div></div>` : ''}
-      ${order.shippingInfo?.address ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Dirección</div><div>${esc(order.shippingInfo.address)}</div></div>` : ''}
+      ${order.shippingInfo?.address ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Dirección</div><div>${esc(order.shippingInfo.address)}${order.shippingInfo.cp ? ' · C.P. ' + esc(order.shippingInfo.cp) : ''}</div></div>` : ''}
     </div>
     <div style="border-top:1px solid var(--gray-200);padding-top:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">Productos</div>

@@ -30,7 +30,7 @@ function notifyNewOrder(order) {
   const itemList = (order.items || []).slice(0, 6)
     .map(i => `• ${esc(i.productName)}${[i.size, i.color].filter(Boolean).length ? ` (${esc([i.size, i.color].filter(Boolean).join(' / '))})` : ''} x${i.qty}`).join('\n');
   const more = (order.items || []).length > 6 ? `\n... +${order.items.length - 6} mas` : '';
-  const address = [ship.address, ship.city, order.shippingState].filter(Boolean).map(esc).join(', ');
+  const address = [ship.address, ship.city, order.shippingState, ship.cp && 'C.P. ' + ship.cp].filter(Boolean).map(esc).join(', ');
   const text =
     (paid ? `💰 <b>VENTA PAGADA</b> #${order.id}\n\n` : `🛍️ <b>NUEVO PEDIDO</b> #${order.id}\n\n`) +
     `👤 ${esc(order.userName)}\n` +

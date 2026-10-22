@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const pool   = require('../db/connection');
 const { authenticate, adminOnly } = require('../middleware/auth');
-const { quoteShipping } = require('../services/shipping');
+const { quoteShipping, stateFromCP, sameState } = require('../services/shipping');
 const { evaluateCoupon } = require('../services/coupons');
 const { waitUntil } = require('@vercel/functions');
 const stripe = require('../services/stripe');
@@ -192,8 +192,16 @@ router.post('/', authenticate, async (req, res) => {
       subtotal += unitPrice * qty;
     }
 
-    // Cotizar envio en el servidor (no confiar en el cliente)
-    const shipQ = quoteShipping(shippingState);
+    // Cotizar envio en el servidor (no confiar en el cliente). El estado se
+    // comprueba contra el código postal: con un C.P. de otro estado no se puede
+    // elegir "Chihuahua" para pagar la tarifa local.
+    const ship = shippingInfo && typeof shippingInfo === 'object' ? shippingInfo : {};
+    const cp = clip(ship.cp, 5);
+    const cpState = stateFromCP(cp);
+    if (!cpState) throw new Error('Escribe un código postal válido de 5 dígitos');
+    if (!sameState(cpState, shippingState))
+      throw new Error(`El código postal ${cp} es de ${cpState}. Revisa el estado o el código postal.`);
+    const shipQ = quoteShipping(cpState);
 
     // Cupón: se vuelve a validar aquí (el carrito solo muestra el cálculo).
     let coupon = null;
@@ -221,10 +229,9 @@ router.post('/', authenticate, async (req, res) => {
     // Sufijo aleatorio: dos pedidos en el mismo milisegundo ya no chocan.
     const id = 'ORD-' + Date.now() + String(Math.floor(Math.random() * 900) + 100);
     const method = ['stripe','whatsapp','manual'].includes(paymentMethod) ? paymentMethod : 'whatsapp';
-    const ship = shippingInfo && typeof shippingInfo === 'object' ? shippingInfo : {};
     const cleanShip = {
       phone: clip(ship.phone, 30), address: clip(ship.address, 300),
-      city: clip(ship.city, 100), state: clip(ship.state, 60),
+      city: clip(ship.city, 100), state: cpState, cp,
     };
     // El correo del pedido es SIEMPRE el de la cuenta: si viniera del navegador,
     // cualquiera podría usar la tienda para mandar correos a terceros.
@@ -234,7 +241,7 @@ router.post('/', authenticate, async (req, res) => {
          total, shipping_info, notes, payment_method, coupon_code, discount_amount, payment_status, status)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'unpaid', 'pending')`,
       [id, req.user.id, userName, req.user.email,
-       JSON.stringify(enriched), subtotal, shippingCost, clip(shippingState, 60) || null,
+       JSON.stringify(enriched), subtotal, shippingCost, cpState,
        total, JSON.stringify(cleanShip), clip(notes, 1000), method,
        coupon ? coupon.code : null, discount]
     );

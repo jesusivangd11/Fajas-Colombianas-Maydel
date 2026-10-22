@@ -99,6 +99,7 @@ npm run dev              # http://localhost:3000
 | `npm run test:*` | Pruebas end-to-end (imágenes, galería, audio de video, marca) |
 | `node db/migrate_to_cloud.js --apply` | Copia la base local a la base en la nube (`.env.production`) |
 | `node db/migrate_v3.js [--prod]` | Columnas de guía de envío, cupones de 1 uso por clienta y tabla del limitador de intentos |
+| `node db/migrate_v4.js [--prod]` | Columna `email_verified` de usuarios (protección al vincular cuentas con Google) |
 
 ## Despliegue
 
@@ -121,6 +122,14 @@ cada vez que se crea un pedido o se abre el panel.
 - El código por SMS/WhatsApp solo funciona con un proveedor real (Twilio/Meta); el
   modo demo, que muestra el código en pantalla, existe solo en local.
 - Todo texto de clientes se escapa antes de mostrarse en el panel y en los correos.
+- Además del límite por IP, máximo 10 contraseñas fallidas por cuenta cada 15 min.
+- Una cuenta con contraseña cuyo correo nunca se comprobó pierde esa contraseña cuando
+  su dueña real entra con Google (evita que alguien registre un correo ajeno de antemano).
+- Los enlaces de recuperación se guardan en la BD solo como huella SHA-256.
+- El panel tiene Content-Security-Policy, los CDN llevan huella SRI y el cliente de
+  Vercel Blob se sirve desde `dashboard/vendor/` (no se carga código de terceros al subir).
+- El envío se cotiza con el estado que corresponde al código postal, no con el que se elige.
+- Solo pueden reseñar las clientas que compraron el producto (una reseña por producto).
 - Las rutas de administración exigen rol `admin` en el servidor.
 - El servidor bloquea que se sirvan como estáticos el código fuente y la configuración.
 

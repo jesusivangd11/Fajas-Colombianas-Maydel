@@ -254,11 +254,12 @@ router.get('/', async (req, res) => {
 
     // Búsqueda por IDs específicos (para el carrito)
     if (ids) {
-      const idList = ids.split(',').map(Number).filter(Boolean);
+      const idList = [...new Set(String(ids).split(',').map(Number).filter(Boolean))].slice(0, 100);
       if (!idList.length) return res.json([]);
       const placeholders = idList.map(() => '?').join(',');
+      // Los desactivados (borradores, descontinuados) solo los ve el admin.
       const [rows] = await pool.execute(
-        `SELECT * FROM products WHERE id IN (${placeholders})`,
+        `SELECT * FROM products WHERE id IN (${placeholders})${admin ? '' : ' AND active = 1'}`,
         idList
       );
       return res.json(rows.map(parseProduct));
@@ -332,7 +333,8 @@ router.get('/stats', adminOnly, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado' });
+    if (!rows.length || (!rows[0].active && !(await isAdminRequest(req))))
+      return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(parseProduct(rows[0]));
   } catch (err) {
     console.error(err);

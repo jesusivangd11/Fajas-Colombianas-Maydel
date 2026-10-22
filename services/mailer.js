@@ -130,7 +130,7 @@ async function sendOrderToAdmin(order) {
       <tr><td style="padding:4px 0;color:#6b7280">ID:</td><td><strong>${order.id}</strong></td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Cliente:</td><td>${esc(order.userName)} &lt;${esc(order.userEmail)}&gt;</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Telefono:</td><td>${esc(order.shippingInfo?.phone || '-')}</td></tr>
-      <tr><td style="padding:4px 0;color:#6b7280">Direccion:</td><td>${esc([order.shippingInfo?.address, order.shippingInfo?.city].filter(Boolean).join(', ') || '-')}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Direccion:</td><td>${esc([order.shippingInfo?.address, order.shippingInfo?.city, order.shippingInfo?.cp && 'C.P. ' + order.shippingInfo.cp].filter(Boolean).join(', ') || '-')}</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Estado:</td><td>${esc(order.shippingState || '-')}</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Pago:</td><td>${order.paymentMethod === 'stripe' ? 'Stripe (en linea)' : 'Por WhatsApp'} &mdash; ${esc(order.paymentStatus)}</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Notas:</td><td>${esc(order.notes || '-')}</td></tr>

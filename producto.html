@@ -184,7 +184,7 @@
 
     <div style="background:#f5f0e8;border-radius:12px;padding:24px;max-width:640px;margin:0 auto">
       <h3 style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;color:#071a0c">Deja tu reseña</h3>
-      <p style="font-size:14.5px;color:#6b7280;margin-bottom:18px">Ayuda a otras clientas con tu experiencia. Las reseñas son moderadas antes de publicarse.</p>
+      <p style="font-size:14.5px;color:#6b7280;margin-bottom:18px">Ayuda a otras clientas con tu experiencia. Solo pueden reseñar quienes compraron este producto, y las reseñas se moderan antes de publicarse.</p>
 
       <div id="reviewLoggedOut" style="display:none;background:#fff;border:1px dashed #d1d5db;padding:16px;border-radius:8px;text-align:center;font-size:15.5px;color:#6b7280">
         <i class="fa-solid fa-lock" style="margin-right:6px"></i>
@@ -394,7 +394,18 @@ function setupReviewForm(productId) {
   const out = document.getElementById('reviewLoggedOut');
   const form = document.getElementById('reviewForm');
   if (!session) { out.style.display = 'block'; form.style.display = 'none'; return; }
-  out.style.display = 'none'; form.style.display = 'block';
+  form.dataset.productId = productId;
+  // Solo quien compró el producto puede reseñarlo (el servidor también lo exige).
+  fetch('/api/reviews/can-review?product=' + productId, { credentials: 'include' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.canReview) { out.style.display = 'none'; form.style.display = 'block'; return; }
+      form.style.display = 'none';
+      out.style.display = 'block';
+      out.innerHTML = '<i class="fa-solid fa-bag-shopping" style="margin-right:6px"></i>';
+      out.appendChild(document.createTextNode(d.reason || 'Solo las clientas que compraron este producto pueden reseñarlo.'));
+    })
+    .catch(() => { out.style.display = 'none'; form.style.display = 'block'; });
 
   // Selector de estrellas
   const stars = document.querySelectorAll('#ratingStars i');
@@ -413,8 +424,6 @@ function setupReviewForm(productId) {
   txt.addEventListener('input', () => {
     document.getElementById('reviewCharCount').textContent = txt.value.length;
   });
-
-  form.dataset.productId = productId;
 }
 
 async function submitReview(e) {

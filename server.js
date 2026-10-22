@@ -70,6 +70,17 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 
+// Además del límite por IP, uno por CUENTA (necesita el body ya leído, por eso va
+// aquí): aunque alguien tenga muchas IPs, no puede probar más de 10 contraseñas
+// por cuenta cada 15 min. Solo cuentan los intentos FALLIDOS, así que la dueña no
+// se bloquea al entrar bien, y Google sigue funcionando aunque esté bloqueado.
+app.use('/api/auth/login', rateLimit({
+  windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: false, legacyHeaders: false,
+  store: new MySqlStore('login-cuenta'), passOnStoreError: true, skipSuccessfulRequests: true,
+  keyGenerator: req => String(req.body?.email || '').trim().toLowerCase().slice(0, 150) || 'sin-correo',
+  message: { error: 'Demasiados intentos fallidos con esta cuenta. Espera 15 minutos o recupera tu contraseña.' },
+}));
+
 // Config publica que expone IDs de analytics y publicKey de Stripe al frontend
 app.get('/config.js', (req, res) => {
   const cfg = {

@@ -7,6 +7,10 @@ const mailer = require('../services/mailer');
 const otp    = require('../services/otp');
 const { waitUntil } = require('@vercel/functions');
 
+// En la BD solo se guarda la huella (SHA-256) del enlace de recuperación: quien
+// lea la tabla password_resets no puede usarlos para cambiar contraseñas.
+const hashToken = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
@@ -15,7 +19,9 @@ router.post('/login', async (req, res) => {
 
     const [rows] = await pool.execute('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]);
     const user = rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password_hash)))
+    // Una cuenta sin contraseña (creada con Google) no puede entrar por aquí;
+    // bcrypt.compare con hash vacío reventaba con 500.
+    if (!user || !user.password_hash || !(await bcrypt.compare(String(password), user.password_hash)))
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
 
     res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
@@ -29,23 +35,37 @@ router.post('/login', async (req, res) => {
 // ── LOGIN SOCIAL (Google / Facebook) ─────────────────────────────────────────
 // Busca al usuario por correo; si no existe lo crea (sin contraseña). Si existía
 // con email/password, vincula el proveedor sin romper su login normal.
+//
+// Robo de cuenta "por adelantado": alguien registra el correo de otra persona con
+// una contraseña que él conoce (el registro no comprueba que el correo sea suyo)
+// y espera a que la dueña real entre con Google. Para cerrarlo, si la cuenta tiene
+// contraseña pero su correo nunca se comprobó (email_verified = 0), al entrar con
+// Google esa contraseña se BORRA: quien la puso pierde el acceso y sus sesiones, y
+// la dueña puede crear una nueva desde "Mi cuenta". Facebook no garantiza que el
+// correo esté verificado, así que con él no se vincula una cuenta así.
 async function findOrCreateOAuthUser({ email, name, provider, providerId, avatar }) {
   email = String(email || '').trim().toLowerCase();
-  if (!email) throw new Error('Tu cuenta de ' + provider + ' no tiene un correo disponible.');
+  if (!email) throw Object.assign(new Error('Tu cuenta de ' + provider + ' no tiene un correo disponible.'), { status: 400 });
   name = (name || email.split('@')[0]).trim();
 
   const [rows] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
   if (rows.length) {
     const user = rows[0];
+    const unverifiedPassword = !!user.password_hash && !user.email_verified;
+    if (unverifiedPassword && provider !== 'google') {
+      throw Object.assign(new Error('Ya existe una cuenta con ese correo. Entra con tu correo y contraseña.'), { status: 409 });
+    }
     await pool.execute(
       `UPDATE users SET provider_id = COALESCE(provider_id, ?), avatar = COALESCE(avatar, ?),
-       provider = CASE WHEN password_hash IS NULL THEN ? ELSE provider END WHERE id = ?`,
-      [providerId, avatar || null, provider, user.id]
+       provider = CASE WHEN password_hash IS NULL OR ? THEN ? ELSE provider END,
+       password_hash = CASE WHEN ? THEN NULL ELSE password_hash END,
+       email_verified = 1 WHERE id = ?`,
+      [providerId, avatar || null, unverifiedPassword ? 1 : 0, provider, unverifiedPassword ? 1 : 0, user.id]
     );
-    return user;
+    return unverifiedPassword ? { ...user, password_hash: null } : user;
   }
   const [result] = await pool.execute(
-    'INSERT INTO users (name, email, role, provider, provider_id, avatar) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO users (name, email, role, provider, provider_id, avatar, email_verified) VALUES (?, ?, ?, ?, ?, ?, 1)',
     [name, email, 'user', provider, providerId, avatar || null]
   );
   return { id: result.insertId, name, email, role: 'user' };
@@ -75,7 +95,7 @@ router.post('/google', async (req, res) => {
     res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
   } catch (err) {
     console.error('google login', err);
-    res.status(500).json({ error: err.message || 'Error al iniciar sesión con Google' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Google' });
   }
 });
 
@@ -110,7 +130,7 @@ router.post('/facebook', async (req, res) => {
     res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
   } catch (err) {
     console.error('facebook login', err);
-    res.status(500).json({ error: err.message || 'Error al iniciar sesión con Facebook' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Facebook' });
   }
 });
 
@@ -173,7 +193,7 @@ router.post('/forgot-password', async (req, res) => {
       const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
       await pool.execute(
         'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)',
-        [user.id, token, expires]
+        [user.id, hashToken(token), expires]
       );
       const base = process.env.PUBLIC_URL || 'http://localhost:3000';
       const resetUrl = `${base}/reset-password.html?token=${token}`;
@@ -197,7 +217,7 @@ router.post('/reset-password', async (req, res) => {
 
     const [rows] = await pool.execute(
       'SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()',
-      [token]
+      [hashToken(token)]
     );
     if (!rows.length) return res.status(400).json({ error: 'Token invalido o expirado' });
 
@@ -295,7 +315,7 @@ router.post('/verify-otp', async (req, res) => {
     const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos para cambiar la contrasena
     await pool.execute(
       'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)',
-      [row.user_id, token, expires]
+      [row.user_id, hashToken(token), expires]
     );
     res.json({ ok: true, resetToken: token });
   } catch (err) {
@@ -311,7 +331,7 @@ router.get('/reset-password/validate', async (req, res) => {
     if (!token) return res.json({ valid: false });
     const [rows] = await pool.execute(
       'SELECT id FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()',
-      [token]
+      [hashToken(token)]
     );
     res.json({ valid: rows.length > 0 });
   } catch (err) {
@@ -321,3 +341,4 @@ router.get('/reset-password/validate', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.findOrCreateOAuthUser = findOrCreateOAuthUser; // para pruebas

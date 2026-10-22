@@ -38,15 +38,47 @@ router.get('/admin', adminOnly, async (req, res) => {
   }
 });
 
-// POST /api/reviews   (cliente loguead@)
+// ¿La clienta compró este producto? Cuenta un pedido pagado o que la tienda ya
+// confirmó/envió/entregó. Así "reseñas verificadas" es literalmente cierto.
+async function boughtProduct(userId, productId) {
+  const [orders] = await pool.execute(
+    `SELECT items FROM orders WHERE user_id = ? AND status <> 'cancelled'
+       AND (payment_status = 'paid' OR status IN ('confirmed','processing','shipped','delivered'))`,
+    [userId]
+  );
+  return orders.some(o => (o.items || []).some(i => Number(i.productId) === Number(productId)));
+}
+
+// GET /api/reviews/can-review?product=N  -> ¿puede reseñarlo la clienta con sesión?
+router.get('/can-review', authenticate, async (req, res) => {
+  try {
+    const productId = Number(req.query.product);
+    if (!productId) return res.json({ canReview: false, reason: 'Producto inválido' });
+    const [mine] = await pool.execute('SELECT id FROM reviews WHERE user_id = ? AND product_id = ? LIMIT 1', [req.user.id, productId]);
+    if (mine.length) return res.json({ canReview: false, reason: 'Ya dejaste tu reseña de este producto. ¡Gracias!' });
+    if (!(await boughtProduct(req.user.id, productId)))
+      return res.json({ canReview: false, reason: 'Solo las clientas que compraron este producto pueden reseñarlo.' });
+    res.json({ canReview: true });
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'Error al verificar' });
+  }
+});
+
+// POST /api/reviews   (clienta con sesión que compró el producto)
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { productId, rating, text } = req.body;
+    const { rating, text } = req.body;
+    const productId = Number(req.body.productId);
+    if (!productId) return res.status(400).json({ error: 'Producto requerido' });
     const r = Math.max(1, Math.min(5, Math.round(Number(rating)) || 5));
     if (!text || String(text).trim().length < 10) return res.status(400).json({ error: 'La reseña debe tener al menos 10 caracteres' });
+    const [mine] = await pool.execute('SELECT id FROM reviews WHERE user_id = ? AND product_id = ? LIMIT 1', [req.user.id, productId]);
+    if (mine.length) return res.status(409).json({ error: 'Ya dejaste tu reseña de este producto' });
+    if (!(await boughtProduct(req.user.id, productId)))
+      return res.status(403).json({ error: 'Solo las clientas que compraron este producto pueden reseñarlo' });
     await pool.execute(
       'INSERT INTO reviews (user_id, product_id, author_name, rating, text, approved) VALUES (?,?,?,?,?,0)',
-      [req.user.id, productId || null, req.user.name, r, String(text).trim().slice(0, 1000)]
+      [req.user.id, productId, req.user.name, r, String(text).trim().slice(0, 1000)]
     );
     res.status(201).json({ ok: true, message: 'Gracias! Tu reseña esta pendiente de aprobacion.' });
   } catch (err) {

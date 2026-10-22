@@ -74,7 +74,12 @@ router.put('/me', authenticate, async (req, res) => {
       if (dup.length) return res.status(409).json({ error: 'Ese correo ya está en uso por otra cuenta' });
     }
 
-    await pool.execute('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, me.id]);
+    // Un correo nuevo no está comprobado: si su dueña real entra después con
+    // Google, la contraseña puesta aquí se anula (ver findOrCreateOAuthUser).
+    await pool.execute(
+      `UPDATE users SET name = ?, email = ?${emailChanged ? ', email_verified = 0' : ''} WHERE id = ?`,
+      [name, email, me.id]
+    );
 
     // El JWT guarda nombre y correo: hay que volver a firmarlo.
     const updated = { id: me.id, name, email, role: me.role };
@@ -149,13 +154,16 @@ router.put('/:id', adminOnly, async (req, res) => {
     const [dup] = await pool.execute('SELECT id FROM users WHERE email = ? AND id <> ?', [email.trim().toLowerCase(), id]);
     if (dup.length) return res.status(409).json({ error: 'Ese correo ya está en uso por otro usuario' });
 
+    // email_verified va primero: MySQL evalúa el SET en orden, así compara contra
+    // el correo anterior. Si el admin cambia el correo, deja de estar comprobado.
+    const newEmail = email.trim().toLowerCase();
     if (password && password.length >= 8) {
       const hash = await bcrypt.hash(password, 10);
-      await pool.execute('UPDATE users SET name=?, email=?, role=?, password_hash=? WHERE id=?',
-        [name.trim(), email.trim().toLowerCase(), role || 'user', hash, id]);
+      await pool.execute('UPDATE users SET email_verified = IF(email = ?, email_verified, 0), name=?, email=?, role=?, password_hash=? WHERE id=?',
+        [newEmail, name.trim(), newEmail, role || 'user', hash, id]);
     } else {
-      await pool.execute('UPDATE users SET name=?, email=?, role=? WHERE id=?',
-        [name.trim(), email.trim().toLowerCase(), role || 'user', id]);
+      await pool.execute('UPDATE users SET email_verified = IF(email = ?, email_verified, 0), name=?, email=?, role=? WHERE id=?',
+        [newEmail, name.trim(), newEmail, role || 'user', id]);
     }
     res.json({ ok: true });
   } catch (err) {
