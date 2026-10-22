@@ -3,6 +3,7 @@ const router  = express.Router();
 const pool    = require('../db/connection');
 const { authenticate } = require('../middleware/auth');
 const mailer = require('../services/mailer');
+const telegram = require('../services/telegram');
 
 const SECRET = process.env.STRIPE_SECRET_KEY || '';
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -70,23 +71,34 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       const intent = event.data.object;
       const orderId = intent.metadata?.orderId;
       if (orderId) {
-        await pool.execute(
-          'UPDATE orders SET payment_status = "paid", status = "confirmed" WHERE id = ?',
+        // Solo la primera vez: si Stripe reintenta el evento no se repiten los avisos.
+        const [upd] = await pool.execute(
+          'UPDATE orders SET payment_status = "paid", status = "confirmed" WHERE id = ? AND payment_status <> "paid"',
           [orderId]
         );
-        const [[row]] = await pool.execute('SELECT * FROM orders WHERE id = ?', [orderId]);
+        const [[row]] = upd.affectedRows
+          ? await pool.execute('SELECT * FROM orders WHERE id = ?', [orderId])
+          : [[null]];
         if (row) {
           const order = {
             id: row.id, userName: row.user_name, userEmail: row.user_email,
             items: row.items || [], subtotal: Number(row.subtotal), shippingCost: Number(row.shipping_cost),
             total: Number(row.total), shippingInfo: row.shipping_info || {}, status: 'confirmed',
             shippingState: row.shipping_state, paymentMethod: 'stripe', paymentStatus: 'paid',
-            notes: row.notes || '',
+            notes: row.notes || '', couponCode: row.coupon_code || null,
+            discountAmount: Number(row.discount_amount || 0),
           };
-          Promise.allSettled([
+          // Esperar los avisos antes de responder: en Vercel la función se congela
+          // en cuanto responde. Stripe espera hasta 20 s, de sobra.
+          const results = await Promise.allSettled([
             mailer.sendOrderStatusUpdate(order),
             mailer.sendOrderToAdmin(order),
-          ]).catch(() => {});
+            telegram.notifyNewOrder(order),
+          ]);
+          results.forEach(r => {
+            if (r.status === 'rejected') console.error('[avisos] venta pagada', order.id, r.reason?.message || r.reason);
+            else if (r.value && r.value.ok === false) console.error('[avisos] venta pagada', order.id, 'telegram', r.value.description);
+          });
         }
       }
     } else if (event.type === 'payment_intent.payment_failed') {

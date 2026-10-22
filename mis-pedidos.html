@@ -115,6 +115,10 @@ function renderOrders(orders) {
         </div>
       </div>
       <div class="order-body">
+        ${o.delayed && !cancelled ? `<div style="background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:14px">
+          <strong><i class="fa-solid fa-triangle-exclamation"></i> Tu pedido viene con retraso.</strong>
+          ${o.delayNote ? `<div style="margin-top:4px">${esc(o.delayNote)}</div>` : ''}
+        </div>` : ''}
         ${timeline}
         <div class="order-items">${items}</div>
         <div class="order-totals">

@@ -3,6 +3,13 @@ const pool   = require('../db/connection');
 const { authenticate, adminOnly } = require('../middleware/auth');
 const { quoteShipping } = require('../services/shipping');
 const { evaluateCoupon } = require('../services/coupons');
+const { waitUntil } = require('@vercel/functions');
+
+// Deja en el log de Vercel los avisos (correo/Telegram) que fallaron.
+const logFailures = label => results => results.forEach(r => {
+  if (r.status === 'rejected') console.error(`[avisos] ${label}:`, r.reason?.message || r.reason);
+  else if (r.value && r.value.ok === false) console.error(`[avisos] ${label}: telegram`, r.value.description);
+});
 const mailer = require('../services/mailer');
 const telegram = require('../services/telegram');
 
@@ -57,6 +64,8 @@ function parseOrder(row) {
     paymentStatus:   row.payment_status || 'unpaid',
     stripeIntentId:  row.stripe_intent_id || null,
     status:          row.status,
+    delayed:         !!row.is_delayed,
+    delayNote:       row.delay_note || '',
     createdAt:       row.created_at,
     updatedAt:       row.updated_at,
   };
@@ -248,12 +257,13 @@ router.post('/', authenticate, async (req, res) => {
     const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [id]);
     const order = parseOrder(rows[0]);
 
-    // Disparar emails y Telegram sin bloquear la respuesta
-    Promise.allSettled([
-      mailer.sendOrderToCustomer(order),
-      mailer.sendOrderToAdmin(order),
-      telegram.notifyNewOrder(order),
-    ]).catch(() => {});
+    // Emails y Telegram sin bloquear la respuesta. waitUntil mantiene viva la
+    // función de Vercel hasta que terminen (sin él se congelaban y no salían).
+    // Al admin solo se le avisa ahora si es por WhatsApp; con tarjeta, al pagarse
+    // (webhook de Stripe en routes/checkout.js).
+    const avisos = [mailer.sendOrderToCustomer(order)];
+    if (order.paymentMethod !== 'stripe') avisos.push(mailer.sendOrderToAdmin(order), telegram.notifyNewOrder(order));
+    waitUntil(Promise.allSettled(avisos).then(logFailures('pedido ' + order.id)));
 
     res.status(201).json(order);
   } catch (err) {
@@ -293,12 +303,17 @@ router.put('/:id/status', adminOnly, async (req, res) => {
       }
     }
 
-    await conn.execute('UPDATE orders SET status = ? WHERE id = ?', [status, req.params.id]);
+    // Entregado o cancelado ya no puede ir "retrasado".
+    const clearDelay = status === 'delivered' || status === 'cancelled';
+    await conn.execute(
+      `UPDATE orders SET status = ?${clearDelay ? ', is_delayed = 0, delay_note = NULL' : ''} WHERE id = ?`,
+      [status, req.params.id]
+    );
     await conn.commit();
 
     const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [req.params.id]);
     const order = parseOrder(rows[0]);
-    mailer.sendOrderStatusUpdate(order).catch(() => {});
+    waitUntil(Promise.allSettled([mailer.sendOrderStatusUpdate(order)]).then(logFailures('estado ' + order.id)));
     res.json(order);
   } catch (err) {
     await conn.rollback();
@@ -306,6 +321,25 @@ router.put('/:id/status', adminOnly, async (req, res) => {
     res.status(500).json({ error: 'Error al actualizar estado' });
   } finally {
     conn.release();
+  }
+});
+
+// PUT /api/orders/:id/delay  { delayed, note }  (admin)
+// Marca/desmarca el pedido como retrasado sin moverlo de etapa; avisa al cliente.
+router.put('/:id/delay', adminOnly, async (req, res) => {
+  try {
+    const delayed = !!req.body.delayed;
+    const note = delayed ? String(req.body.note || '').trim().slice(0, 255) || null : null;
+    const [r] = await pool.execute('UPDATE orders SET is_delayed = ?, delay_note = ? WHERE id = ?',
+      [delayed ? 1 : 0, note, req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Pedido no encontrado' });
+    const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+    const order = parseOrder(rows[0]);
+    waitUntil(Promise.allSettled([mailer.sendOrderDelayUpdate(order)]).then(logFailures('retraso ' + order.id)));
+    res.json(order);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al marcar el retraso' });
   }
 });
 

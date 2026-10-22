@@ -309,6 +309,8 @@ async function setup() {
     "ALTER TABLE coupons MODIFY discount_type ENUM('percent','fixed','free_shipping') NOT NULL DEFAULT 'percent'",
     'ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(40) DEFAULT NULL',
     'ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN is_delayed TINYINT(1) NOT NULL DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN delay_note VARCHAR(255) DEFAULT NULL',
   ]) { try { await conn.query(alter); } catch(e) {} }
 
   await conn.query(`

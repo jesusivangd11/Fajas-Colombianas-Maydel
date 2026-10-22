@@ -18,16 +18,27 @@ async function sendTelegram(text) {
 
 const fmt = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n || 0));
 
+// Escapa texto del cliente para el parse_mode HTML de Telegram.
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* Aviso al admin. Pedidos por WhatsApp: al crearse. Pedidos con tarjeta: cuando
+   Stripe confirma el pago (order.paymentStatus === 'paid'), para no avisar de
+   carritos que nunca se pagaron. */
 function notifyNewOrder(order) {
+  const paid = order.paymentStatus === 'paid';
+  const ship = order.shippingInfo || {};
   const itemList = (order.items || []).slice(0, 6)
-    .map(i => `• ${i.productName}${i.size ? ` (${i.size})` : ''} x${i.qty}`).join('\n');
+    .map(i => `• ${esc(i.productName)}${[i.size, i.color].filter(Boolean).length ? ` (${esc([i.size, i.color].filter(Boolean).join(' / '))})` : ''} x${i.qty}`).join('\n');
   const more = (order.items || []).length > 6 ? `\n... +${order.items.length - 6} mas` : '';
+  const address = [ship.address, ship.city, order.shippingState].filter(Boolean).map(esc).join(', ');
   const text =
-    `🛍️ <b>NUEVO PEDIDO</b> #${order.id}\n\n` +
-    `👤 ${order.userName}\n` +
-    `📱 ${order.shippingInfo?.phone || '-'}\n` +
-    `📍 ${order.shippingState || '-'}\n` +
-    `💳 ${order.paymentMethod === 'stripe' ? 'Stripe (en linea)' : 'WhatsApp'}\n\n` +
+    (paid ? `💰 <b>VENTA PAGADA</b> #${order.id}\n\n` : `🛍️ <b>NUEVO PEDIDO</b> #${order.id}\n\n`) +
+    `👤 ${esc(order.userName)}\n` +
+    `✉️ ${esc(order.userEmail || '-')}\n` +
+    `📱 ${esc(ship.phone || '-')}\n` +
+    `📍 ${address || '-'}\n` +
+    (order.notes ? `📝 ${esc(order.notes)}\n` : '') +
+    `💳 ${order.paymentMethod === 'stripe' ? 'Tarjeta (Stripe)' : 'WhatsApp'} — ${paid ? 'PAGADO ✅' : 'pendiente de pago'}\n\n` +
     `${itemList}${more}\n\n` +
     `Subtotal: ${fmt(order.subtotal)}\n` +
     (order.discountAmount ? `Descuento (${order.couponCode}): -${fmt(order.discountAmount)}\n` : '') +

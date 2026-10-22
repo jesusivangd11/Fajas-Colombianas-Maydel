@@ -254,6 +254,9 @@ const DB = {
   async updateOrderStatus(id, status) {
     return apiFetch(`/api/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
   },
+  async setOrderDelay(id, delayed, note = '') {
+    return apiFetch(`/api/orders/${id}/delay`, { method: 'PUT', body: JSON.stringify({ delayed, note }) });
+  },
   async addOrder(userId, userName, userEmail, items, total, shippingInfo = {}, notes = '') {
     return apiFetch('/api/orders', {
       method: 'POST',

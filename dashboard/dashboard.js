@@ -1352,6 +1352,7 @@ async function loadOrderTable() {
           ${Object.entries(ORDER_STATUSES).map(([k, v]) =>
             `<option value="${k}"${o.status === k ? ' selected' : ''}>${v.label}</option>`).join('')}
         </select>
+        ${o.delayed ? `<div style="margin-top:4px;font-size:11px;font-weight:700;color:#b45309"><i class="fa-solid fa-triangle-exclamation"></i> Retrasado</div>` : ''}
       </td>
       <td style="font-size:12px;color:var(--gray-500);white-space:nowrap">${formatDate(o.createdAt)}</td>
       <td><button class="btn-edit" onclick="viewOrderDetail('${o.id}')"><i class="fa-solid fa-eye"></i> Ver</button></td>
@@ -1414,8 +1415,34 @@ async function viewOrderDetail(id) {
         Total: ${formatPrice(order.total)}
       </div>
     </div>
-    ${order.notes ? `<div style="background:var(--gray-50);border-radius:8px;padding:12px;margin-top:14px;font-size:13px"><strong>Notas:</strong> ${esc(order.notes)}</div>` : ''}`;
+    ${order.notes ? `<div style="background:var(--gray-50);border-radius:8px;padding:12px;margin-top:14px;font-size:13px"><strong>Notas:</strong> ${esc(order.notes)}</div>` : ''}
+    ${['delivered', 'cancelled'].includes(order.status) ? '' : `
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px;margin-top:14px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#92400e;cursor:pointer">
+        <input type="checkbox" id="orderDelayed" ${order.delayed ? 'checked' : ''}>
+        <i class="fa-solid fa-triangle-exclamation"></i> Pedido retrasado
+      </label>
+      <textarea id="orderDelayNote" class="form-input" rows="2" maxlength="255" style="margin-top:10px;width:100%"
+        placeholder="Mensaje para el cliente (opcional). Ej.: La paquetería reporta retraso; llega el viernes.">${esc(order.delayNote || '')}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px">
+        <span style="font-size:12px;color:#92400e">El cliente lo verá en "Mis pedidos" y recibirá un correo.</span>
+        <button class="btn-save" onclick="saveOrderDelay('${order.id}')" style="border-radius:8px;padding:9px 18px">Guardar</button>
+      </div>
+    </div>`}`;
   document.getElementById('orderDetailModal').classList.remove('hidden');
+}
+
+async function saveOrderDelay(id) {
+  const delayed = document.getElementById('orderDelayed').checked;
+  const note    = document.getElementById('orderDelayNote').value.trim();
+  try {
+    await DB.setOrderDelay(id, delayed, note);
+    showToast(delayed ? 'Pedido marcado como retrasado' : 'Retraso quitado');
+    closeOrderDetail();
+    await loadOrderTable();
+  } catch (err) {
+    showToast(err.message || 'Error al guardar el retraso', 'error');
+  }
 }
 
 function closeOrderDetail() { document.getElementById('orderDetailModal').classList.add('hidden'); }

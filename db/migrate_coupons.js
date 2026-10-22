@@ -1,4 +1,5 @@
-// Habilita los cupones de ENVIO GRATIS y crea el cupon de prueba ENVIOGRATIS.
+// Habilita los cupones de ENVIO GRATIS, crea el cupon de prueba ENVIOGRATIS y
+// agrega las columnas para marcar pedidos retrasados.
 // Se puede correr varias veces sin problema.
 //
 //   node db/migrate_coupons.js          -> base de datos local (.env)
@@ -33,8 +34,10 @@ async function main() {
   for (const alter of [
     'ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(40) DEFAULT NULL',
     'ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN is_delayed TINYINT(1) NOT NULL DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN delay_note VARCHAR(255) DEFAULT NULL',
   ]) { try { await conn.query(alter); } catch (e) { /* ya existe */ } }
-  console.log('  ✓ pedidos: columnas coupon_code / discount_amount');
+  console.log('  ✓ pedidos: columnas coupon_code / discount_amount / is_delayed / delay_note');
 
   const [r] = await conn.query(
     `INSERT IGNORE INTO coupons (code, description, discount_type, discount_value, min_subtotal, active)

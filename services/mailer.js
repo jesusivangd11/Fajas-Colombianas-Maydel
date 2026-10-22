@@ -101,13 +101,14 @@ async function sendOrderToCustomer(order) {
 
 async function sendOrderToAdmin(order) {
   if (!ADMIN_EMAIL) return;
+  const paid = order.paymentStatus === 'paid';
   const body = `
-    <p style="font-size:15px"><strong>Nuevo pedido recibido</strong></p>
+    <p style="font-size:15px"><strong>${paid ? 'Venta pagada con tarjeta' : 'Nuevo pedido recibido'}</strong></p>
     <table style="width:100%;font-size:14px;margin-bottom:12px">
       <tr><td style="padding:4px 0;color:#6b7280">ID:</td><td><strong>${order.id}</strong></td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Cliente:</td><td>${order.userName} &lt;${order.userEmail}&gt;</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Telefono:</td><td>${order.shippingInfo?.phone || '-'}</td></tr>
-      <tr><td style="padding:4px 0;color:#6b7280">Direccion:</td><td>${order.shippingInfo?.address || '-'}</td></tr>
+      <tr><td style="padding:4px 0;color:#6b7280">Direccion:</td><td>${[order.shippingInfo?.address, order.shippingInfo?.city].filter(Boolean).join(', ') || '-'}</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Estado:</td><td>${order.shippingState || '-'}</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Pago:</td><td>${order.paymentMethod === 'stripe' ? 'Stripe (en linea)' : 'Por WhatsApp'} &mdash; ${order.paymentStatus}</td></tr>
       <tr><td style="padding:4px 0;color:#6b7280">Notas:</td><td>${order.notes || '-'}</td></tr>
@@ -117,9 +118,29 @@ async function sendOrderToAdmin(order) {
   `;
   return send({
     to: ADMIN_EMAIL,
-    subject: `[Maydel] Nuevo pedido #${order.id} - ${fmt(order.total)}`,
-    html: shell(`Nuevo pedido #${order.id}`, body, '#c9a96e'),
-    text: `Nuevo pedido ${order.id} de ${order.userName} por ${fmt(order.total)}.`,
+    subject: `[Maydel] ${paid ? 'VENTA PAGADA' : 'Nuevo pedido'} #${order.id} - ${fmt(order.total)} - ${order.userName}`,
+    html: shell(`${paid ? 'Venta pagada' : 'Nuevo pedido'} #${order.id}`, body, '#c9a96e'),
+    text: `${paid ? 'Venta pagada' : 'Nuevo pedido'} ${order.id} de ${order.userName} por ${fmt(order.total)}.`,
+  });
+}
+
+// Aviso al cliente de que su pedido viene con retraso (o de que ya se normalizó).
+async function sendOrderDelayUpdate(order) {
+  const body = order.delayed
+    ? `<p>Hola <strong>${order.userName}</strong>,</p>
+       <p>Te avisamos que tu pedido <strong>#${order.id}</strong> viene con <strong>retraso</strong>.</p>
+       ${order.delayNote ? `<div style="background:#fef3c7;border-radius:4px;padding:16px;margin:18px 0;color:#92400e">${order.delayNote}</div>` : ''}
+       <p>Lamentamos la espera; seguimos al pendiente para que te llegue lo antes posible.</p>`
+    : `<p>Hola <strong>${order.userName}</strong>,</p>
+       <p>Buenas noticias: tu pedido <strong>#${order.id}</strong> ya no tiene retraso y sigue su curso normal.</p>`;
+  return send({
+    to: order.userEmail,
+    subject: order.delayed ? `Tu pedido #${order.id} viene con retraso` : `Tu pedido #${order.id} sigue su curso`,
+    html: shell(`Pedido #${order.id}`, body + `
+      <p style="margin-top:24px"><a href="${PUBLIC_URL}/mis-pedidos.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mi pedido</a></p>`),
+    text: order.delayed
+      ? `Tu pedido ${order.id} viene con retraso. ${order.delayNote || ''}`
+      : `Tu pedido ${order.id} ya no tiene retraso.`,
   });
 }
 
@@ -159,4 +180,4 @@ async function sendPasswordReset({ to, name, resetUrl }) {
   });
 }
 
-module.exports = { sendOrderToCustomer, sendOrderToAdmin, sendOrderStatusUpdate, sendPasswordReset };
+module.exports = { sendOrderToCustomer, sendOrderToAdmin, sendOrderStatusUpdate, sendOrderDelayUpdate, sendPasswordReset };
