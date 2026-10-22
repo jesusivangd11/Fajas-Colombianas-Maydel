@@ -1,5 +1,8 @@
 /* Estilos de dashboard/index.html — extraidos desde el bloque <style> incrustado. */
 
+/* El panel admin no usa la escala de la tienda (styles.css): ocupa toda la pantalla. */
+:root{--zoom:1 !important}
+
 .section-panel{background:white;border-radius:var(--radius);box-shadow:var(--shadow-sm);border:1px solid var(--gray-200);padding:24px;margin-bottom:20px}
 .img-url-row{display:flex;gap:8px}
 .color-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}

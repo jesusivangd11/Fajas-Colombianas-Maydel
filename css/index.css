@@ -23,7 +23,7 @@
   background-size: cover !important;
   animation: none !important;
   /* Alto del banner: la pantalla menos el encabezado, con tope para que no sea gigante */
-  min-height: min(calc(100vh - 130px), 720px);
+  min-height: min(calc(100vh / var(--zoom, 1) - 130px), 720px);
   position: relative;
   overflow: hidden;
 }
@@ -384,9 +384,11 @@ footer { font-family: 'DM Sans', sans-serif !important; }
 .fs-name { margin: 0; }
 .fs-name a {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(26px, 3.4vw, 44px); font-weight: 700; line-height: 1.08;
+  font-size: clamp(24px, 2.6vw, 36px); font-weight: 700; line-height: 1.12;
   color: #071a0c; text-decoration: none;
   transition: color .25s;
+  /* Los nombres de producto son largos: máximo 3 renglones */
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .fs-name a:hover { color: #1a5c2e; }
 

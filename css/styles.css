@@ -33,10 +33,20 @@
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;max-width:100%;overflow-x:hidden}
+/* ── ESCALA EN COMPUTADORA ──
+   La tienda está diseñada en px y en pantallas grandes se veía exagerada.
+   zoom reduce TODO en proporción (texto, botones, espacios, imágenes).
+   ▸ Más chico: baja el número (.8). Más grande: súbelo (máx. 1).
+   En celular y tablet no aplica. El dashboard lo anula en dashboard.css. */
+:root{--zoom:1}
+html{zoom:var(--zoom)}
+/* Con zoom, 100vh también se encoge: las alturas de pantalla completa usan calc(100vh / var(--zoom)) */
+@media (min-width:1024px){:root{--zoom:.9}}
+@media (min-width:1280px){:root{--zoom:.85}}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:4px}
 button:focus-visible,a:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-body{font-family:'DM Sans','Segoe UI',system-ui,-apple-system,sans-serif;color:var(--dark);background:#f5f0e8;-webkit-font-smoothing:antialiased;min-height:100vh}
+body{font-family:'DM Sans','Segoe UI',system-ui,-apple-system,sans-serif;color:var(--dark);background:#f5f0e8;-webkit-font-smoothing:antialiased;min-height:calc(100vh / var(--zoom))}
 a{text-decoration:none;color:inherit}
 ul{list-style:none}
 img{max-width:100%;display:block}
@@ -549,7 +559,7 @@ footer{background:var(--primary-dark);color:rgba(255,255,255,.75);padding:56px 0
 .page-btn:hover,.page-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
 
 /* ── LOGIN PAGE ── */
-.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary-dark),var(--primary));padding:24px;position:relative;width:100%;max-width:100%;overflow:hidden;overflow:clip}
+.login-page{min-height:calc(100vh / var(--zoom));display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary-dark),var(--primary));padding:24px;position:relative;width:100%;max-width:100%;overflow:hidden;overflow:clip}
 .login-box{background:white;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.25);width:100%;max-width:440px;overflow:hidden;position:relative;z-index:1}
 .login-header{background:linear-gradient(135deg,var(--primary-dark),var(--primary));padding:32px 32px 28px;text-align:center}
 .login-header img{height:88px;width:88px;border-radius:50%;object-fit:cover;margin:0 auto 16px;box-shadow:0 4px 16px rgba(0,0,0,.45);border:3px solid rgba(255,255,255,.25)}

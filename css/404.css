@@ -1,6 +1,6 @@
 /* Estilos de 404.html — extraidos desde el bloque <style> incrustado. */
 
-.err-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#071a0c,#1a5c2e);color:#fff;padding:40px 20px;text-align:center}
+.err-wrap{min-height:calc(100vh / var(--zoom, 1));display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#071a0c,#1a5c2e);color:#fff;padding:40px 20px;text-align:center}
 .err-box{max-width:520px}
 .err-code{font-family:'Playfair Display',serif;font-size:clamp(100px,18vw,180px);font-weight:900;color:#c9a96e;line-height:1;letter-spacing:-3px;margin-bottom:8px;text-shadow:0 4px 24px rgba(0,0,0,.4)}
 .err-title{font-family:'Playfair Display',serif;font-size:clamp(24px,4vw,34px);font-weight:700;margin-bottom:14px}
