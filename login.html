@@ -205,6 +205,10 @@
         <button type="submit" class="login-btn">
           <i class="fa-solid fa-user-plus"></i> Crear cuenta
         </button>
+        <p style="font-size:13px;color:var(--gray-500);text-align:center;margin-top:10px;line-height:1.5">
+          Al crear tu cuenta aceptas nuestros <a href="terminos.html" target="_blank" style="color:var(--primary);font-weight:600">Términos y condiciones</a>
+          y el <a href="aviso-de-privacidad.html" target="_blank" style="color:var(--primary);font-weight:600">Aviso de privacidad</a>.
+        </p>
 
         <div class="login-divider">¿Ya tienes cuenta? <a href="#" onclick="switchLoginTabByName('login');return false" style="color:var(--primary);font-weight:600">Inicia sesión</a></div>
         <div style="text-align:center">
@@ -227,10 +231,19 @@ const REDIRECTS = {
   'mi-cuenta': 'mi-cuenta.html',
   favoritos:   'mis-favoritos.html',
   pedidos:     'mis-pedidos.html',
+  'mis-pedidos': 'mis-pedidos.html',
   carrito:     'carrito.html',
+  cart:        'carrito.html',
 };
 function redirectTarget() {
   const key = new URLSearchParams(window.location.search).get('redirect');
+  // "product": volver a la ficha del producto de donde vino (solo de este mismo sitio)
+  if (key === 'product' && document.referrer) {
+    try {
+      const ref = new URL(document.referrer);
+      if (ref.origin === location.origin && ref.pathname.endsWith('/producto.html')) return ref.pathname + ref.search;
+    } catch {}
+  }
   return REDIRECTS[key] || 'index.html';
 }
 

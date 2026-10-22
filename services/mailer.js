@@ -33,8 +33,23 @@ async function send({ to, subject, html, text }) {
   }
   return tx.sendMail({
     from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-    to, subject, html, text,
+    to, subject, html,
+    // Versión en texto con el MISMO contenido que el HTML: un texto alterno de una
+    // sola línea frente a un HTML largo es una señal típica de spam.
+    text: html ? htmlToText(html) : text,
   });
+}
+
+function htmlToText(html) {
+  return html
+    .replace(/<(style|head)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, label) => `${label.replace(/<[^>]+>/g, '').trim()} (${href})`)
+    .replace(/<\/(p|div|tr|h[1-6]|li)>|<br\s*\/?>/gi, '\n')
+    .replace(/<\/t[dh]>/gi, '  ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&middot;/g, '·').replace(/&mdash;/g, '—')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
 }
 
 const fmt = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n || 0));
@@ -89,7 +104,7 @@ async function sendOrderToCustomer(order) {
       <strong>Envio a:</strong> ${order.shippingState || 'Mexico'} (${order.shippingState && order.shippingState.toLowerCase().includes('chihuahua') ? '1-3 dias habiles' : '3-7 dias habiles'})
     </div>
     <p style="margin-top:18px;font-size:14px;color:#6b7280">Si tienes preguntas, responde este correo o escribenos por WhatsApp.</p>
-    <p style="margin-top:24px"><a href="${PUBLIC_URL}/login.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mis pedidos</a></p>
+    <p style="margin-top:24px"><a href="${PUBLIC_URL}/mis-pedidos.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mis pedidos</a></p>
   `;
   return send({
     to: order.userEmail,
@@ -154,7 +169,7 @@ async function sendOrderStatusUpdate(order) {
     <p>El estado de tu pedido <strong>#${order.id}</strong> cambio a:</p>
     <div style="background:#eaf5ee;border-radius:4px;padding:18px;text-align:center;font-size:18px;font-weight:700;color:#1a5c2e;margin:18px 0">${labels[order.status] || order.status}</div>
     <p style="font-size:14px;color:#6b7280">Total del pedido: <strong>${fmt(order.total)}</strong></p>
-    <p style="margin-top:24px"><a href="${PUBLIC_URL}/login.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mi pedido</a></p>
+    <p style="margin-top:24px"><a href="${PUBLIC_URL}/mis-pedidos.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mi pedido</a></p>
   `;
   return send({
     to: order.userEmail,
