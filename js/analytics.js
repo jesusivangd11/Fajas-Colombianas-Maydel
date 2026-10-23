@@ -3,6 +3,19 @@
   const cfg = window.MAYDEL_CFG || {};
   const head = document.head;
 
+  // Google y Meta guardan la dirección completa de cada página que se mide. Al
+  // volver de la verificación del banco (3D Secure) la URL del carrito trae la
+  // clave secreta del pago; se quita ANTES de cargar las etiquetas. Este script
+  // va con defer, así que el carrito ya leyó esos datos para mostrar la
+  // confirmación cuando llega aquí.
+  const SENSITIVE = ['payment_intent', 'payment_intent_client_secret', 'redirect_status', 'token', 'ticket'];
+  try {
+    const url = new URL(location.href);
+    let dirty = false;
+    for (const k of SENSITIVE) if (url.searchParams.has(k)) { url.searchParams.delete(k); dirty = true; }
+    if (dirty) history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  } catch {}
+
   if (cfg.gaId) {
     const s1 = document.createElement('script');
     s1.async = true; s1.src = `https://www.googletagmanager.com/gtag/js?id=${cfg.gaId}`;

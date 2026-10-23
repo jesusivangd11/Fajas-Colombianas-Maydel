@@ -16,6 +16,8 @@ const WHOLESALE_MIN = 6;
 // Tope de piezas por renglón del carrito (evita pedidos absurdos que vacían el inventario).
 const MAX_QTY_PER_ITEM = 50;
 const MAX_ITEMS = 40;
+// Pedidos sin pagar que una misma cuenta puede tener abiertos a la vez.
+const MAX_PENDING_PER_USER = 3;
 
 // Recorta texto libre del cliente al tamaño de su columna.
 const clip = (v, n) => String(v ?? '').trim().slice(0, n);
@@ -118,6 +120,19 @@ router.post('/', authenticate, async (req, res) => {
 
   // Antes de apartar inventario, soltar el que tengan pedidos con tarjeta abandonados.
   await expireQuietly();
+
+  // Cada pedido aparta inventario y los de WhatsApp no expiran solos: sin tope,
+  // alguien con cuentas falsas podría dejar productos "agotados" a punta de
+  // pedidos que nunca paga. Una clienta real casi nunca tiene más de 3 sin pagar.
+  const [[pend]] = await pool.execute(
+    `SELECT COUNT(*) AS n FROM orders WHERE user_id = ? AND status = 'pending' AND payment_status IN ('unpaid','failed')`,
+    [req.user.id]
+  );
+  if (Number(pend.n) >= MAX_PENDING_PER_USER) {
+    return res.status(429).json({
+      error: `Ya tienes ${pend.n} pedidos pendientes de pago. Escríbenos por WhatsApp al 614 371 6816 para completarlos antes de hacer otro.`,
+    });
+  }
 
   const conn = await pool.getConnection();
   try {
