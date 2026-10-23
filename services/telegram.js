@@ -47,4 +47,16 @@ function notifyNewOrder(order) {
   return sendTelegram(text);
 }
 
-module.exports = { notifyNewOrder, sendTelegram };
+/* Avisos de seguridad al admin: entradas al panel y cambios sensibles. Si
+   llega un aviso que no reconoces, alguien más tiene acceso: cambia la
+   contraseña (eso cierra todas las sesiones) y revisa Usuarios. */
+function notifySecurity(title, lines = [], req = null) {
+  const when = new Date().toLocaleString('es-MX', { timeZone: 'America/Chihuahua', dateStyle: 'medium', timeStyle: 'short' });
+  const ctx = req ? [
+    `🌐 IP: ${esc(req.ip || '-')}`,
+    `💻 ${esc(String(req.headers['user-agent'] || '-').slice(0, 120))}`,
+  ] : [];
+  return sendTelegram([`🔐 <b>${esc(title)}</b>`, ...lines.map(esc), ...ctx, `🕒 ${when}`].join('\n'));
+}
+
+module.exports = { notifyNewOrder, notifySecurity, sendTelegram };

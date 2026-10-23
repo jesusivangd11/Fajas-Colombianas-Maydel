@@ -5,6 +5,7 @@ const pool    = require('../db/connection');
 const jwt     = require('jsonwebtoken');
 const { authenticate, signToken, passwordStamp, COOKIE_OPTS } = require('../middleware/auth');
 const totp   = require('../services/totp');
+const telegram = require('../services/telegram');
 const mailer = require('../services/mailer');
 const otp    = require('../services/otp');
 const { waitUntil } = require('@vercel/functions');
@@ -17,7 +18,7 @@ const hashToken = t => crypto.createHash('sha256').update(String(t)).digest('hex
 // pasos, la contraseña (o Google) NO basta: se entrega un "ticket" de 5 minutos
 // que solo se canjea por la sesión junto con el código de la app, en
 // POST /api/auth/2fa. Hasta entonces no hay cookie de sesión.
-function finishLogin(res, user) {
+function finishLogin(req, res, user) {
   if (user.totp_enabled) {
     const ticket = jwt.sign(
       { id: user.id, purpose: '2fa', pv: passwordStamp(user.password_hash) },
@@ -26,7 +27,14 @@ function finishLogin(res, user) {
     return res.json({ twoFactor: true, ticket });
   }
   res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
+  if (user.role === 'admin') adminLoginAlert(req, user, 'sin verificación en dos pasos');
   res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+}
+
+// Cada entrada al panel avisa por Telegram: si no fuiste tú, lo sabes al momento.
+function adminLoginAlert(req, user, how) {
+  waitUntil(telegram.notifySecurity('Entraron al panel de admin', [`👤 ${user.email}`, `🔑 ${how}`], req)
+    .catch(e => console.error('[avisos] login admin', e.message)));
 }
 
 // POST /api/auth/login
@@ -42,7 +50,7 @@ router.post('/login', async (req, res) => {
     if (!user || !user.password_hash || !(await bcrypt.compare(String(password), user.password_hash)))
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
 
-    finishLogin(res, user);
+    finishLogin(req, res, user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -108,7 +116,7 @@ router.post('/google', async (req, res) => {
     const user = await findOrCreateOAuthUser({
       email: p.email, name: p.name, provider: 'google', providerId: p.sub, avatar: p.picture,
     });
-    finishLogin(res, user);
+    finishLogin(req, res, user);
   } catch (err) {
     console.error('google login', err);
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Google' });
@@ -142,7 +150,7 @@ router.post('/facebook', async (req, res) => {
     const user = await findOrCreateOAuthUser({
       email: me.email, name: me.name, provider: 'facebook', providerId: me.id, avatar: me.picture?.data?.url,
     });
-    finishLogin(res, user);
+    finishLogin(req, res, user);
   } catch (err) {
     console.error('facebook login', err);
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Facebook' });
@@ -216,6 +224,7 @@ router.post('/2fa', async (req, res) => {
     }
 
     res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
+    if (user.role === 'admin') adminLoginAlert(req, user, backupLeft === null ? 'con código de la app' : `con código de respaldo (quedan ${backupLeft})`);
     res.json({ id: user.id, name: user.name, email: user.email, role: user.role, backupCodesLeft: backupLeft });
   } catch (err) {
     console.error('2fa', err);

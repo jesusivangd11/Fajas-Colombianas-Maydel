@@ -1950,6 +1950,22 @@ function openUserModal(id) {
 
 function closeUserModal() { document.getElementById('userModal').classList.add('hidden'); }
 
+// Algunos cambios de usuarios (nombrar admin, contraseña de un admin...) piden
+// el código de la app. Si el servidor lo pide, se pregunta y se reintenta.
+async function withSecondFactor(run) {
+  try { return await run(undefined); }
+  catch (err) {
+    if (!err.data || !err.data.needCode) throw err;
+    for (let tries = 0; tries < 3; tries++) {
+      const code = prompt((tries ? 'Código incorrecto. ' : '') + 'Escribe el código de 6 dígitos de tu app para confirmar este cambio:');
+      if (!code) throw new Error('Cambio cancelado');
+      try { return await run(code.trim()); }
+      catch (e) { if (!e.data || !e.data.needCode) throw e; }
+    }
+    throw new Error('Código incorrecto');
+  }
+}
+
 async function saveUser() {
   const name     = document.getElementById('uName').value.trim();
   const email    = document.getElementById('uEmail').value.trim();
@@ -1960,10 +1976,10 @@ async function saveUser() {
   if (password && password.length < 8) { showToast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
 
   try {
-    await apiFetch(`/api/users/${_editingUserId}`, {
+    await withSecondFactor(code => apiFetch(`/api/users/${_editingUserId}`, {
       method: 'PUT',
-      body: JSON.stringify({ name, email, role, password: password || undefined }),
-    });
+      body: JSON.stringify({ name, email, role, password: password || undefined, code }),
+    }));
     showToast('Usuario actualizado');
     closeUserModal();
     await loadUserPanel();
@@ -1978,7 +1994,7 @@ function confirmDeleteUser(id) {
   document.getElementById('confirmModal').classList.remove('hidden');
   document.getElementById('confirmDeleteBtn').onclick = async () => {
     try {
-      await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+      await withSecondFactor(code => apiFetch(`/api/users/${id}`, { method: 'DELETE', body: JSON.stringify({ code }) }));
       closeConfirm();
       showToast('Usuario eliminado');
       await loadUserPanel();

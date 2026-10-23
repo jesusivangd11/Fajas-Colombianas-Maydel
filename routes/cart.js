@@ -18,22 +18,25 @@ router.get('/', authenticate, async (req, res) => {
 
 // PUT /api/cart  - sobrescribe el carrito completo
 router.put('/', authenticate, async (req, res) => {
-  const items = Array.isArray(req.body.items) ? req.body.items : [];
+  // Topes: un carrito real no pasa de unas decenas de renglones; esto evita que
+  // alguien llene la tabla con miles de filas o textos enormes.
+  const items = (Array.isArray(req.body.items) ? req.body.items : []).slice(0, 100);
+  const txt = (v, n) => String(v ?? '').slice(0, n);
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
     await conn.execute('DELETE FROM cart_items WHERE user_id = ?', [req.user.id]);
     for (const it of items) {
-      const qty = Math.max(1, Number(it.qty) || 1);
+      const qty = Math.min(99, Math.max(1, Math.floor(Number(it.qty)) || 1));
       try {
         await conn.execute(
           'INSERT INTO cart_items (user_id, product_id, qty, size, color, `option`) VALUES (?,?,?,?,?,?)',
-          [req.user.id, Number(it.productId), qty, it.size || '', it.color || '', it.option || '']
+          [req.user.id, Number(it.productId), qty, txt(it.size, 20), txt(it.color, 40), txt(it.option, 60)]
         );
       } catch (e) { /* unique violation: ya existe, hacer update */
         await conn.execute(
           'UPDATE cart_items SET qty = ? WHERE user_id=? AND product_id=? AND size=? AND color=? AND `option`=?',
-          [qty, req.user.id, Number(it.productId), it.size || '', it.color || '', it.option || '']
+          [qty, req.user.id, Number(it.productId), txt(it.size, 20), txt(it.color, 40), txt(it.option, 60)]
         );
       }
     }

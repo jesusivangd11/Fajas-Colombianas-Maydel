@@ -4,6 +4,11 @@ const pool    = require('../db/connection');
 const QRCode  = require('qrcode');
 const { adminOnly, authenticate, signToken, COOKIE_OPTS } = require('../middleware/auth');
 const totp    = require('../services/totp');
+const telegram = require('../services/telegram');
+const { waitUntil } = require('@vercel/functions');
+
+const securityAlert = (req, title, lines) => waitUntil(
+  telegram.notifySecurity(title, lines, req).catch(e => console.error('[avisos] seguridad', e.message)));
 
 function mapUser(r) {
   return {
@@ -187,6 +192,7 @@ router.post('/me/2fa/enable', authenticate, async (req, res) => {
     await pool.execute(
       'UPDATE users SET totp_secret = totp_pending, totp_pending = NULL, totp_enabled = 1, totp_last_step = ?, totp_backup = ? WHERE id = ?',
       [step, JSON.stringify(backup.hashes), me.id]);
+    securityAlert(req, 'Verificación en dos pasos ACTIVADA', [`👤 ${me.email}`]);
     res.json({ ok: true, backupCodes: backup.codes });
   } catch (err) {
     console.error(err);
@@ -206,6 +212,7 @@ router.post('/me/2fa/disable', authenticate, async (req, res) => {
     await pool.execute(
       'UPDATE users SET totp_enabled = 0, totp_secret = NULL, totp_pending = NULL, totp_backup = NULL, totp_last_step = NULL WHERE id = ?',
       [me.id]);
+    securityAlert(req, '⚠️ Verificación en dos pasos DESACTIVADA', [`👤 ${me.email}`]);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -231,6 +238,25 @@ router.post('/me/2fa/backup-codes', authenticate, async (req, res) => {
   }
 });
 
+/* Confirmación con código para acciones que dan o cambian acceso al panel
+   (nombrar admin, cambiar contraseña/correo de un admin, borrar un admin). Así,
+   aunque alguien robe una sesión abierta, no puede crear un admin de respaldo
+   sin el celular. Si quien actúa no tiene la verificación activa, no se pide.
+   Devuelve true si se puede continuar; si no, ya respondió. */
+async function confirmWithCode(req, res) {
+  const [[me]] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id]);
+  if (!me.totp_enabled) return true;
+  if (!req.body.code) {
+    res.status(403).json({ error: 'Escribe el código de tu app para confirmar este cambio', needCode: true });
+    return false;
+  }
+  if (!(await checkSecondFactor(me, req.body.code))) {
+    res.status(403).json({ error: 'Código incorrecto', needCode: true });
+    return false;
+  }
+  return true;
+}
+
 // GET /api/users
 router.get('/', adminOnly, async (req, res) => {
   try {
@@ -255,6 +281,16 @@ router.put('/:id', adminOnly, async (req, res) => {
     if (role === 'user' && req.user.id === id)
       return res.status(400).json({ error: 'No puedes quitarte el rol de administrador' });
 
+    const [[target]] = await pool.execute('SELECT id, email, role FROM users WHERE id = ?', [id]);
+    if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const makesAdmin   = role === 'admin' && target.role !== 'admin';
+    const setsPassword = !!(password && password.length >= 8);
+    const changesEmail = email.trim().toLowerCase() !== target.email;
+    if (makesAdmin || ((setsPassword || changesEmail) && target.role === 'admin')) {
+      const gate = await confirmWithCode(req, res);
+      if (!gate) return;
+    }
+
     // Verificar email único (excluyendo el propio)
     const [dup] = await pool.execute('SELECT id FROM users WHERE email = ? AND id <> ?', [email.trim().toLowerCase(), id]);
     if (dup.length) return res.status(409).json({ error: 'Ese correo ya está en uso por otro usuario' });
@@ -270,6 +306,8 @@ router.put('/:id', adminOnly, async (req, res) => {
       await pool.execute('UPDATE users SET email_verified = IF(email = ?, email_verified, 0), name=?, email=?, role=? WHERE id=?',
         [newEmail, name.trim(), newEmail, role || 'user', id]);
     }
+    if (makesAdmin) securityAlert(req, 'Nuevo ADMINISTRADOR', [`👤 ${newEmail}`, `✍️ lo nombró ${req.user.email}`]);
+    else if (setsPassword && target.role === 'admin') securityAlert(req, 'Cambiaron la contraseña de un admin', [`👤 ${newEmail}`, `✍️ ${req.user.email}`]);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -284,8 +322,13 @@ router.delete('/:id', adminOnly, async (req, res) => {
     if (req.user.id === id)
       return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
 
-    const [rows] = await pool.execute('SELECT id FROM users WHERE id = ?', [id]);
+    const [rows] = await pool.execute('SELECT id, email, role FROM users WHERE id = ?', [id]);
     if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (rows[0].role === 'admin') {
+      const gate = await confirmWithCode(req, res);
+      if (!gate) return;
+      securityAlert(req, 'Se eliminó una cuenta de admin', [`👤 ${rows[0].email}`, `✍️ ${req.user.email}`]);
+    }
 
     await pool.execute('DELETE FROM users WHERE id = ?', [id]);
     res.json({ ok: true });

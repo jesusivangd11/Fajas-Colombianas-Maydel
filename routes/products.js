@@ -288,7 +288,7 @@ router.get('/', async (req, res) => {
         OR EXISTS (SELECT 1 FROM categories c WHERE c.label LIKE ? AND JSON_CONTAINS(products.categories, JSON_QUOTE(c.\`key\`)))
         OR brand    LIKE ? OR brand    IN (SELECT \`key\` FROM brands     WHERE label LIKE ?)
       )`;
-      const like = `%${q}%`;
+      const like = `%${String(q).slice(0, 100)}%`;
       params.push(like, like, like, like, like, like, like, like);
     }
 

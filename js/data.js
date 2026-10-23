@@ -20,7 +20,7 @@ async function apiFetch(url, opts = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Error del servidor');
+    throw Object.assign(new Error(err.error || 'Error del servidor'), { status: res.status, data: err });
   }
   return res.json();
 }
