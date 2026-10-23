@@ -40,6 +40,10 @@ async function sessionUser(req) {
   if (!token) return null;
   let decoded;
   try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch { return null; }
+  // Solo tokens de sesión. Otros tokens firmados con la misma llave (como el
+  // ticket de la verificación en dos pasos, purpose: '2fa') NO abren sesión:
+  // si lo hicieran, bastaría la contraseña para saltarse el código de la app.
+  if (decoded.purpose) return null;
   const [rows] = await pool.execute(
     'SELECT id, name, email, role, password_hash FROM users WHERE id = ?', [decoded.id]
   );
