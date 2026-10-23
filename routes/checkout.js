@@ -44,15 +44,22 @@ router.post('/create-payment-intent', authenticate, async (req, res) => {
       const prev = await stripe.paymentIntents.retrieve(row.stripe_intent_id).catch(() => null);
       if (prev && prev.status === 'succeeded') return res.status(400).json({ error: 'Pedido ya pagado' });
       if (prev && prev.status === 'processing') return res.status(409).json({ error: 'Tu pago se está procesando. Revisa "Mis pedidos" en unos minutos.' });
-      if (prev && REUSABLE.includes(prev.status) && prev.amount === amount) {
+      const cardOnly = prev && prev.payment_method_types.length === 1 && prev.payment_method_types[0] === 'card';
+      if (prev && REUSABLE.includes(prev.status) && prev.amount === amount && cardOnly) {
         return res.json({ clientSecret: prev.client_secret, amount });
       }
+      // Intento viejo (con Link) o de otro monto: se cancela para que no quede
+      // un cobro paralelo vivo, y abajo se crea uno nuevo.
+      if (prev && REUSABLE.includes(prev.status)) await stripe.paymentIntents.cancel(prev.id).catch(() => {});
     }
 
     const intent = await stripe.paymentIntents.create({
       amount,
       currency: 'mxn',
-      automatic_payment_methods: { enabled: true },
+      // Solo tarjeta: sin Stripe Link, que agregaba un paso de "verifica tu
+      // correo" que confundía a las clientas. El comprobante y el seguimiento
+      // llegan con el correo de confirmación de la tienda.
+      payment_method_types: ['card'],
       metadata: {
         orderId: row.id,
         userId:  String(row.user_id || ''),

@@ -75,6 +75,21 @@ function shell(title, body, accentColor = '#1a5c2e') {
   </div></body></html>`;
 }
 
+/* Botón a "Mis pedidos" + la misma dirección en texto + nota de Spam.
+   Gmail desactiva los enlaces de los correos que caen en Spam: por eso el botón
+   "no funcionaba". Con la dirección escrita la clienta puede copiarla, y al
+   marcar "No es spam" los siguientes avisos (envío, guía) llegan a su bandeja. */
+function ordersButton(label) {
+  const url = `${PUBLIC_URL}/mis-pedidos.html`;
+  return `
+    <p style="margin-top:24px"><a href="${url}" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">${label}</a></p>
+    <p style="font-size:12px;color:#9ca3af;margin:8px 0 0;word-break:break-all">Si el botón no abre, copia esta dirección en tu navegador:<br>${url}</p>
+    <p style="font-size:12.5px;color:#92400e;background:#fffbeb;border-radius:4px;padding:10px 12px;margin-top:16px">
+      ¿Este correo llegó a <strong>Spam</strong> o <strong>Correo no deseado</strong>? Márcalo como <strong>"No es spam"</strong>
+      para que te lleguen a tu bandeja los avisos de envío y tu número de guía.
+    </p>`;
+}
+
 function itemRows(items) {
   return items.map(i => {
     const meta = [i.size, i.color, i.option].filter(Boolean).join(' / ');
@@ -111,7 +126,7 @@ async function sendOrderToCustomer(order) {
       <strong>Envio a:</strong> ${esc(order.shippingState || 'Mexico')} (${order.shippingState && order.shippingState.toLowerCase().includes('chihuahua') ? '1-3 dias habiles' : '3-7 dias habiles'})
     </div>
     <p style="margin-top:18px;font-size:14px;color:#6b7280">Si tienes preguntas, responde este correo o escribenos por WhatsApp.</p>
-    <p style="margin-top:24px"><a href="${PUBLIC_URL}/mis-pedidos.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mis pedidos</a></p>
+    ${ordersButton('Ver mis pedidos')}
   `;
   return send({
     to: order.userEmail,
@@ -159,7 +174,7 @@ async function sendOrderDelayUpdate(order) {
     to: order.userEmail,
     subject: order.delayed ? `Tu pedido #${order.id} viene con retraso` : `Tu pedido #${order.id} sigue su curso`,
     html: shell(`Pedido #${order.id}`, body + `
-      <p style="margin-top:24px"><a href="${PUBLIC_URL}/mis-pedidos.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mi pedido</a></p>`),
+      ${ordersButton('Ver mi pedido')}`),
     text: order.delayed
       ? `Tu pedido ${order.id} viene con retraso. ${order.delayNote || ''}`
       : `Tu pedido ${order.id} ya no tiene retraso.`,
@@ -184,7 +199,7 @@ async function sendOrderStatusUpdate(order) {
     <div style="background:#eaf5ee;border-radius:4px;padding:18px;text-align:center;font-size:18px;font-weight:700;color:#1a5c2e;margin:18px 0">${labels[order.status] || esc(order.status)}</div>
     ${tracking}${refunded}
     <p style="font-size:14px;color:#6b7280">Total del pedido: <strong>${fmt(order.total)}</strong></p>
-    <p style="margin-top:24px"><a href="${PUBLIC_URL}/mis-pedidos.html" style="display:inline-block;background:#1a5c2e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Ver mi pedido</a></p>
+    ${ordersButton('Ver mi pedido')}
   `;
   return send({
     to: order.userEmail,
