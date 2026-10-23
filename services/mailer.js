@@ -1,7 +1,10 @@
 const nodemailer = require('nodemailer');
 
 const FROM_NAME  = process.env.SMTP_FROM_NAME || 'Fajas Colombianas Maydel';
-const FROM_EMAIL = process.env.SMTP_USER || '';
+// Remitente: por defecto el mismo usuario SMTP (Gmail). Con un servicio de correo
+// de tu dominio (Brevo, Hostinger...) el usuario de login y el remitente son
+// distintos: SMTP_FROM_EMAIL debe ser la dirección verificada en ese servicio.
+const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || '';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 const PUBLIC_URL = process.env.PUBLIC_URL || 'http://localhost:3000';
 
