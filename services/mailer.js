@@ -11,7 +11,9 @@ const PUBLIC_URL = process.env.PUBLIC_URL || 'http://localhost:3000';
 let transporter = null;
 function getTransporter() {
   if (transporter) return transporter;
-  if (!FROM_EMAIL || FROM_EMAIL.startsWith('CAMBIAR')) {
+  // Login SMTP (Brevo: bf933b001@smtp-brevo.com) distinto del remitente visible.
+  const loginUser = process.env.SMTP_USER || FROM_EMAIL;
+  if (!loginUser || loginUser.startsWith('CAMBIAR')) {
     console.warn('[mailer] SMTP_USER no configurado. Los correos se mostraran en consola en lugar de enviarse.');
     return null;
   }
@@ -19,7 +21,7 @@ function getTransporter() {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(process.env.SMTP_PORT || 587),
     secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
-    auth: { user: FROM_EMAIL, pass: process.env.SMTP_PASS || '' },
+    auth: { user: loginUser, pass: process.env.SMTP_PASS || '' },
   });
   return transporter;
 }
