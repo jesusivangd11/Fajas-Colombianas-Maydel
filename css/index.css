@@ -4,12 +4,12 @@
    INDEX: HERO  →  Es el "banner" grande de la pagina de inicio: el del texto
    "Fajas que moldean tu figura". El FONDO de ese banner se controla AQUI.
 
-   ACTIVO AHORA: una FOTO de fondo (uploads/hero.jpeg — la foto de la tienda),
+   ACTIVO AHORA: una FOTO de fondo (uploads/hero-centro.jpeg — la foto de la tienda),
    con un velo verde oscuro encima para que el texto blanco se lea bien.
 
    ▸ AJUSTAR LA OSCURIDAD del velo: cambia los dos numeros .82 / .74 de abajo.
        0 = se ve la foto a tope (texto poco legible) · 1 = todo oscuro (sin foto).
-   ▸ CAMBIAR LA FOTO: sube otra imagen y cambia la ruta url('/uploads/hero.jpeg').
+   ▸ CAMBIAR LA FOTO: sube otra imagen y cambia la ruta url('/uploads/hero-centro.jpeg').
    ▸ VOLVER al fondo verde liso (sin foto): comenta el bloque ".hero" de la foto
        y descomenta el bloque "FONDO VERDE LISO" de mas abajo.
        (Recuerda recargar con Ctrl+F5 tras cualquier cambio.)
@@ -19,7 +19,7 @@
     /* VELO oscuro encima de la foto — sube/baja .82 y .74 para mas/menos oscuridad */
     linear-gradient(90deg, rgba(7,26,12,.62) 0%, rgba(7,26,12,.28) 36%, rgba(7,26,12,.28) 62%, rgba(7,26,12,.66) 100%),
     /* ◄── LA FOTO DE FONDO. Cambia aqui el nombre del archivo si subes otra */
-    url('/uploads/hero.jpeg') center / cover no-repeat !important;
+    url('/uploads/hero-centro.jpeg') center / cover no-repeat !important;
   background-size: cover !important;
   animation: none !important;
   /* Alto del banner: la pantalla menos el encabezado, con tope para que no sea gigante */
