@@ -577,7 +577,10 @@ footer { font-family: 'DM Sans', sans-serif !important; }
      VERTICALES: 'cover' tiraba ~65% del alto y dejaba a la vista una tira
      horizontal, casi siempre a la altura del bra en vez de la faja.
      Cuadrada se recorta mucho menos y se ve la prenda completa. */
-  .fs-media { height: auto; aspect-ratio: 1 / 1; max-height: 46svh; }
+  /* width:100% es obligatorio: con aspect-ratio + max-height y ancho "auto",
+     el max-height se transfiere al ANCHO (46svh) y la foto no llegaba al borde
+     derecho, dejando una franja blanca en cada destacado. */
+  .fs-media { width: 100%; justify-self: stretch; height: auto; aspect-ratio: 1 / 1; max-height: 46svh; }
   .fs-info { padding: 13px 17px 16px; gap: 8px; }
   .fs-info::before { font-size: 70px; top: -4px; right: 4px; }
 

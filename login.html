@@ -274,13 +274,33 @@ function redirectTarget() {
   return REDIRECTS[key] || 'index.html';
 }
 
+// ¿Venimos de regreso del login con Google por redirección? (se lee antes de
+// que nada limpie el #hash)
+const GOOGLE_RETURN = /(?:^#|&)(google|two_factor|social_error)=/.test(location.hash);
+
 // Redirect if already logged in
 document.addEventListener('DOMContentLoaded', async () => {
+  // Regreso del login con Google en modo redirección (celular): el servidor
+  // deja el resultado en el #hash de la URL.
+  const back = new URLSearchParams(location.hash.slice(1));
+  if (back.has('google') || back.has('two_factor') || back.has('social_error')) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  let savedNext = null;
+  try { savedNext = sessionStorage.getItem('maydel_login_next'); sessionStorage.removeItem('maydel_login_next'); } catch {}
+
   const session = await AUTH.init();
   if (session) {
-    window.location.href = redirectTarget();
+    window.location.href = (back.has('google') && savedNext) ? savedNext : redirectTarget();
     return;
   }
+  if (back.has('two_factor')) {
+    try { if (savedNext) sessionStorage.setItem('maydel_login_next', savedNext); } catch {}
+    askTwoFactor(back.get('two_factor'));
+    return;
+  }
+  if (back.has('social_error')) showSocialError(back.get('social_error'));
+  if (back.has('google')) showSocialError('No se pudo iniciar sesión con Google. Intenta de nuevo.');
   const tab = new URLSearchParams(window.location.search).get('tab');
   if (tab === 'register') switchLoginTabByName('register');
 });
@@ -372,7 +392,9 @@ async function handleTwoFactor(e) {
     if (result.backupCodesLeft != null) {
       try { sessionStorage.setItem('maydel_backup_left', String(result.backupCodesLeft)); } catch {}
     }
-    window.location.href = redirectTarget();
+    let next = null;
+    try { next = sessionStorage.getItem('maydel_login_next'); sessionStorage.removeItem('maydel_login_next'); } catch {}
+    window.location.href = next || redirectTarget();
   } else if (result.expired) {
     cancelTwoFactor();
     showError('loginError', result.error);
@@ -464,7 +486,19 @@ function loginWithFacebook() {
     s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.defer = true;
     s.onload = () => {
       try {
-        google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onGoogleCredential });
+        // En celular la ventana emergente de Google se quedaba en blanco
+        // (Safari iOS / navegadores de apps): ahí se usa redirección completa.
+        const isMobile = /Android|iPhone|iPad|iPod|Mobile|FBAN|FBAV|Instagram|TikTok/i.test(navigator.userAgent)
+          || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isMobile) {
+          if (!GOOGLE_RETURN) { try { sessionStorage.setItem('maydel_login_next', redirectTarget()); } catch {} }
+          google.accounts.id.initialize({
+            client_id: cfg.googleClientId, ux_mode: 'redirect',
+            login_uri: location.origin + '/api/auth/google/redirect',
+          });
+        } else {
+          google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onGoogleCredential });
+        }
         const area = document.getElementById('googleBtnArea');
         area.style.display = 'flex';
         google.accounts.id.renderButton(area, {

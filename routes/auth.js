@@ -96,30 +96,66 @@ async function findOrCreateOAuthUser({ email, name, provider, providerId, avatar
   return { id: result.insertId, name, email, role: 'user' };
 }
 
+// Verifica un ID token de Google Identity Services y devuelve el usuario.
+async function userFromGoogleCredential(credential) {
+  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  const fail = (status, msg) => Object.assign(new Error(msg), { status });
+  if (!clientId || clientId.includes('PEGA_AQUI')) throw fail(503, 'El inicio de sesión con Google no está configurado.');
+  if (!credential) throw fail(400, 'Falta el token de Google');
+
+  // Verifica el ID token con Google (endpoint oficial tokeninfo)
+  const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential));
+  if (!r.ok) throw fail(401, 'Token de Google inválido');
+  const p = await r.json();
+
+  if (p.aud !== clientId) throw fail(401, 'Token de Google no corresponde a esta app');
+  if (p.email_verified !== true && p.email_verified !== 'true') throw fail(401, 'Tu correo de Google no está verificado');
+
+  return findOrCreateOAuthUser({
+    email: p.email, name: p.name, provider: 'google', providerId: p.sub, avatar: p.picture,
+  });
+}
+
 // POST /api/auth/google  { credential }  (ID token de Google Identity Services)
 router.post('/google', async (req, res) => {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID || '';
-    if (!clientId || clientId.includes('PEGA_AQUI')) return res.status(503).json({ error: 'El inicio de sesión con Google no está configurado.' });
-
-    const credential = req.body.credential;
-    if (!credential) return res.status(400).json({ error: 'Falta el token de Google' });
-
-    // Verifica el ID token con Google (endpoint oficial tokeninfo)
-    const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential));
-    if (!r.ok) return res.status(401).json({ error: 'Token de Google inválido' });
-    const p = await r.json();
-
-    if (p.aud !== clientId) return res.status(401).json({ error: 'Token de Google no corresponde a esta app' });
-    if (p.email_verified !== true && p.email_verified !== 'true') return res.status(401).json({ error: 'Tu correo de Google no está verificado' });
-
-    const user = await findOrCreateOAuthUser({
-      email: p.email, name: p.name, provider: 'google', providerId: p.sub, avatar: p.picture,
-    });
+    const user = await userFromGoogleCredential(req.body.credential);
     finishLogin(req, res, user);
   } catch (err) {
     console.error('google login', err);
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Error al iniciar sesión con Google' });
+  }
+});
+
+// POST /api/auth/google/redirect  (formulario que envía Google en ux_mode "redirect")
+// En celular la ventana emergente de Google se quedaba en blanco (Safari iOS y
+// navegadores dentro de apps no la comunican de vuelta). Ahí el botón lleva a la
+// página de Google, y Google regresa aquí con el token. Respondemos con una
+// redirección a login.html, que ya sabe continuar (sesión, 2FA o error).
+router.post('/google/redirect', async (req, res) => {
+  const back = hash => res.redirect(303, '/login.html#' + hash);
+  try {
+    // Doble envío de Google: el token del formulario debe coincidir con la cookie
+    // g_csrf_token que puso su script. Si el navegador no mandó la cookie, el ID
+    // token firmado (y con nuestro client_id) sigue siendo la prueba.
+    const cookieCsrf = req.cookies && req.cookies.g_csrf_token;
+    if (cookieCsrf && cookieCsrf !== req.body.g_csrf_token)
+      return back('social_error=' + encodeURIComponent('No se pudo verificar el inicio de sesión. Intenta de nuevo.'));
+
+    const user = await userFromGoogleCredential(req.body.credential);
+    if (user.totp_enabled) {
+      const ticket = jwt.sign(
+        { id: user.id, purpose: '2fa', pv: passwordStamp(user.password_hash) },
+        process.env.JWT_SECRET, { expiresIn: '5m' }
+      );
+      return back('two_factor=' + encodeURIComponent(ticket));
+    }
+    res.cookie('maydel_token', signToken(user), COOKIE_OPTS());
+    if (user.role === 'admin') adminLoginAlert(req, user, 'sin verificación en dos pasos');
+    back('google=ok');
+  } catch (err) {
+    console.error('google login (redirect)', err);
+    back('social_error=' + encodeURIComponent(err.status ? err.message : 'Error al iniciar sesión con Google'));
   }
 });
 
