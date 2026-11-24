@@ -150,10 +150,20 @@ const WA_PHONE = (window.MAYDEL_CFG && window.MAYDEL_CFG.waPhone) || '5261437168
 
 const PAY_LABELS = { stripe: 'Tarjeta de crédito / débito', whatsapp: 'Por confirmar vía WhatsApp', transfer: 'Transferencia', cash: 'Efectivo' };
 
+// Conversión "Compra con valor (web)" de Google Ads: manda el TOTAL de la venta
+// para que Google optimice por ingresos (ROAS). El transaction_id evita que
+// Google cuente dos veces el mismo pedido aunque se recargue la página.
+const ADS_PURCHASE = 'AW-18592582645/SUCUCNPLn74dEPWX0aFF';
+
 // Una sola medición por pedido aunque recarguen la página (Google Ads / GA4 / Meta).
 function trackOnce(order) {
   const key = 'maydel_tracked_' + order.id;
   try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch {}
+  try {
+    if (window.gtag) window.gtag('event', 'conversion', {
+      send_to: ADS_PURCHASE, value: Number(order.total) || 0, currency: 'MXN', transaction_id: String(order.id),
+    });
+  } catch {}
   const send = () => window.trackEvent && window.trackEvent('purchase', {
     transaction_id: order.id, value: order.total, currency: 'MXN',
     items: (order.items || []).map(i => ({ item_id: String(i.productId), item_name: i.productName, price: i.price, quantity: i.qty })),
