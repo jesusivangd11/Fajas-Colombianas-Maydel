@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Gracias por tu compra! – Fajas Maydel</title>
+  <meta name="description" content="Tu pedido en Fajas Colombianas Maydel quedó registrado.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#071a0c">
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
+  <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <script src="/config.js"></script>
+  <script src="/js/analytics.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/gracias.css">
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <a href="index.html" class="logo-link"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></a>
+    <form class="search-bar">
+      <input type="text" placeholder="Buscar fajas, tallas, categorías...">
+      <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </form>
+    <div class="header-right">
+      <a href="tienda.html" class="header-icon-btn"><i class="fa-solid fa-store"></i><span>Tienda</span></a>
+      <a href="carrito.html" class="header-icon-btn">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="cart-badge-count">0</span>
+        <span>Carrito</span>
+      </a>
+      <div id="authArea"></div>
+    </div>
+  </div>
+  <nav class="nav-bar">
+    <ul>
+      <li><a href="index.html"><i class="fa-solid fa-house"></i> Inicio</a></li>
+      <li><a href="tienda.html"><i class="fa-solid fa-store"></i> Productos</a></li>
+      <li><a href="nosotros.html"><i class="fa-solid fa-circle-info"></i> Sobre nosotros</a></li>
+      <li><a href="faq.html"><i class="fa-solid fa-circle-question"></i> Preguntas frecuentes</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- BANNER -->
+<section class="ty-banner">
+  <div class="container ty-banner-inner">
+    <div class="ty-check"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
+    <div class="ty-tag">Pedido confirmado</div>
+    <h1>¡Gracias por <em>tu compra!</em></h1>
+    <p class="ty-lead" id="tyLead">Tu pedido quedó registrado. Ya estamos preparando todo para que tu faja llegue a ti.</p>
+    <div class="ty-order-id" id="tyOrderIdBox" style="display:none">Pedido <strong id="tyOrderId"></strong></div>
+  </div>
+</section>
+
+<!-- CONTENIDO -->
+<div class="ty-layout">
+  <div class="container">
+    <div class="ty-grid" id="tyGrid">
+      <!-- Columna izquierda: qué sigue -->
+      <div class="ty-col">
+        <div class="ty-card">
+          <h2 class="ty-card-title"><i class="fa-solid fa-route"></i> ¿Qué sigue?</h2>
+          <ol class="ty-steps" id="tySteps">
+            <li class="done"><b>Pedido recibido</b>Registramos tu pedido y apartamos tus prendas.</li>
+            <li><b>Confirmación</b>Te contactamos por WhatsApp para confirmar tu pedido y los detalles de envío.</li>
+            <li><b>Envío</b>Te mandamos tu número de guía por correo para que rastrees tu paquete.</li>
+          </ol>
+        </div>
+
+        <div class="ty-mail">
+          <i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i>
+          <div>
+            <strong>Te enviamos la confirmación<span id="tyEmailWrap" style="display:none"> a <span class="ty-email" id="tyEmail"></span></span>.</strong><br>
+            Si no la ves en tu bandeja de entrada, <strong>revisa la carpeta de Spam o Correo no deseado</strong> y márcalo como <strong>"No es spam"</strong>. Por ahí te llegarán los avisos de envío y tu número de guía.
+          </div>
+        </div>
+
+        <div class="ty-actions">
+          <a id="tyWaBtn" class="ty-btn ty-btn-wa" href="https://wa.me/526143716816" target="_blank" rel="noopener">
+            <i class="fa-brands fa-whatsapp"></i> Escribir por WhatsApp
+          </a>
+          <a class="ty-btn ty-btn-dark" href="mis-pedidos.html"><i class="fa-solid fa-box"></i> Ver mis pedidos</a>
+          <a class="ty-btn ty-btn-light" href="tienda.html"><i class="fa-solid fa-store"></i> Seguir comprando</a>
+        </div>
+      </div>
+
+      <!-- Columna derecha: detalle del pedido -->
+      <div class="ty-col" id="tyDetail">
+        <div class="ty-card">
+          <h2 class="ty-card-title"><i class="fa-solid fa-bag-shopping"></i> Resumen de tu compra</h2>
+          <div class="ty-skel" style="width:90%"></div>
+          <div class="ty-skel" style="width:70%"></div>
+          <div class="ty-skel" style="width:80%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-logo"><img src="assets/logo.jpeg" alt="Fajas Colombianas Maydel"></div>
+        <p>La mejor selección de fajas colombianas en México.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegación</h4>
+        <a href="index.html">Inicio</a>
+        <a href="tienda.html">Productos</a>
+        <a href="nosotros.html">Sobre nosotros</a>
+        <a href="faq.html">Preguntas frecuentes</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contacto</h4>
+        <div class="footer-contact"><i class="fa-brands fa-whatsapp"></i> 614 371 6816</div>
+        <div class="footer-contact"><i class="fa-solid fa-location-dot"></i> Chihuahua, Chih., México</div>
+        <div class="footer-contact"><i class="fa-solid fa-clock"></i> Lun–Vie 11am – 6:30pm</div>
+        <div class="footer-contact"><i class="fa-solid fa-clock"></i> Sáb 11am – 3:30pm</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="footerYear">2026</span> Fajas Colombianas Maydel. Todos los derechos reservados. · <a href="aviso-de-privacidad.html" style="color:inherit;text-decoration:underline">Aviso de privacidad</a> · <a href="terminos.html" style="color:inherit;text-decoration:underline">Términos y condiciones</a></span>
+      <span style="font-size:13px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Compra 100% segura</span>
+    </div>
+  </div>
+</footer>
+
+<a href="https://wa.me/526143716816?text=Hola!%20Acabo%20de%20hacer%20un%20pedido%20en%20la%20p%C3%A1gina%20web." class="wa-float" target="_blank" rel="noopener">
+  <i class="fa-brands fa-whatsapp"></i>
+  <span>Escríbenos</span>
+</a>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+const ORDER_ID = (new URLSearchParams(location.search).get('pedido') || '').trim().slice(0, 40);
+const WA_PHONE = (window.MAYDEL_CFG && window.MAYDEL_CFG.waPhone) || '526143716816';
+
+const PAY_LABELS = { stripe: 'Tarjeta de crédito / débito', whatsapp: 'Por confirmar vía WhatsApp', transfer: 'Transferencia', cash: 'Efectivo' };
+
+// Una sola medición por pedido aunque recarguen la página (Google Ads / GA4 / Meta).
+function trackOnce(order) {
+  const key = 'maydel_tracked_' + order.id;
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch {}
+  const send = () => window.trackEvent && window.trackEvent('purchase', {
+    transaction_id: order.id, value: order.total, currency: 'MXN',
+    items: (order.items || []).map(i => ({ item_id: String(i.productId), item_name: i.productName, price: i.price, quantity: i.qty })),
+  });
+  // analytics.js va con defer: se espera a que defina trackEvent.
+  if (window.trackEvent) send(); else window.addEventListener('load', send, { once: true });
+}
+
+function itemMeta(i) {
+  return [i.size && 'Talla ' + i.size, i.color && i.color, i.option && i.option, 'Cant. ' + i.qty]
+    .filter(Boolean).map(esc).join(' · ');
+}
+
+function waLink(order) {
+  const paid = order.paymentStatus === 'paid';
+  const msg = paid
+    ? `¡Hola! Acabo de pagar mi pedido ${order.id} en la página web. Total: ${formatPrice(order.total)}`
+    : `¡Hola! Vengo desde la página web — acabo de CONFIRMAR un pedido.\n\nID: ${order.id}\n` +
+      `Nombre: ${order.userName || ''}\n` +
+      (order.shippingInfo.phone ? `Teléfono: ${order.shippingInfo.phone}\n` : '') +
+      (order.shippingInfo.address ? `Dirección: ${order.shippingInfo.address}\n` : '') +
+      (order.shippingState ? `Estado: ${order.shippingState}\n` : '') +
+      `\nSubtotal: ${formatPrice(order.subtotal)}\n` +
+      (order.discountAmount ? `Descuento${order.couponCode ? ' (' + order.couponCode + ')' : ''}: -${formatPrice(order.discountAmount)}\n` : '') +
+      `Envío: ${order.shippingCost ? formatPrice(order.shippingCost) : 'GRATIS'}\n` +
+      `*Total: ${formatPrice(order.total)}*`;
+  return `https://wa.me/${WA_PHONE}?text=${encodeURIComponent(msg)}`;
+}
+
+function renderOrder(order, prods) {
+  const paid = order.paymentStatus === 'paid';
+  const isCard = order.paymentMethod === 'stripe';
+  const byId = {};
+  (prods || []).forEach(p => { byId[p.id] = p; });
+
+  document.getElementById('tyOrderId').textContent = order.id;
+  document.getElementById('tyOrderIdBox').style.display = '';
+  document.getElementById('tyLead').textContent = paid
+    ? 'Tu pago fue aprobado y tu pedido quedó registrado. Ya estamos preparando tu faja.'
+    : isCard
+      ? 'Tu pedido quedó registrado y estamos confirmando tu pago con el banco.'
+      : 'Tu pedido quedó registrado. Te contactaremos por WhatsApp para confirmar el pago y el envío.';
+
+  const steps = document.querySelectorAll('#tySteps li');
+  if (paid) {
+    steps[1].classList.add('done');
+    steps[1].innerHTML = '<b>Pago aprobado</b>Recibimos tu pago con tarjeta. Ya estamos preparando tu pedido.';
+  } else if (isCard) {
+    steps[1].innerHTML = '<b>Confirmación del pago</b>Tu banco está confirmando el cobro; te avisaremos por correo.';
+  }
+  document.getElementById('tyWaBtn').href = waLink(order);
+
+  const items = (order.items || []).map(i => {
+    const p = byId[i.productId];
+    const img = p && p.images && p.images[0];
+    const href = 'producto.html?id=' + encodeURIComponent(i.productId);
+    return `<div class="ty-item">
+      <a class="ty-thumb" href="${href}">${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : '<i class="fa-solid fa-shirt" aria-hidden="true"></i>'}</a>
+      <div style="min-width:0">
+        <div class="ty-item-name"><a href="${href}">${esc(i.productName)}</a></div>
+        <div class="ty-item-meta">${itemMeta(i)}${i.wholesale ? ' · <span style="color:#1a5c2e;font-weight:600">Mayoreo</span>' : ''}</div>
+      </div>
+      <div class="ty-item-price">${formatPrice(i.price * i.qty)}</div>
+    </div>`;
+  }).join('');
+
+  const s = order.shippingInfo || {};
+  const address = [s.address, s.city, [order.shippingState || s.state, s.cp && 'C.P. ' + s.cp].filter(Boolean).join(', ')]
+    .filter(Boolean).map(esc).join('<br>');
+  const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+  document.getElementById('tyDetail').innerHTML = `
+    <div class="ty-card">
+      <h2 class="ty-card-title"><i class="fa-solid fa-bag-shopping"></i> Resumen de tu compra</h2>
+      <div class="ty-items">${items}</div>
+      <div class="ty-totals">
+        <div class="ty-row"><span>Subtotal</span><span>${formatPrice(order.subtotal)}</span></div>
+        ${order.discountAmount ? `<div class="ty-row discount"><span>Descuento${order.couponCode ? ' (' + esc(order.couponCode) + ')' : ''}</span><span>−${formatPrice(order.discountAmount)}</span></div>` : ''}
+        <div class="ty-row"><span>Envío</span><span>${order.shippingCost ? formatPrice(order.shippingCost) : 'GRATIS'}</span></div>
+        <div class="ty-row total"><span>Total</span><span>${formatPrice(order.total)}</span></div>
+      </div>
+    </div>
+    <div class="ty-card">
+      <h2 class="ty-card-title"><i class="fa-solid fa-truck-fast"></i> Envío y pago</h2>
+      <div class="ty-info">
+        <div>
+          <div class="ty-info-label">Recibe</div>
+          <div class="ty-info-value">${esc(order.userName || '')}${s.phone ? '<br>' + esc(s.phone) : ''}</div>
+        </div>
+        <div>
+          <div class="ty-info-label">Fecha</div>
+          <div class="ty-info-value">${esc(date)}</div>
+        </div>
+        ${address ? `<div class="full"><div class="ty-info-label">Dirección de envío</div><div class="ty-info-value">${address}</div></div>` : ''}
+        <div>
+          <div class="ty-info-label">Método de pago</div>
+          <div class="ty-info-value">${esc(PAY_LABELS[order.paymentMethod] || order.paymentMethod)}</div>
+        </div>
+        <div>
+          <div class="ty-info-label">Estado del pago</div>
+          <div class="ty-info-value">${paid
+            ? '<span class="ty-pill paid"><i class="fa-solid fa-circle-check"></i> Pagado</span>'
+            : `<span class="ty-pill pending"><i class="fa-solid fa-clock"></i> ${isCard ? 'Confirmando' : 'Pendiente'}</span>`}</div>
+        </div>
+        ${order.notes ? `<div class="full"><div class="ty-info-label">Notas</div><div class="ty-info-value">${esc(order.notes)}</div></div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderNoOrder(loggedIn) {
+  document.getElementById('tyDetail').innerHTML = `
+    <div class="ty-card ty-empty">
+      <h2 class="ty-card-title" style="justify-content:center"><i class="fa-solid fa-receipt"></i> Detalle de tu pedido</h2>
+      <p>${loggedIn
+        ? 'Puedes consultar el detalle y el estado de tu pedido en cualquier momento desde "Mis pedidos".'
+        : 'Inicia sesión para ver el detalle de tu pedido y seguir su estado.'}</p>
+      <a class="ty-btn ty-btn-dark" style="display:inline-flex;flex:none" href="${loggedIn ? 'mis-pedidos.html' : 'login.html?redirect=pedidos'}">
+        <i class="fa-solid ${loggedIn ? 'fa-box' : 'fa-right-to-bracket'}"></i> ${loggedIn ? 'Ver mis pedidos' : 'Iniciar sesión'}
+      </a>
+    </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await AUTH.init().catch(() => null);
+  if (session && session.email) {
+    document.getElementById('tyEmail').textContent = session.email;
+    document.getElementById('tyEmailWrap').style.display = '';
+  }
+  if (!session || !ORDER_ID) return renderNoOrder(!!session);
+
+  try {
+    const [r, prods] = await Promise.all([
+      fetch('/api/orders/' + encodeURIComponent(ORDER_ID), { credentials: 'include' }),
+      DB.getProducts().catch(() => []),
+    ]);
+    if (!r.ok) return renderNoOrder(true);
+    const order = await r.json();
+    renderOrder(order, prods);
+    trackOnce(order);
+  } catch {
+    renderNoOrder(true);
+  }
+});
+</script>
+</body>
+</html>

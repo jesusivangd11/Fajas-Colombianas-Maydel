@@ -16,12 +16,16 @@
     if (dirty) history.replaceState(history.state, '', url.pathname + url.search + url.hash);
   } catch {}
 
-  if (cfg.gaId) {
+  // Una sola etiqueta de Google (gtag.js) para GA4 y Google Ads. Google Ads mide
+  // la compra cuando la clienta llega a /gracias.html (conversión por URL).
+  const gIds = [cfg.gaId, cfg.adsId].filter(id => /^(G|AW)-[A-Z0-9]+$/i.test(id || ''));
+  if (gIds.length) {
     const s1 = document.createElement('script');
-    s1.async = true; s1.src = `https://www.googletagmanager.com/gtag/js?id=${cfg.gaId}`;
+    s1.async = true; s1.src = `https://www.googletagmanager.com/gtag/js?id=${gIds[0]}`;
     head.appendChild(s1);
     const s2 = document.createElement('script');
-    s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${cfg.gaId}');`;
+    s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());` +
+      gIds.map(id => `gtag('config','${id}');`).join('');
     head.appendChild(s2);
     window.gtag = window.gtag || function(){ (window.dataLayer = window.dataLayer || []).push(arguments); };
   }

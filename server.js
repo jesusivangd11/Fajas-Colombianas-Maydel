@@ -102,6 +102,7 @@ app.get('/config.js', (req, res) => {
   const cfg = {
     gaId:        process.env.GA_MEASUREMENT_ID || '',
     pixelId:     process.env.META_PIXEL_ID || '',
+    adsId:       process.env.GOOGLE_ADS_ID || '',   // AW-XXXXXXXXX (etiqueta de Google Ads)
     stripeKey:   (process.env.STRIPE_PUBLIC_KEY || '').includes('PEGA_AQUI') ? '' : (process.env.STRIPE_PUBLIC_KEY || ''),
     publicUrl:   process.env.PUBLIC_URL || '',
     waPhone:     process.env.WHATSAPP_PHONE || '526143716816',

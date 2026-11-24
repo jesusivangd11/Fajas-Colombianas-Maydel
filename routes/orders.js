@@ -110,6 +110,23 @@ router.get('/stats', adminOnly, async (req, res) => {
   }
 });
 
+// GET /api/orders/:id  (un pedido; la clienta solo ve los suyos) — lo usa la
+// página "Gracias por tu compra" (gracias.html?pedido=ID).
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [String(req.params.id).slice(0, 40)]);
+    const row = rows[0];
+    if (!row || (req.user.role !== 'admin' && Number(row.user_id) !== Number(req.user.id)))
+      return res.status(404).json({ error: 'Pedido no encontrado' });
+    const o = parseOrder(row);
+    delete o.stripeIntentId;
+    res.json(o);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener el pedido' });
+  }
+});
+
 // POST /api/orders   (crea pedido con descuento atomico de stock)
 router.post('/', authenticate, async (req, res) => {
   const { items, shippingInfo, shippingState, notes, paymentMethod, couponCode } = req.body;

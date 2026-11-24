@@ -198,36 +198,6 @@
   </div>
 </div>
 
-<!-- CONFIRMACIÓN -->
-<div class="modal-overlay hidden" id="orderConfirmModal">
-  <div class="modal modal-sm" style="text-align:center">
-    <div style="font-size:52px;color:#1a5c2e;margin-bottom:16px">
-      <i class="fa-solid fa-circle-check"></i>
-    </div>
-    <h2 style="font-size:24px;font-weight:800;margin-bottom:8px;color:#071a0c">¡Pedido confirmado!</h2>
-    <p id="confirmedLead" style="color:#6b7280;margin-bottom:6px;font-weight:300">Tu pedido fue registrado exitosamente.</p>
-    <p style="font-size:14.5px;color:#9ca3af;margin-bottom:18px">ID del pedido: <strong id="confirmedOrderId" style="color:#071a0c;font-family:'Playfair Display',serif"></strong></p>
-    <!-- El correo de confirmación es por donde llega el seguimiento (y la guía de
-         envío), y muchas veces cae en Spam: se avisa aquí, en grande. -->
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-bottom:18px;text-align:left;font-size:14.5px;color:#78350f;line-height:1.55">
-      <strong><i class="fa-solid fa-envelope-circle-check"></i> Te enviamos la confirmación<span id="confirmedEmailWrap"> a <span id="confirmedEmail" style="word-break:break-all"></span></span>.</strong><br>
-      Si no la ves en tu bandeja de entrada, <strong>revisa la carpeta de Spam o Correo no deseado</strong> y márcalo como <strong>"No es spam"</strong>. Por ahí te llegarán los avisos de envío y tu número de guía.
-    </div>
-    <p id="confirmedNext" style="font-size:15.5px;color:#6b7280;margin-bottom:22px;font-weight:300">Nos pondremos en contacto contigo para confirmar los detalles de envío y pago.</p>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <a href="mis-pedidos.html" class="btn btn-primary" style="font-size:14.5px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
-        <i class="fa-solid fa-box"></i> Ver mis pedidos
-      </a>
-      <a id="orderWaLink" href="#" target="_blank" class="btn btn-accent" style="font-size:14.5px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
-        <i class="fa-brands fa-whatsapp"></i> Contactar
-      </a>
-      <a href="tienda.html" class="btn" style="background:#f5f0e8;color:#071a0c;font-size:14.5px;border-radius:2px;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
-        <i class="fa-solid fa-store"></i> Seguir comprando
-      </a>
-    </div>
-  </div>
-</div>
-
 <!-- RECOMENDADOS -->
 <section class="section" id="recommendedSection" style="display:none">
   <div class="container">
@@ -671,24 +641,23 @@ async function checkoutSignature() {
   });
 }
 
-// Ventana de "¡Pedido confirmado!": ID, a qué correo se mandó la confirmación y
-// el aviso de revisar Spam (el correo es por donde llega el seguimiento).
-function showOrderConfirmed(orderId, paid) {
-  document.getElementById('confirmedOrderId').textContent = orderId;
-  const email = AUTH.getSession()?.email || '';
-  document.getElementById('confirmedEmail').textContent = email;
-  document.getElementById('confirmedEmailWrap').style.display = email ? '' : 'none';
-  document.getElementById('confirmedLead').textContent = paid
-    ? 'Tu pago fue aprobado y tu pedido quedó registrado.'
-    : 'Tu pedido fue registrado exitosamente.';
-  document.getElementById('confirmedNext').textContent = paid
-    ? 'Ya estamos preparando tu pedido. Te avisaremos por correo cuando salga, con tu número de guía.'
-    : 'Nos pondremos en contacto contigo por WhatsApp para confirmar el pago y los detalles de envío.';
-  document.getElementById('orderConfirmModal').classList.remove('hidden');
-}
-
-function trackPurchase(order) {
-  if (window.trackEvent) window.trackEvent('purchase', { transaction_id: order.id, value: order.total, currency: 'MXN' });
+// Después de comprar se va a la página "Gracias por tu compra" (gracias.html),
+// que muestra el detalle del pedido y mide la compra (Google Ads / GA4 / Meta)
+// una sola vez. Antes se vacía el carrito ESPERANDO al servidor: si la
+// navegación cortara ese aviso, al iniciar sesión en la siguiente página el
+// carrito guardado en la BD volvería a aparecer.
+async function goToThanks(orderId) {
+  DB.clearCart();
+  if (AUTH.getSession()) {
+    try {
+      await fetch('/api/cart', {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [] }),
+      });
+    } catch {}
+  }
+  window.location.href = 'gracias.html?pedido=' + encodeURIComponent(orderId);
 }
 
 async function confirmOrder(paymentMethod) {
@@ -696,20 +665,7 @@ async function confirmOrder(paymentMethod) {
     await releasePendingCard();
     const res = await createOrderOnServer(paymentMethod || 'whatsapp');
     if (!res) return;
-    const { order, customerData } = res;
-    DB.clearCart();
-    trackPurchase(order);
-    const waMsg = encodeURIComponent(
-      `¡Hola! Vengo desde la página web — acabo de CONFIRMAR un pedido.\n\n` +
-      `ID: ${order.id}\nNombre: ${customerData.name}\nTeléfono: ${customerData.phone}\n` +
-      `Dirección: ${customerData.address}\nEstado: ${customerData.state}\n\n` +
-      `Subtotal: ${formatPrice(order.subtotal)}\n` +
-      (order.discountAmount ? `Descuento (${order.couponCode}): -${formatPrice(order.discountAmount)}\n` : '') +
-      `Envío: ${order.shippingCost ? formatPrice(order.shippingCost) : 'GRATIS'}${order.couponCode && !order.shippingCost ? ` (${order.couponCode})` : ''}\n` +
-      `*Total: ${formatPrice(order.total)}*`
-    );
-    document.getElementById('orderWaLink').href = `https://wa.me/526143716816?text=${waMsg}`;
-    showOrderConfirmed(order.id, false);
+    await goToThanks(res.order.id);
   } catch (err) {
     showToast(err.message || 'Error al confirmar el pedido', 'error');
   }
@@ -803,11 +759,10 @@ async function stripeSubmit() {
     if (error) throw new Error(error.message || 'Pago rechazado');
     // Sin redirect (tarjeta sin 3DS): consideramos OK
     savePendingCard(null);
-    trackPurchase(stripeOrder);
-    DB.clearCart();
     closeCardModal();
-    document.getElementById('orderWaLink').href = `https://wa.me/526143716816?text=${encodeURIComponent('Hola! Acabo de pagar el pedido ' + stripeOrder.id + ' con tarjeta. Total: ' + formatPrice(stripeOrder.total))}`;
-    showOrderConfirmed(stripeOrder.id, true);
+    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Pago aprobado';
+    await goToThanks(stripeOrder.id);
+    return;
   } catch (err) {
     errBox.textContent = err.message;
     errBox.style.display = 'block';
@@ -834,16 +789,11 @@ async function stripeSubmit() {
   } catch {}
   history.replaceState(null, '', location.pathname);
   if (ok) {
-    const pending = readPendingCard();
-    if (pending && pending.order.id === paid) trackPurchase(pending.order);
     savePendingCard(null);
-    DB.clearCart();
-    setTimeout(async () => {
-      // Tras la verificación del banco la página se recargó: hay que volver a
-      // leer la sesión para mostrar a qué correo se mandó la confirmación.
-      if (!AUTH.getSession()) await AUTH.init().catch(() => {});
-      showOrderConfirmed(paid, true);
-    }, 300);
+    // Tras la verificación del banco la página se recargó: se lee la sesión para
+    // que goToThanks también vacíe el carrito guardado en el servidor.
+    if (!AUTH.getSession()) await AUTH.init().catch(() => {});
+    await goToThanks(paid);
   }
 })();
 
@@ -865,7 +815,6 @@ async function loadRecommended(items) {
 
 document.addEventListener('DOMContentLoaded', async () => { await AUTH.init(); await renderCart(); });
 document.addEventListener('cartUpdated', () => renderCart());
-document.addEventListener('click', e => { if (e.target.id === 'orderConfirmModal') document.getElementById('orderConfirmModal').classList.add('hidden'); });
 </script>
 </body>
 </html>
