@@ -16,6 +16,20 @@
     if (dirty) history.replaceState(history.state, '', url.pathname + url.search + url.hash);
   } catch {}
 
+  // Etiqueta de Google (contenedor GTM-MHHLXV5M) con Google Ads. En casi todas las
+  // páginas va escrita directo en el <head>; las que pueden traer claves en la URL
+  // (el carrito al volver del banco) no la llevan, y aquí se carga DESPUÉS de
+  // limpiar la dirección.
+  const GTAG_CONTAINER = 'GTM-MHHLXV5M';
+  if (!document.querySelector('script[src*="googletagmanager.com/gtm.js"]')) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    const g = document.createElement('script');
+    g.async = true; g.src = 'https://www.googletagmanager.com/gtm.js?id=' + GTAG_CONTAINER;
+    head.appendChild(g);
+  }
+
   // Una sola etiqueta de Google (gtag.js) para GA4 y Google Ads. Google Ads mide
   // la compra cuando la clienta llega a /gracias.html (conversión por URL).
   const gIds = [cfg.gaId, cfg.adsId].filter(id => /^(G|AW)-[A-Z0-9]+$/i.test(id || ''));
