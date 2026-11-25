@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   await Promise.all([DB.getCategories(), DB.getBrands(), DB.getProducts()]);
   await populateCatFilter();
+  // Años de Finanzas e Ingresos: del actual hacia atrás (antes fijos en 2025/2024)
+  ['financeYear', 'incomeYear'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && !sel.options.length) for (let y = new Date().getFullYear(); y >= 2024; y--) sel.add(new Option(String(y), String(y)));
+  });
   // Al tocar una notificación de venta se abre /dashboard/?panel=orders&order=ID
   const qs = new URLSearchParams(location.search);
   const startPanel = document.querySelector(`[data-panel="${qs.get('panel')}"]`) ? qs.get('panel') : 'overview';
@@ -96,7 +101,14 @@ async function renderOverview() {
   if (!recent.length) {
     recentEl.innerHTML = '<p style="color:var(--gray-400);font-size:14px;text-align:center;padding:24px 0">No hay pedidos aún.</p>';
   } else {
-    recentEl.innerHTML = `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>
+    recentEl.innerHTML = `<div class="recent-list">${recent.map(o => {
+      const st = ORDER_STATUSES[o.status] || {};
+      return `<button class="recent-row" onclick="showPanelByName('orders').then(() => viewOrderDetail('${o.id}'))">
+        <span class="recent-main"><strong>${esc(o.userName)}</strong><small>#${esc(o.id)} · ${formatDate(o.createdAt)}</small></span>
+        <span class="recent-side"><b>${formatPrice(o.total)}</b><span class="badge badge-${o.status}"><i class="fa-solid ${st.icon}"></i> ${st.label}</span></span>
+      </button>`;
+    }).join('')}</div>
+    <div class="recent-table" style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>
     ${recent.map(o => {
       const st = ORDER_STATUSES[o.status] || {};
       return `<tr>
@@ -1752,6 +1764,8 @@ async function renderOverviewCharts() {
   const year = new Date().getFullYear();
   const [monthlyData, stats] = await Promise.all([DB.getMonthlyData(year), DB.getOrderStats()]);
   const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const yEl = document.getElementById('overviewYear');
+  if (yEl) yEl.textContent = year;
 
   if (overviewBarChartRef) overviewBarChartRef.destroy();
   const barCtx = document.getElementById('overviewBarChart');
@@ -1769,18 +1783,28 @@ async function renderOverviewCharts() {
     });
   }
 
+  const donutKeys = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+  const donutData = donutKeys.map(k => Number(stats[k] || 0));
   if (overviewDoughnutRef) overviewDoughnutRef.destroy();
   const dCtx = document.getElementById('overviewDoughnut');
   if (dCtx) {
     overviewDoughnutRef = new Chart(dCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Pendiente','Confirmado','En proceso','Enviado','Entregado','Cancelado'],
-        datasets: [{ data: [stats.pending,stats.confirmed,stats.processing,stats.shipped,stats.delivered,stats.cancelled], backgroundColor: ['#f59e0b','#3b82f6','#8b5cf6','#06b6d4','#10b981','#ef4444'], borderWidth: 0 }]
+        labels: donutKeys.map(k => ORDER_STATUSES[k].label),
+        datasets: [{ data: donutData, backgroundColor: donutKeys.map(k => ORDER_STATUSES[k].color), borderWidth: 2, borderColor: '#fff' }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
     });
   }
+  const totalOrders = donutData.reduce((a, b) => a + b, 0);
+  const center = document.getElementById('overviewDonutCenter');
+  if (center) center.innerHTML = `<strong>${totalOrders}</strong><span>pedido${totalOrders === 1 ? '' : 's'}</span>`;
+  const legend = document.getElementById('overviewDonutLegend');
+  if (legend) legend.innerHTML = donutKeys.map((k, i) => `
+    <button class="donut-item${donutData[i] ? '' : ' zero'}" onclick="showPanelByName('orders').then(() => { document.getElementById('orderStatusFilter').value = '${k}'; loadOrderTable(); })">
+      <i style="background:${ORDER_STATUSES[k].color}"></i><span>${ORDER_STATUSES[k].label}</span><b>${donutData[i]}</b>
+    </button>`).join('');
 }
 
 // ── REVIEWS (desde API) ──
