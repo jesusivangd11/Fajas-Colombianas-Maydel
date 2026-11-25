@@ -129,7 +129,7 @@ async function markOrderPaid(orderId) {
   const avisos = outOfStock
     ? [telegram.sendTelegram(`⚠️ <b>PAGO RECIBIDO EN PEDIDO CANCELADO</b> #${order.id}\nEl pedido había expirado y ya no hay inventario para surtirlo. Reembolsa el pago desde el panel o contacta a la clienta.`),
        mailer.sendOrderToAdmin(order)]
-    : [mailer.sendOrderToCustomer(order), mailer.sendOrderToAdmin(order), telegram.notifyNewOrder(order)];
+    : [mailer.sendOrderToCustomer(order), mailer.sendOrderToAdmin(order), telegram.notifyNewOrder(order), require('./push').notifyNewOrder(order)];
   // Se esperan antes de responder: en Vercel la función se congela al responder.
   await Promise.allSettled(avisos).then(logFailures('venta pagada ' + order.id));
   return order;

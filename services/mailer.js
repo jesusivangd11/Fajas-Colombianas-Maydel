@@ -1,11 +1,11 @@
 const nodemailer = require('nodemailer');
+const settings = require('./settings');
 
 const FROM_NAME  = process.env.SMTP_FROM_NAME || 'Fajas Colombianas Maydel';
 // Remitente: por defecto el mismo usuario SMTP (Gmail). Con un servicio de correo
 // de tu dominio (Brevo, Hostinger...) el usuario de login y el remitente son
 // distintos: SMTP_FROM_EMAIL debe ser la dirección verificada en ese servicio.
 const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || '';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 const PUBLIC_URL = process.env.PUBLIC_URL || 'http://localhost:3000';
 
 let transporter = null;
@@ -142,7 +142,8 @@ async function sendOrderToCustomer(order) {
 }
 
 async function sendOrderToAdmin(order) {
-  if (!ADMIN_EMAIL) return;
+  const to = await settings.adminEmails();
+  if (!to.length) { console.warn('[mailer] sin correo de admin: el aviso de venta no se mandó por correo'); return; }
   const paid = order.paymentStatus === 'paid';
   const body = `
     <p style="font-size:15px"><strong>${paid ? 'Venta pagada con tarjeta' : 'Nuevo pedido recibido'}</strong></p>
@@ -159,8 +160,8 @@ async function sendOrderToAdmin(order) {
     <p style="margin-top:18px"><a href="${PUBLIC_URL}/dashboard/" style="display:inline-block;background:#c9a96e;color:#fff;padding:12px 22px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase">Abrir panel</a></p>
   `;
   return send({
-    to: ADMIN_EMAIL,
-    subject: `[Maydel] ${paid ? 'VENTA PAGADA' : 'Nuevo pedido'} #${order.id} - ${fmt(order.total)} - ${String(order.userName || '').replace(/[\r\n]/g, ' ')}`,
+    to: to.join(', '),
+    subject: `🔔 [Maydel] ${paid ? 'VENTA PAGADA' : 'Nuevo pedido'} #${order.id} - ${fmt(order.total)} - ${String(order.userName || '').replace(/[\r\n]/g, ' ')}`,
     html: shell(`${paid ? 'Venta pagada' : 'Nuevo pedido'} #${order.id}`, body, '#c9a96e'),
     text: `${paid ? 'Venta pagada' : 'Nuevo pedido'} ${order.id} de ${order.userName} por ${fmt(order.total)}.`,
   });
@@ -230,4 +231,22 @@ async function sendPasswordReset({ to, name, resetUrl }) {
   });
 }
 
-module.exports = { sendOrderToCustomer, sendOrderToAdmin, sendOrderStatusUpdate, sendOrderDelayUpdate, sendPasswordReset };
+// Prueba desde el panel ("Avisos de ventas"): confirma que el correo sale y a dónde.
+async function sendAdminTest(to) {
+  const body = `
+    <p style="font-size:15px"><strong>¡Funciona!</strong></p>
+    <p>Este es un correo de prueba del panel de Fajas Maydel. Así te llegará el aviso cada vez que haya una venta.</p>
+    <p style="font-size:13px;color:#6b7280">Si este correo cayó en Spam o Correo no deseado, márcalo como <strong>"No es spam"</strong> y agrega ${esc(FROM_EMAIL)} a tus contactos para que los avisos de ventas lleguen a tu bandeja de entrada.</p>`;
+  return send({
+    to: to.join(', '),
+    subject: '🔔 [Maydel] Prueba de avisos de ventas',
+    html: shell('Prueba de avisos', body, '#c9a96e'),
+  });
+}
+
+function mailStatus() {
+  const user = process.env.SMTP_USER || FROM_EMAIL;
+  return { configured: !!user && !user.startsWith('CAMBIAR'), from: FROM_EMAIL || user || '' };
+}
+
+module.exports = { sendAdminTest, mailStatus, sendOrderToCustomer, sendOrderToAdmin, sendOrderStatusUpdate, sendOrderDelayUpdate, sendPasswordReset };

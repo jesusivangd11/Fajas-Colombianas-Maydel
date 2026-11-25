@@ -27,7 +27,8 @@
     "mysql2": "^3.11.0",
     "nodemailer": "^10.2.1",
     "qrcode": "^1.5.4",
-    "stripe": "^22.1.1"
+    "stripe": "^22.1.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.7",

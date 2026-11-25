@@ -332,7 +332,7 @@ const COLOR_MAP = {
 const ORDER_STATUSES = {
   pending:    { label: 'Pendiente',   color: '#f59e0b', icon: 'fa-clock' },
   confirmed:  { label: 'Confirmado', color: '#3b82f6', icon: 'fa-circle-check' },
-  processing: { label: 'En proceso', color: '#8b5cf6', icon: 'fa-gear' },
+  processing: { label: 'Preparando', color: '#8b5cf6', icon: 'fa-box' },
   shipped:    { label: 'Enviado',    color: '#06b6d4', icon: 'fa-truck' },
   delivered:  { label: 'Entregado',  color: '#10b981', icon: 'fa-box-open' },
   cancelled:  { label: 'Cancelado',  color: '#ef4444', icon: 'fa-xmark' },

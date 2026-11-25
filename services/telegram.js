@@ -9,7 +9,10 @@ async function sendTelegram(text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: CHATID, text, parse_mode: 'HTML', disable_web_page_preview: true }),
     });
-    return await r.json();
+    const data = await r.json().catch(() => ({ ok: false, description: 'HTTP ' + r.status }));
+    // Antes un rechazo de Telegram (token o chat equivocados) se perdía en silencio.
+    if (!data.ok) console.error('[telegram] rechazado:', data.description || r.status);
+    return data;
   } catch (err) {
     console.error('[telegram] error:', err.message);
     return { error: err.message };

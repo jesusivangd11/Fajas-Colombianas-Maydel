@@ -19,16 +19,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   await Promise.all([DB.getCategories(), DB.getBrands(), DB.getProducts()]);
   await populateCatFilter();
-  showPanel('overview', document.querySelector('.dash-nav-item'));
+  // Al tocar una notificación de venta se abre /dashboard/?panel=orders&order=ID
+  const qs = new URLSearchParams(location.search);
+  const startPanel = document.querySelector(`[data-panel="${qs.get('panel')}"]`) ? qs.get('panel') : 'overview';
+  await showPanelByName(startPanel);
+  if (qs.get('order')) viewOrderDetail(qs.get('order'));
+  if (qs.has('panel') || qs.has('order')) history.replaceState(null, '', location.pathname);
   document.getElementById('expDate').valueAsDate = new Date();
 });
 
 // ── PANELS ──
+const PANEL_TITLES = {
+  overview: 'Resumen', alerts: 'Avisos de ventas', products: 'Productos', categories: 'Categorías',
+  brands: 'Marcas', orders: 'Pedidos', finance: 'Finanzas', income: 'Ingresos', expenses: 'Gastos',
+  account: 'Mi cuenta', users: 'Usuarios', reviews: 'Reseñas', testimonials: 'Testimonios', coupons: 'Cupones',
+};
+function showPanelByName(name) {
+  return showPanel(name, document.querySelector(`.dash-nav-item[data-panel="${name}"]`));
+}
+
 async function showPanel(name, btn) {
   document.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
   document.getElementById(`panel-${name}`).style.display = 'block';
   document.querySelectorAll('.dash-nav-item').forEach(n => n.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  // Celular: título de la barra, botón activo del menú inferior y cerrar el cajón
+  const t = document.getElementById('mTitle');
+  if (t) t.textContent = PANEL_TITLES[name] || 'Panel';
+  document.querySelectorAll('[data-mnav]').forEach(b => b.classList.toggle('active', b.dataset.mnav === name));
+  if (typeof MOBILE !== 'undefined') MOBILE.closeDrawer();
+  window.scrollTo(0, 0);
 
   if (name === 'overview')    await renderOverview();
   else if (name === 'products')   { await loadProductStats(); await loadProductTable(); }
@@ -43,6 +63,7 @@ async function showPanel(name, btn) {
   else if (name === 'users')      loadUserPanel();
   else if (name === 'income')     loadIncomePanel();
   else if (name === 'account')    await ACCOUNT.mount(document.getElementById('acctRoot'));
+  else if (name === 'alerts' && typeof LIVE !== 'undefined') await LIVE.renderAlerts(document.getElementById('alertsRoot'));
 }
 
 // ── TABS ──
@@ -1337,13 +1358,20 @@ async function loadOrderTable() {
   let orders = await DB.getOrders();
 
   if (q)            orders = orders.filter(o => o.id.toLowerCase().includes(q) || o.userName.toLowerCase().includes(q) || o.userEmail.toLowerCase().includes(q));
-  if (statusFilter) orders = orders.filter(o => o.status === statusFilter);
+  if (statusFilter === 'open') orders = orders.filter(o => OPEN_STATUSES.includes(o.status) && !isUnpaidCard(o));
+  else if (statusFilter) orders = orders.filter(o => o.status === statusFilter);
 
   const tbody = document.getElementById('ordersTableBody');
   const empty = document.getElementById('ordersEmpty');
+  const cards = document.getElementById('ordersCards');
 
-  if (!orders.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  if (!orders.length) {
+    tbody.innerHTML = ''; if (cards) cards.innerHTML = ''; empty.style.display = 'block';
+    empty.querySelector('p').textContent = statusFilter === 'open' ? '¡Todo al día! No hay pedidos por atender.' : 'No hay pedidos con este filtro.';
+    return;
+  }
   empty.style.display = 'none';
+  if (cards) cards.innerHTML = orders.map(orderCard).join('');
 
   tbody.innerHTML = orders.map(o => {
     const st = ORDER_STATUSES[o.status] || {};
@@ -1370,23 +1398,107 @@ async function loadOrderTable() {
   }).join('');
 }
 
+// ── Pedidos en el celular ───────────────────────────────────────────────
+// Flujo normal de un pedido; el botón grande de cada tarjeta lo avanza un paso.
+const STATUS_FLOW = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+const OPEN_STATUSES = ['pending', 'confirmed', 'processing'];
+const NEXT_LABEL = { pending: 'Confirmar pedido', confirmed: 'Empezar a preparar', processing: 'Marcar enviado', shipped: 'Marcar entregado' };
+// Un pedido con tarjeta que nunca se pagó no es venta: no se cuenta "por atender".
+const isUnpaidCard = o => o.paymentMethod === 'stripe' && o.paymentStatus !== 'paid';
+
+function waNumber(phone) {
+  let d = String(phone || '').replace(/\D/g, '');
+  if (d.length === 10) d = '52' + d;          // celular mexicano sin lada de país
+  return d.length >= 11 ? d : '';
+}
+function customerWaLink(o, text) {
+  const n = waNumber(o.shippingInfo?.phone);
+  return n ? `https://wa.me/${n}?text=${encodeURIComponent(text || `Hola ${o.userName || ''}, te escribimos de Fajas Colombianas Maydel sobre tu pedido ${o.id}.`)}` : '';
+}
+
+function statusStepper(o) {
+  if (o.status === 'cancelled') return `<div class="os-cancelled"><i class="fa-solid fa-xmark"></i> Pedido cancelado${o.cancelReason ? ': ' + esc(o.cancelReason) : ''}</div>`;
+  const cur = STATUS_FLOW.indexOf(o.status);
+  return `<div class="os-steps">${STATUS_FLOW.map((k, i) => {
+    const st = ORDER_STATUSES[k];
+    return `<button class="os-step${i < cur ? ' done' : ''}${i === cur ? ' current' : ''}" onclick="changeOrderStatus('${o.id}', '${k}')" ${i === cur ? 'disabled' : ''}>
+      <i class="fa-solid ${i < cur ? 'fa-check' : st.icon}"></i><span>${st.label}</span></button>`;
+  }).join('')}</div>`;
+}
+
+function orderCard(o) {
+  const st = ORDER_STATUSES[o.status] || {};
+  const pieces = (o.items || []).reduce((s, i) => s + Number(i.qty || 0), 0);
+  const next = STATUS_FLOW[STATUS_FLOW.indexOf(o.status) + 1];
+  const wa = customerWaLink(o);
+  const unpaidCard = isUnpaidCard(o);
+  const items = (o.items || []).slice(0, 3).map(i =>
+    `<li>${esc(i.productName)}${[i.size, i.color].filter(Boolean).length ? ` <em>(${esc([i.size, i.color].filter(Boolean).join(' / '))})</em>` : ''} <b>×${i.qty}</b></li>`).join('');
+  return `<article class="ocard ocard-${o.status}${unpaidCard ? ' ocard-muted' : ''}">
+    <div class="ocard-head" role="button" onclick="viewOrderDetail('${o.id}')">
+      <div>
+        <div class="ocard-id">#${esc(o.id)} · ${formatDate(o.createdAt)}</div>
+        <div class="ocard-name">${esc(o.userName)}</div>
+      </div>
+      <div class="ocard-total">${formatPrice(o.total)}
+        <span class="ocard-pay ${o.paymentStatus === 'paid' ? 'paid' : ''}">${o.paymentMethod === 'stripe' ? 'Tarjeta' : 'WhatsApp'} · ${PAYMENT_LABELS[o.paymentStatus] || o.paymentStatus}</span>
+      </div>
+    </div>
+    <ul class="ocard-items">${items}${(o.items || []).length > 3 ? `<li class="more">+${o.items.length - 3} más</li>` : ''}</ul>
+    <div class="ocard-meta">
+      <span class="badge badge-${o.status}"><i class="fa-solid ${st.icon}"></i> ${st.label}</span>
+      <span>${pieces} pieza${pieces === 1 ? '' : 's'}</span>
+      ${o.shippingState ? `<span><i class="fa-solid fa-location-dot"></i> ${esc(o.shippingState)}</span>` : ''}
+      ${o.delayed ? '<span class="ocard-delay"><i class="fa-solid fa-triangle-exclamation"></i> Retrasado</span>' : ''}
+    </div>
+    ${unpaidCard ? '<div class="ocard-note"><i class="fa-solid fa-circle-info"></i> Pago con tarjeta sin completar: no es venta todavía.</div>' : ''}
+    <div class="ocard-actions">
+      ${next && o.status !== 'cancelled' && !unpaidCard
+        ? `<button class="ocard-next" onclick="${next === 'shipped' ? `viewOrderDetail('${o.id}', true)` : `changeOrderStatus('${o.id}', '${next}')`}"><i class="fa-solid fa-arrow-right"></i> ${NEXT_LABEL[o.status]}</button>` : ''}
+      ${wa ? `<a class="ocard-btn wa" href="${wa}" target="_blank" rel="noopener" aria-label="WhatsApp a la clienta"><i class="fa-brands fa-whatsapp"></i></a>` : ''}
+      <button class="ocard-btn" onclick="viewOrderDetail('${o.id}')" aria-label="Ver detalle"><i class="fa-solid fa-eye"></i></button>
+    </div>
+  </article>`;
+}
+
 async function changeOrderStatus(id, status) {
+  // Cancelar regresa el inventario y avisa a la clienta: se pide confirmación.
+  if (status === 'cancelled' && !confirm(`¿Cancelar el pedido ${id}? Las piezas regresan al inventario y la clienta recibe un correo.`)) {
+    await loadOrderTable();
+    return;
+  }
   try {
     await DB.updateOrderStatus(id, status);
-    showToast('Estado actualizado');
-    await loadOrderStats();
+    showToast(`Pedido ${id}: ${ORDER_STATUSES[status]?.label || status}`);
+    await Promise.all([loadOrderStats(), loadOrderTable()]);
+    if (!document.getElementById('orderDetailModal').classList.contains('hidden')) await viewOrderDetail(id);
+    if (typeof LIVE !== 'undefined') LIVE.refreshBadge();
   } catch (err) {
     showToast(err.message || 'Error al actualizar', 'error');
+    await loadOrderTable();
   }
 }
 
-async function viewOrderDetail(id) {
+async function viewOrderDetail(id, focusTracking = false) {
   const orders = await DB.getOrders();
   const order  = orders.find(o => o.id === id);
-  if (!order) return;
+  if (!order) { showToast('No se encontró el pedido ' + id, 'error'); return; }
   const st = ORDER_STATUSES[order.status] || {};
+  const wa = customerWaLink(order);
+  const phone = String(order.shippingInfo?.phone || '').replace(/[^\d+]/g, '');
   document.getElementById('orderDetailContent').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="od-status">
+      <div class="od-label">Estado del pedido <small>(toca para cambiarlo)</small></div>
+      ${statusStepper(order)}
+      ${order.status !== 'cancelled' && order.status !== 'delivered'
+        ? `<button class="od-cancel" onclick="changeOrderStatus('${order.id}', 'cancelled')"><i class="fa-solid fa-ban"></i> Cancelar pedido</button>` : ''}
+    </div>
+    ${wa || phone ? `<div class="od-contact">
+      ${wa ? `<a class="od-contact-btn wa" href="${wa}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
+      ${phone ? `<a class="od-contact-btn" href="tel:${esc(phone)}"><i class="fa-solid fa-phone"></i> Llamar</a>` : ''}
+      ${order.userEmail ? `<a class="od-contact-btn" href="mailto:${esc(order.userEmail)}"><i class="fa-solid fa-envelope"></i> Correo</a>` : ''}
+    </div>` : ''}
+    <div class="od-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
       <div>
         <div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">ID del pedido</div>
         <div style="font-weight:700">${order.id}</div>
@@ -1405,7 +1517,8 @@ async function viewOrderDetail(id) {
         <span class="badge badge-${order.status}"><i class="fa-solid ${st.icon}"></i> ${st.label}</span>
       </div>
       ${order.shippingInfo?.phone   ? `<div><div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Teléfono</div><div>${esc(order.shippingInfo.phone)}</div></div>` : ''}
-      ${order.shippingInfo?.address ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Dirección</div><div>${esc(order.shippingInfo.address)}${order.shippingInfo.cp ? ' · C.P. ' + esc(order.shippingInfo.cp) : ''}</div></div>` : ''}
+      ${order.shippingInfo?.address ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Dirección</div><div>${esc(order.shippingInfo.address)}${order.shippingInfo.city ? ', ' + esc(order.shippingInfo.city) : ''}${order.shippingState ? ', ' + esc(order.shippingState) : ''}${order.shippingInfo.cp ? ' · C.P. ' + esc(order.shippingInfo.cp) : ''}
+        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([order.shippingInfo.address, order.shippingInfo.city, order.shippingState, order.shippingInfo.cp].filter(Boolean).join(', '))}" target="_blank" rel="noopener" style="display:inline-flex;gap:5px;align-items:center;margin-left:6px;font-size:12.5px;font-weight:600;color:var(--primary)"><i class="fa-solid fa-map-location-dot"></i> Mapa</a></div></div>` : ''}
     </div>
     <div style="border-top:1px solid var(--gray-200);padding-top:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">Productos</div>
@@ -1431,7 +1544,7 @@ async function viewOrderDetail(id) {
     ${order.status === 'cancelled' ? '' : `
     <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:14px;margin-top:14px">
       <div style="font-size:14px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-truck-fast"></i> Envío y número de guía</div>
-      <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px">
+      <div class="od-track-grid" style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px">
         <input id="orderCarrier" class="form-input" maxlength="60" list="carrierList" placeholder="Paquetería (Estafeta, DHL...)" value="${esc(order.trackingCarrier)}">
         <input id="orderTracking" class="form-input" maxlength="80" placeholder="Número de guía" value="${esc(order.trackingNumber)}">
       </div>
@@ -1455,6 +1568,10 @@ async function viewOrderDetail(id) {
       </div>
     </div>`}`;
   document.getElementById('orderDetailModal').classList.remove('hidden');
+  if (focusTracking) {
+    const box = document.getElementById('orderCarrier');
+    if (box) { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => box.focus(), 350); showToast('Escribe la paquetería y la guía para marcarlo como enviado'); }
+  }
 }
 
 // Pago: los de tarjeta los confirma Stripe (aquí solo se pueden reembolsar);

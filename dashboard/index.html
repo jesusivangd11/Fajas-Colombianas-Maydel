@@ -2,11 +2,18 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Dashboard – Fajas Colombianas Maydel</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/jpeg" href="/assets/logo.jpeg">
   <link rel="apple-touch-icon" href="/assets/logo.jpeg">
+  <!-- El panel se instala como app en el celular (avisos push de cada venta) -->
+  <link rel="manifest" href="/dashboard/manifest.webmanifest">
+  <meta name="theme-color" content="#0d3d1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Maydel Admin">
   <!-- El panel corre con la sesión de admin: solo se permite cargar código propio
        y de los CDN de abajo (con huella SRI), y solo se habla con este sitio y con
        Vercel Blob (subida de fotos). 'unsafe-inline' sigue porque el panel usa
@@ -36,49 +43,52 @@
       </button>
 
       <div class="dash-nav-section">Principal</div>
-      <button class="dash-nav-item active" onclick="showPanel('overview', this)">
+      <button class="dash-nav-item active" data-panel="overview" onclick="showPanel('overview', this)">
         <i class="fa-solid fa-gauge"></i> Resumen
+      </button>
+      <button class="dash-nav-item" data-panel="alerts" onclick="showPanel('alerts', this)">
+        <i class="fa-solid fa-bell"></i> Avisos de ventas
       </button>
 
       <div class="dash-nav-section">Tienda</div>
-      <button class="dash-nav-item" onclick="showPanel('products', this)">
+      <button class="dash-nav-item" data-panel="products" onclick="showPanel('products', this)">
         <i class="fa-solid fa-boxes-stacked"></i> Productos
       </button>
-      <button class="dash-nav-item" onclick="showPanel('categories', this)">
+      <button class="dash-nav-item" data-panel="categories" onclick="showPanel('categories', this)">
         <i class="fa-solid fa-folder-tree"></i> Categorías
       </button>
-      <button class="dash-nav-item" onclick="showPanel('brands', this)">
+      <button class="dash-nav-item" data-panel="brands" onclick="showPanel('brands', this)">
         <i class="fa-solid fa-certificate"></i> Marcas
       </button>
-      <button class="dash-nav-item" onclick="showPanel('orders', this)">
-        <i class="fa-solid fa-clipboard-list"></i> Pedidos
+      <button class="dash-nav-item" data-panel="orders" onclick="showPanel('orders', this)">
+        <i class="fa-solid fa-clipboard-list"></i> Pedidos <span class="nav-badge" data-pending-badge hidden></span>
       </button>
 
       <div class="dash-nav-section">Finanzas</div>
-      <button class="dash-nav-item" onclick="showPanel('finance', this)">
+      <button class="dash-nav-item" data-panel="finance" onclick="showPanel('finance', this)">
         <i class="fa-solid fa-chart-line"></i> Resumen
       </button>
-      <button class="dash-nav-item" onclick="showPanel('income', this)">
+      <button class="dash-nav-item" data-panel="income" onclick="showPanel('income', this)">
         <i class="fa-solid fa-arrow-trend-up"></i> Ingresos
       </button>
-      <button class="dash-nav-item" onclick="showPanel('expenses', this)">
+      <button class="dash-nav-item" data-panel="expenses" onclick="showPanel('expenses', this)">
         <i class="fa-solid fa-arrow-trend-down"></i> Gastos
       </button>
 
       <div class="dash-nav-section">Configuración</div>
-      <button class="dash-nav-item" onclick="showPanel('account', this)">
+      <button class="dash-nav-item" data-panel="account" onclick="showPanel('account', this)">
         <i class="fa-solid fa-user-gear"></i> Mi cuenta
       </button>
-      <button class="dash-nav-item" onclick="showPanel('users', this)">
+      <button class="dash-nav-item" data-panel="users" onclick="showPanel('users', this)">
         <i class="fa-solid fa-users"></i> Usuarios
       </button>
-      <button class="dash-nav-item" onclick="showPanel('reviews', this)">
+      <button class="dash-nav-item" data-panel="reviews" onclick="showPanel('reviews', this)">
         <i class="fa-solid fa-star"></i> Reseñas
       </button>
-      <button class="dash-nav-item" onclick="showPanel('testimonials', this)">
+      <button class="dash-nav-item" data-panel="testimonials" onclick="showPanel('testimonials', this)">
         <i class="fa-solid fa-camera-retro"></i> Testimonios
       </button>
-      <button class="dash-nav-item" onclick="showPanel('coupons', this)">
+      <button class="dash-nav-item" data-panel="coupons" onclick="showPanel('coupons', this)">
         <i class="fa-solid fa-ticket"></i> Cupones
       </button>
 
@@ -96,6 +106,12 @@
 
   <!-- MAIN -->
   <main class="dash-main">
+    <!-- Barra superior (solo celular) -->
+    <div class="m-topbar">
+      <button class="m-icon-btn" onclick="MOBILE.openDrawer()" aria-label="Menú"><i class="fa-solid fa-bars"></i></button>
+      <div class="m-title" id="mTitle">Resumen</div>
+      <button class="m-icon-btn" onclick="showPanelByName('alerts')" aria-label="Avisos de ventas"><i class="fa-solid fa-bell"></i></button>
+    </div>
 
     <!-- ── OVERVIEW ── -->
     <div id="panel-overview">
@@ -120,6 +136,14 @@
         <h3 style="font-size:15px;font-weight:700;color:var(--dark);margin-bottom:16px"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary)"></i> Pedidos recientes</h3>
         <div id="recentOrdersList"></div>
       </div>
+    </div>
+
+    <!-- ── AVISOS DE VENTAS ── -->
+    <div id="panel-alerts" style="display:none">
+      <div class="dash-header">
+        <div><h1>Avisos de ventas</h1><div class="dash-header-sub">Entérate de cada venta al momento, sin tener que revisar la página</div></div>
+      </div>
+      <div id="alertsRoot"><div class="section-panel">Cargando…</div></div>
     </div>
 
     <!-- ── PRODUCTS ── -->
@@ -207,16 +231,18 @@
         <div class="table-toolbar">
           <input type="text" class="table-search" id="orderSearch" placeholder="Buscar pedidos..." oninput="loadOrderTable()">
           <select class="sort-select" id="orderStatusFilter" onchange="loadOrderTable()">
+            <option value="open">Por atender (pendiente, confirmado, preparando)</option>
             <option value="">Todos los estados</option>
             <option value="pending">Pendiente</option>
             <option value="confirmed">Confirmado</option>
-            <option value="processing">En proceso</option>
+            <option value="processing">Preparando</option>
             <option value="shipped">Enviado</option>
             <option value="delivered">Entregado</option>
             <option value="cancelled">Cancelado</option>
           </select>
         </div>
-        <div style="overflow-x:auto">
+        <div class="order-cards" id="ordersCards"></div>
+        <div class="orders-table-wrap" style="overflow-x:auto">
           <table class="data-table">
             <thead><tr><th>ID</th><th>Cliente</th><th>Items</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
             <tbody id="ordersTableBody"></tbody>
@@ -846,7 +872,29 @@
 <script src="../js/data.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/account.js"></script>
+<!-- Menú inferior (solo celular) -->
+<nav class="m-bottomnav" aria-label="Secciones">
+  <button data-mnav="overview" onclick="showPanelByName('overview')"><i class="fa-solid fa-gauge"></i><span>Resumen</span></button>
+  <button data-mnav="orders" onclick="showPanelByName('orders')"><i class="fa-solid fa-clipboard-list"></i><span>Pedidos</span><b class="m-badge" data-pending-badge hidden></b></button>
+  <button data-mnav="products" onclick="showPanelByName('products')"><i class="fa-solid fa-boxes-stacked"></i><span>Productos</span></button>
+  <button data-mnav="alerts" onclick="showPanelByName('alerts')"><i class="fa-solid fa-bell"></i><span>Avisos</span></button>
+  <button onclick="MOBILE.openDrawer()"><i class="fa-solid fa-ellipsis"></i><span>Más</span></button>
+</nav>
+<div class="m-drawer-backdrop" onclick="MOBILE.closeDrawer()"></div>
+
+<!-- Alerta urgente de venta nueva (panel abierto) -->
+<div class="sale-alert" id="saleAlert" role="alert" aria-live="assertive" hidden>
+  <div class="sale-alert-icon"><i class="fa-solid fa-bell"></i></div>
+  <div class="sale-alert-text">
+    <strong id="saleAlertTitle">¡NUEVA VENTA!</strong>
+    <span id="saleAlertBody"></span>
+  </div>
+  <button class="sale-alert-btn" id="saleAlertOpen">Ver pedido</button>
+  <button class="sale-alert-close" onclick="LIVE.dismiss()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+</div>
+
 <script src="dashboard.js"></script>
+<script src="live.js"></script>
 <script src="finance.js"></script>
 </body>
 </html>

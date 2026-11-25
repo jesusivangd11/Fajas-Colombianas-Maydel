@@ -8,7 +8,10 @@ router.get('/monthly', adminOnly, async (req, res) => {
     const year = Number(req.query.year) || new Date().getFullYear();
 
     const [revRows] = await pool.execute(
-      `SELECT MONTH(created_at)-1 AS month, COALESCE(SUM(total),0) AS revenue
+      // TiDB (only_full_group_by) exige que el SELECT use la MISMA expresión del
+      // GROUP BY: "MONTH(x)-1" contra "MONTH(x)" fallaba y el panel no mostraba
+      // las gráficas. Se resta 1 aquí abajo, en JS.
+      `SELECT MONTH(created_at) AS m, COALESCE(SUM(total),0) AS revenue
        FROM orders
        WHERE YEAR(created_at) = ? AND status != 'cancelled' AND payment_status <> 'refunded'
          -- un pedido con tarjeta solo es venta cuando Stripe confirma el pago
@@ -18,7 +21,7 @@ router.get('/monthly', adminOnly, async (req, res) => {
     );
 
     const [expRows] = await pool.execute(
-      `SELECT MONTH(date)-1 AS month, COALESCE(SUM(amount),0) AS expenses
+      `SELECT MONTH(date) AS m, COALESCE(SUM(amount),0) AS expenses
        FROM expenses
        WHERE YEAR(date) = ?
        GROUP BY MONTH(date)`,
@@ -26,8 +29,8 @@ router.get('/monthly', adminOnly, async (req, res) => {
     );
 
     const months = Array.from({ length: 12 }, (_, i) => ({ month: i, revenue: 0, expenses: 0 }));
-    revRows.forEach(r => { months[r.month].revenue  = Number(r.revenue); });
-    expRows.forEach(r => { months[r.month].expenses = Number(r.expenses); });
+    revRows.forEach(r => { months[r.m - 1].revenue  = Number(r.revenue); });
+    expRows.forEach(r => { months[r.m - 1].expenses = Number(r.expenses); });
 
     res.json(months);
   } catch (err) {

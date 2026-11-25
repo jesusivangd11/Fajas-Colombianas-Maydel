@@ -157,6 +157,7 @@ app.use('/api/testimonials', require('./routes/testimonials'));
 app.use('/api/cart',       require('./routes/cart'));
 app.use('/api/wishlist',   require('./routes/wishlist'));
 app.use('/api/coupons',    require('./routes/coupons'));
+app.use('/api/admin',      require('./routes/admin'));
 
 app.use('/api', (err, req, res, next) => {
   if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Petición mal formada' });

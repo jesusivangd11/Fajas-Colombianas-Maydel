@@ -10,6 +10,7 @@ const {
 } = require('../services/orders');
 const mailer = require('../services/mailer');
 const telegram = require('../services/telegram');
+const push = require('../services/push');
 
 // Piezas mínimas de un mismo producto (sumando tallas/colores) para precio de mayoreo.
 const WHOLESALE_MIN = 6;
@@ -287,7 +288,7 @@ router.post('/', authenticate, async (req, res) => {
     // Con tarjeta no se avisa nada todavía: los avisos (clienta y admin) salen
     // cuando Stripe confirma el pago (services/orders.js → markOrderPaid).
     if (order.paymentMethod !== 'stripe') {
-      const avisos = [mailer.sendOrderToCustomer(order), mailer.sendOrderToAdmin(order), telegram.notifyNewOrder(order)];
+      const avisos = [mailer.sendOrderToCustomer(order), mailer.sendOrderToAdmin(order), telegram.notifyNewOrder(order), push.notifyNewOrder(order)];
       waitUntil(Promise.allSettled(avisos).then(logFailures('pedido ' + order.id)));
     }
 
